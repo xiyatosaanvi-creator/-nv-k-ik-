@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
@@ -21,8 +19,18 @@ import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.theme.*
 
 /**
- * A category card showing up to 4 real app icons, category name, and app count.
- * Tapping the card navigates to the full category list.
+ * PASS 1-2-3 — Premium Smart Category Card.
+ *
+ * Reference: the generated Ciyato Home screen image.
+ * Each card shows:
+ *   - Category name (bold, white)
+ *   - App count below it (muted, small)
+ *   - Row of 3–4 real app icons (larger)
+ *   - +N overflow badge if more than 3 icons
+ *
+ * Corner radius: 20dp (premium, not sharp, not too round).
+ * Background: CiyatoBgEl (#12171B) with subtle border.
+ * Icons: real installed app icons, 40dp in dense, 46dp in spacious.
  */
 @Composable
 fun SmartCategoryCard(
@@ -31,51 +39,58 @@ fun SmartCategoryCard(
     onTap: () -> Unit,
     onAppTap: (InstalledApp) -> Unit,
     modifier: Modifier = Modifier,
+    iconSize: Dp = 40.dp,
 ) {
-    val visible = apps.take(4)
-    val overflow = apps.size - visible.size
+    // Show 3 icons max in the card — cleaner, matches reference (3 icons + "+N")
+    val visible  = apps.take(3)
+    val overflow = (apps.size - visible.size).coerceAtLeast(0)
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(CiyatoBgEl)
-            .border(1.dp, CiyatoBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp))
             .clickable(onClick = onTap)
-            .padding(12.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Column {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
+            // Category name + count
+            Column {
                 Text(
                     text = category.displayName,
                     color = CiyatoWhite,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f)
+                    fontSize = 14.sp,
+                    lineHeight = 17.sp,
                 )
                 Text(
                     text = "${apps.size} apps",
                     color = CiyatoMuted,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
                 )
             }
-            Spacer(Modifier.height(10.dp))
-            // App icons row
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+            // App icons row + overflow
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 visible.forEach { app ->
                     RealAppIcon(
                         drawable = app.icon,
-                        size = 38.dp,
-                        modifier = Modifier.clickable { onAppTap(app) }
+                        size = iconSize,
+                        modifier = Modifier.clickable { onAppTap(app) },
                     )
                 }
                 if (overflow > 0) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .size(iconSize)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(CiyatoBgEl2)
+                            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(12.dp)),
                     ) {
                         Text(
                             text = "+$overflow",

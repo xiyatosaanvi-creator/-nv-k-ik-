@@ -11,12 +11,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.ciyato.launcher.data.InstalledApp
-import com.ciyato.launcher.ui.theme.CiyatoBgEl2
-import com.ciyato.launcher.ui.theme.CiyatoBorder
+import com.ciyato.launcher.ui.theme.*
 
 /**
- * Bottom dock showing up to 5 real installed app icons.
- * Falls back gracefully if fewer apps are available.
+ * PASS 1-2-3 — Premium bottom dock.
+ *
+ * Reference image: 5 real app icons in a frosted-glass pill at the very bottom.
+ * - Corner radius: 28dp (pill-like, premium).
+ * - Background: CiyatoBgEl2 at 0.88f alpha — not fully opaque, lets bg show through.
+ * - Border: CiyatoSubtleBorder (0.06 white) — very subtle, just enough depth.
+ * - Icon size: 54dp — same as reference.
+ * - Horizontal padding: 20dp, vertical: 14dp.
+ * - SpaceEvenly so icons are perfectly balanced.
  */
 @Composable
 fun BottomDock(
@@ -24,22 +30,27 @@ fun BottomDock(
     onAppTap: (InstalledApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(CiyatoBgEl2.copy(alpha = 0.92f))
-            .border(1.dp, CiyatoBorder, RoundedCornerShape(24.dp))
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 12.dp, vertical = 0.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(CiyatoBgEl2.copy(alpha = 0.88f))
+            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(28.dp))
+            .padding(horizontal = 20.dp, vertical = 14.dp),
     ) {
-        dockApps.take(5).forEach { app ->
-            RealAppIcon(
-                drawable = app.icon,
-                size = 52.dp,
-                modifier = Modifier.clickable { onAppTap(app) }
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            dockApps.take(5).forEach { app ->
+                RealAppIcon(
+                    drawable = app.icon,
+                    size = 54.dp,
+                    modifier = Modifier.clickable { onAppTap(app) },
+                )
+            }
         }
     }
 }

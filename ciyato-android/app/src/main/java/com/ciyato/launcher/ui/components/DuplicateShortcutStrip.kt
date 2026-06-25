@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,9 +24,14 @@ import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.theme.*
 
 /**
- * "Duplicate smart shortcuts" strip.
- * One app visually appears in multiple categories — same installed app, multiple contexts.
- * This is a core Ciyato differentiator.
+ * PASS 1-2-3 — Duplicate Smart Shortcuts strip.
+ *
+ * Reference: the generated Ciyato Home screen — gold sparkle icon + title
+ * "Duplicate smart shortcuts", subtitle "One app, multiple places. Always in context."
+ * Then a horizontal row of real app icons with a small "+" badge on each.
+ * Card background: CiyatoGold tinted (~0.08f alpha) — matches the warm gold card
+ * in the reference image. Border: CiyatoGold at ~0.20f.
+ * "Learn more" link in gold at the bottom right.
  */
 @Composable
 fun DuplicateShortcutStrip(
@@ -36,70 +42,106 @@ fun DuplicateShortcutStrip(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(CiyatoBgEl)
-            .border(1.dp, CiyatoBorder, RoundedCornerShape(16.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(CiyatoGold.copy(alpha = 0.08f))
+            .border(1.dp, CiyatoGold.copy(alpha = 0.22f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+        // Header row: sparkle icon + titles
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // Gold sparkle badge
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CiyatoGold.copy(alpha = 0.18f)),
+            ) {
+                Icon(
+                    Icons.Default.AutoFixHigh,
+                    contentDescription = null,
+                    tint = CiyatoGold,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Duplicate smart shortcuts",
                     color = CiyatoWhite,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
                 )
                 Text(
-                    "One app, multiple places.",
-                    color = CiyatoMuted,
+                    "One app, multiple places. Always in context.",
+                    color = CiyatoSec,
                     fontSize = 11.sp,
+                    lineHeight = 15.sp,
                 )
             }
-            Text(
-                "Manage",
-                color = CiyatoBlue,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable(onClick = onManage)
-            )
         }
-        Spacer(Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        Spacer(Modifier.height(12.dp))
+
+        // Icon strip with "+" badge on each app
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             items(apps.take(6)) { app ->
                 Box(contentAlignment = Alignment.TopEnd) {
                     RealAppIcon(
                         drawable = app.icon,
-                        size = 44.dp,
-                        modifier = Modifier.clickable { onAppTap(app) }
+                        size = 46.dp,
+                        modifier = Modifier.clickable { onAppTap(app) },
                     )
-                    // Small "+" badge
+                    // Small gold "+" badge top-right
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(16.dp)
                             .clip(CircleShape)
-                            .background(CiyatoGold)
+                            .background(CiyatoGold),
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null,
-                            tint = CiyatoBg, modifier = Modifier.size(9.dp))
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            tint = CiyatoBg,
+                            modifier = Modifier.size(10.dp),
+                        )
                     }
                 }
             }
+
+            // "+" add slot at the end
             item {
-                // "+" add button
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(13.dp))
                         .background(CiyatoBgEl2)
-                        .border(1.dp, CiyatoBorder, RoundedCornerShape(12.dp))
-                        .clickable(onClick = onManage)
+                        .border(1.dp, CiyatoBorder, RoundedCornerShape(13.dp))
+                        .clickable(onClick = onManage),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add shortcut",
+                    Icon(Icons.Default.Add, contentDescription = "Add",
                         tint = CiyatoSec, modifier = Modifier.size(20.dp))
                 }
             }
         }
+
+        Spacer(Modifier.height(10.dp))
+
+        // "Learn more" / Manage link
+        Text(
+            "Learn more",
+            color = CiyatoGold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
