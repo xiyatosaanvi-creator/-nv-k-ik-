@@ -1,0 +1,18 @@
+#!/bin/sh
+# Gradle wrapper script for Unix
+# Auto-downloads Gradle if not present.
+
+APP_HOME=$(cd "$(dirname "$0")" && pwd)
+GRADLE_WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+GRADLE_WRAPPER_PROPERTIES="$APP_HOME/gradle/wrapper/gradle-wrapper.properties"
+
+# If wrapper jar doesn't exist, download it
+if [ ! -f "$GRADLE_WRAPPER_JAR" ]; then
+    echo "Gradle wrapper JAR not found. Please open this project in Android Studio."
+    echo "Android Studio will download the Gradle wrapper automatically."
+    echo ""
+    echo "Alternative: run 'gradle wrapper' if Gradle is installed locally."
+    exit 1
+fi
+
+exec java -jar "$GRADLE_WRAPPER_JAR" "$@"

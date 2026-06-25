@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ciyato</string>
+    <string name="app_description">AI Phone Organizer for Android</string>
+    <string name="set_as_home">Set Ciyato as Home</string>
+    <string name="switch_back">Switch back to system launcher</string>
+    <string name="privacy_note">Your data stays on your device.</string>
+</resources>

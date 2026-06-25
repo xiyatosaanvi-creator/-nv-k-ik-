@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ciyato "C*" logo as a vector drawable -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- White "C" arc -->
+    <path
+        android:fillColor="#F4F5F6"
+        android:pathData="M54,28 C38.54,28 26,40.54 26,56 C26,71.46 38.54,84 54,84
+                          C63.6,84 72.1,79.2 77.2,71.8 L69.6,67.4
+                          C66.0,72.4 60.4,75.6 54,75.6
+                          C43.2,75.6 34.4,66.8 34.4,56
+                          C34.4,45.2 43.2,36.4 54,36.4
+                          C60.4,36.4 66.0,39.6 69.6,44.6 L77.2,40.2
+                          C72.1,32.8 63.6,28 54,28 Z" />
+
+    <!-- Gold sparkle star -->
+    <path
+        android:fillColor="#C6A15B"
+        android:pathData="M76,28 L77.8,33.2 L83,35 L77.8,36.8 L76,42 L74.2,36.8 L69,35 L74.2,33.2 Z" />
+</vector>
