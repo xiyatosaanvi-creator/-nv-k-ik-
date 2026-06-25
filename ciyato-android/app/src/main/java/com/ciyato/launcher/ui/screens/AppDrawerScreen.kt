@@ -150,16 +150,15 @@ fun AppDrawerScreen(
                 .fillMaxSize()
                 .background(DrawerBg)
                 .padding(scaffoldPadding)
-                .windowInsetsPadding(WindowInsets.systemBars),
         ) {
-            // ── Header ────────────────────────────────────────────────────────
+            // ── 1. Header: Logo + Smart App Library Chip ──────────────────────
             DrawerHeader()
 
-            // ── Search bar ────────────────────────────────────────────────────
+            // ── 2. Search Area ────────────────────────────────────────────────
             CiyatoSearchBar(
                 query           = searchQuery,
                 onQueryChange   = viewModel::setSearch,
-                placeholder     = "Search apps…",
+                placeholder     = "Search apps, files, contacts…",
                 backgroundColor = DrawerSearch,
                 borderColor     = DrawerBorder,
                 iconTint        = DrawerMuted,
@@ -170,9 +169,9 @@ fun AppDrawerScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // ── Filter chips ──────────────────────────────────────────────────
+            // ── 3. Filter Area ────────────────────────────────────────────────
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -182,42 +181,42 @@ fun AppDrawerScreen(
                     Text(
                         text = label,
                         color = if (selected) DrawerBg else DrawerSec,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         fontSize = 13.sp,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(if (selected) CiyatoGold else DrawerCard)
-                            .border(1.dp, if (selected) CiyatoGold else DrawerBorder, RoundedCornerShape(999.dp))
+                            .border(1.dp, if (selected) CiyatoGold else DrawerBorder, RoundedCornerShape(20.dp))
                             .clickable {
                                 activeFilter = cat
                                 viewModel.setSearch("")   // clear search when chip selected
                             }
-                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // ── Dot indicator (3 dots — pagination visual) ────────────────────
+            // ── 4. Pagination Indicator ───────────────────────────────────────
             Row(
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             ) {
                 repeat(3) { i ->
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(if (i == 1) 20.dp else 6.dp, 6.dp)
+                            .padding(horizontal = 4.dp)
+                            .size(if (i == 1) 22.dp else 6.dp, 6.dp)
                             .clip(RoundedCornerShape(3.dp))
                             .background(if (i == 1) CiyatoGold else DrawerBorder),
                     )
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // ── Main content: search results OR section cards ─────────────────
+            // ── 5. Main content: search results OR section cards ─────────────────
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
@@ -239,9 +238,9 @@ fun AppDrawerScreen(
                         start  = 16.dp,
                         end    = 16.dp,
                         top    = 0.dp,
-                        bottom = 24.dp,
+                        bottom = 32.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(sectionsToShow) { section ->
@@ -252,7 +251,7 @@ fun AppDrawerScreen(
                         )
                     }
 
-                    // Duplicate Smart Shortcuts card at the bottom
+                    // ── 6. Duplicate Shortcuts Area ───────────────────────────
                     item {
                         DuplicateShortcutsDrawerCard(
                             apps     = viewModel.multiCategoryApps().take(6),
@@ -351,19 +350,16 @@ private fun DrawerSectionCard(
         else                        -> viewModel.byCategory(section.category)
     }
 
-    if (sectionApps.isEmpty()) return   // hide empty sections silently
+    if (sectionApps.isEmpty()) return
 
-    // Icons shown in the header strip (always visible): first 4
     val previewIcons = sectionApps.take(4)
-    // Full icons shown when expanded (next 8 = 12 total with label grid)
-    val expandedApps = sectionApps
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(DrawerCard)
-            .border(1.dp, DrawerBorder, RoundedCornerShape(20.dp)),
+            .border(1.dp, DrawerBorder, RoundedCornerShape(22.dp)),
     ) {
         // ── Card header ────────────────────────────────────────────────────
         Row(
@@ -371,70 +367,59 @@ private fun DrawerSectionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = section.isExpandable) { expanded = !expanded }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
         ) {
-            // Category name
             Text(
                 text = section.label,
                 color = DrawerText,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 modifier = Modifier.weight(1f),
             )
 
-            // App count
             Text(
                 text = "${sectionApps.size} apps",
                 color = DrawerMuted,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(end = 10.dp),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(end = 12.dp),
             )
 
-            // 3-icon preview strip in header
-            Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+            // Preview strip
+            Row(horizontalArrangement = Arrangement.spacedBy((-10).dp)) {
                 previewIcons.take(3).forEach { app ->
                     RealAppIcon(
                         drawable     = app.icon,
-                        size         = 28.dp,
-                        cornerRadius = 8.dp,
+                        size         = 30.dp,
+                        cornerRadius = 9.dp,
                         modifier     = Modifier
-                            .border(2.dp, DrawerBg, RoundedCornerShape(8.dp))
+                            .border(2.dp, DrawerBg, RoundedCornerShape(9.dp))
                             .clickable { viewModel.launchApp(app) },
                     )
                 }
             }
 
-            Spacer(Modifier.width(8.dp))
-
-            // Expand/collapse chevron (only for expandable sections)
             if (section.isExpandable) {
+                Spacer(Modifier.width(10.dp))
                 Icon(
                     Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    contentDescription = null,
                     tint = DrawerSec,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .then(
-                            if (!expanded) Modifier else Modifier
-                        ),
+                    modifier = Modifier.size(22.dp),
                 )
             }
         }
 
-        // ── Expanded icon rows ─────────────────────────────────────────────
         if (expanded) {
-            // Separator
             HorizontalDivider(
                 color     = DrawerBorder,
                 thickness = 1.dp,
-                modifier  = Modifier.padding(horizontal = 14.dp),
+                modifier  = Modifier.padding(horizontal = 16.dp),
             )
 
-            // App icon grid: 4 icons per row, with label
-            val rows = expandedApps.take(12).chunked(4)
+            val rows = sectionApps.take(12).chunked(4)
             Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 rows.forEach { rowApps ->
                     Row(
@@ -444,29 +429,25 @@ private fun DrawerSectionCard(
                         rowApps.forEach { app ->
                             AppIconTile(
                                 app        = app,
-                                iconSize   = 52.dp,
+                                iconSize   = 56.dp,
                                 labelColor = DrawerSec,
                                 onClick    = { viewModel.launchApp(app) },
                                 modifier   = Modifier.weight(1f),
                             )
                         }
-                        // Fill empty cells in last row
-                        repeat(4 - rowApps.size) {
-                            Spacer(Modifier.weight(1f))
-                        }
+                        repeat(4 - rowApps.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
 
-            // "View all" if more than 12 apps
-            if (expandedApps.size > 12) {
+            if (sectionApps.size > 12) {
                 Text(
-                    "View all ${expandedApps.size} apps",
+                    "View all ${sectionApps.size} apps",
                     color = CiyatoGold,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, bottom = 12.dp)
+                        .padding(horizontal = 18.dp, bottom = 14.dp)
                         .align(Alignment.End),
                 )
             }
@@ -519,49 +500,49 @@ private fun DuplicateShortcutsDrawerCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(CiyatoGold.copy(alpha = 0.08f))
-            .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
         // Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(9.dp))
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(CiyatoGold.copy(alpha = 0.18f)),
             ) {
                 Icon(Icons.Default.AutoFixHigh, contentDescription = null,
-                    tint = CiyatoGold, modifier = Modifier.size(16.dp))
+                    tint = CiyatoGold, modifier = Modifier.size(18.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Duplicate smart shortcuts",
                     color = DrawerText,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                 )
                 Text(
                     "One app, multiple places.",
                     color = DrawerSec,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         // Icon row
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             items(apps) { app ->
                 AppIconTile(
                     app        = app,
-                    iconSize   = 50.dp,
+                    iconSize   = 54.dp,
                     labelColor = DrawerSec,
                     onClick    = { onAppTap(app) },
                 )
@@ -575,15 +556,15 @@ private fun DuplicateShortcutsDrawerCard(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(15.dp))
                             .background(DrawerCardAlt)
-                            .border(1.dp, DrawerBorder, RoundedCornerShape(14.dp)),
+                            .border(1.dp, DrawerBorder, RoundedCornerShape(15.dp)),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Add",
-                            tint = DrawerSec, modifier = Modifier.size(20.dp))
+                            tint = DrawerSec, modifier = Modifier.size(24.dp))
                     }
-                    Spacer(Modifier.height(5.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text("Manage", color = DrawerMuted, fontSize = 11.sp)
                 }
             }

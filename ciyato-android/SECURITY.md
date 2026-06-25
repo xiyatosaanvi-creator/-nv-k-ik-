@@ -1,91 +1,27 @@
-# SECURITY.md — Ciyato Android Launcher
+# Security and Privacy Policy — Ciyato
 
-## Privacy First. Always.
+Ciyato is designed with a **Privacy-First** and **Local-First** philosophy. As a phone organizer and launcher, we handle sensitive information about your apps and files, and we take this responsibility seriously.
 
-Ciyato is designed from the ground up with user privacy as a non-negotiable.
+## Core Security Principles
 
----
+1.  **Local Processing:** All app categorization, file indexing, and smart organization happen entirely on your device. Ciyato does not upload your app list, file names, or photo metadata to any server.
+2.  **Permission Minimization:** We only request permissions that are absolutely necessary for the features you choose to use.
+    *   **Home App:** Required to function as your launcher and provide the smart home experience.
+    *   **Query All Packages:** Required to display and organize your installed apps.
+    *   **Storage/Media (Optional):** Requested only when you access the "Files" or "Photos" features.
+3.  **No Hidden Tracking:** Ciyato does not contain hidden trackers, background analytics, or "phone booster" scams.
+4.  **User Control:** You are always in control. You can switch back to your previous launcher or uninstall Ciyato at any time through the standard Android settings.
 
-## What Ciyato Does
+## Data Handling
 
-| Action | Status |
-|--------|--------|
-| Read installed app list (to build launcher) | ✅ Local only |
-| Display real app icons | ✅ From device, never uploaded |
-| Launch real apps | ✅ Standard Android launch intents |
-| Store user preferences (dark mode, density, etc.) | ✅ DataStore, on-device only |
-| Display weather/agenda (mock for beta) | ✅ No location permission used |
+*   **Installed Apps:** We read your installed app list to build the launcher interface and categorize them. This data stays in a local database on your device.
+*   **Search Index:** Your app search index is built and stored locally.
+*   **Files & Photos:** If granted permission, we index file metadata to create smart collections. We do not move, delete, or modify your files without your explicit confirmation.
+*   **No Cloud Sync (Beta):** In the current beta version, there is no cloud sync. All settings and organization preferences are stored locally in Android DataStore.
 
----
+## Reporting a Vulnerability
 
-## What Ciyato Does NOT Do
-
-| Action | Status |
-|--------|--------|
-| Upload app list to any server | ❌ Never |
-| Upload icon bitmaps | ❌ Never |
-| Upload file names or paths | ❌ Never |
-| Upload photo names or metadata | ❌ Never |
-| Collect analytics | ❌ Not implemented |
-| Track usage patterns | ❌ Not implemented |
-| Use background processes to spy | ❌ Never |
-| Use Accessibility Service | ❌ Not requested |
-| Use notification listener | ❌ Not requested |
-| Show fake antivirus/cleaner warnings | ❌ Never |
-| Lock the user in | ❌ Switch-back always available |
+If you discover a security vulnerability in Ciyato, please report it privately. We are committed to addressing security issues promptly to protect our users.
 
 ---
-
-## Permissions Used
-
-| Permission | Reason | Required |
-|-----------|--------|----------|
-| `QUERY_ALL_PACKAGES` | Ciyato is a launcher and must see installed apps | Yes, for launcher function |
-
-### Permissions NOT used in beta
-- `READ_EXTERNAL_STORAGE` / `READ_MEDIA_IMAGES` — only requested when user opens Photos
-- `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` — not requested
-- `INTERNET` — not requested (all functionality is offline)
-- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — not requested
-- `READ_CONTACTS` — not requested
-- `READ_CALL_LOG` — not requested
-- `CAMERA` — not requested
-- `RECORD_AUDIO` / `MICROPHONE` — not requested
-- `BIND_ACCESSIBILITY_SERVICE` — not requested
-- `BIND_NOTIFICATION_LISTENER_SERVICE` — not requested
-
----
-
-## Turning Off Ciyato
-
-Ciyato never traps the user. You can always:
-
-1. Go to **Ciyato Settings → Turn Off Ciyato → Switch back to system launcher**
-2. This opens Android's **Default Apps / Home App** settings.
-3. Select your old launcher.
-4. Press Home — your old launcher is active immediately.
-5. To uninstall: go to **App Info → Uninstall**.
-
-> Note: Uninstall while Ciyato is still the default Home app will prompt you to switch first. This is normal Android behavior — not a Ciyato restriction.
-
----
-
-## Data Storage
-
-All preferences are stored via **Jetpack DataStore** in the app's private storage:
-- `data/data/com.ciyato.launcher/files/datastore/ciyato_settings.preferences_pb`
-
-This file is:
-- Readable only by Ciyato (standard Android sandboxing)
-- Deleted when the app is uninstalled
-- Never synced to cloud
-
----
-
-## Reporting Security Issues
-
-If you discover a security issue, please open a private GitHub issue or contact the project maintainer directly. Do not disclose security issues publicly before a fix is available.
-
----
-
-*Last updated: 2026-06-25*
+*Ciyato — Organize Smarter. Live Better.*

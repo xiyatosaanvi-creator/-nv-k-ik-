@@ -51,11 +51,11 @@ fun SmartCategoryCard(
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp))
             .clickable(onClick = onTap)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {
         Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
             // Category name + count
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
                     text = category.displayName,
                     color = CiyatoWhite,
@@ -73,7 +73,7 @@ fun SmartCategoryCard(
 
             // App icons row + overflow
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 visible.forEach { app ->

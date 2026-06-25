@@ -38,24 +38,32 @@ private val agendaItems = listOf(
 )
 
 @Composable
-fun WeatherAgendaRow(modifier: Modifier = Modifier) {
+fun WeatherAgendaRow(
+    isDense: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val height = if (isDense) 160.dp else 190.dp
     Row(
-        modifier = modifier.height(IntrinsicSize.Min),
+        modifier = modifier.height(height),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        WeatherCard(modifier = Modifier.weight(1f).fillMaxHeight())
-        AgendaCard(modifier  = Modifier.weight(1.35f).fillMaxHeight())
+        WeatherCard(isDense = isDense, modifier = Modifier.weight(1f).fillMaxHeight())
+        AgendaCard(isDense = isDense, modifier  = Modifier.weight(1.35f).fillMaxHeight())
     }
 }
 
 @Composable
-fun WeatherCard(modifier: Modifier = Modifier) {
+fun WeatherCard(isDense: Boolean, modifier: Modifier = Modifier) {
+    val padding = if (isDense) 16.dp else 20.dp
+    val tempSize = if (isDense) 30.sp else 36.sp
+    val iconSize = if (isDense) 30.dp else 36.dp
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
-            .padding(16.dp),
+            .padding(padding),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         // Sun + temp top block
@@ -67,20 +75,20 @@ fun WeatherCard(modifier: Modifier = Modifier) {
                 Icons.Outlined.WbSunny,
                 contentDescription = "Weather",
                 tint = CiyatoGoldSoft,
-                modifier = Modifier.size(30.dp).padding(top = 2.dp),
+                modifier = Modifier.size(iconSize).padding(top = 2.dp),
             )
             Column {
                 Text(
                     "24°",
                     color = CiyatoWhite,
-                    fontSize = 30.sp,
+                    fontSize = tempSize,
                     fontWeight = FontWeight.Bold,
-                    lineHeight = 32.sp,
+                    lineHeight = if (isDense) 32.sp else 38.sp,
                 )
                 Text(
                     "Partly sunny",
                     color = CiyatoSec,
-                    fontSize = 12.sp,
+                    fontSize = if (isDense) 12.sp else 13.sp,
                 )
             }
         }
@@ -89,20 +97,23 @@ fun WeatherCard(modifier: Modifier = Modifier) {
 
         // Bottom location block
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("Feels like 26°", color = CiyatoMuted, fontSize = 11.sp)
-            Text("New York  ·  AQI 42", color = CiyatoMuted, fontSize = 10.sp)
+            Text("Feels like 26°", color = CiyatoMuted, fontSize = if (isDense) 11.sp else 12.sp)
+            Text("New York  ·  AQI 42", color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
         }
     }
 }
 
 @Composable
-fun AgendaCard(modifier: Modifier = Modifier) {
+fun AgendaCard(isDense: Boolean, modifier: Modifier = Modifier) {
+    val paddingH = if (isDense) 14.dp else 18.dp
+    val paddingV = if (isDense) 12.dp else 16.dp
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = paddingH, vertical = paddingV),
     ) {
         // Header row
         Row(
@@ -114,12 +125,12 @@ fun AgendaCard(modifier: Modifier = Modifier) {
                 "Today",
                 color = CiyatoWhite,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontSize = if (isDense) 14.sp else 16.sp,
             )
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(if (isDense) 22.dp else 26.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(CiyatoGlassStr),
             ) {
@@ -127,44 +138,45 @@ fun AgendaCard(modifier: Modifier = Modifier) {
                     Icons.Default.Add,
                     contentDescription = "Add event",
                     tint = CiyatoSec,
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(if (isDense) 14.dp else 16.dp),
                 )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(if (isDense) 8.dp else 12.dp))
 
         // Agenda items
-        agendaItems.forEach { (time, event, dur) ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Gold left bar
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .height(30.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(CiyatoGold),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(time, color = CiyatoMuted, fontSize = 10.sp, lineHeight = 13.sp)
-                    Text(event, color = CiyatoWhite, fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium, lineHeight = 15.sp)
+        val itemsToShow = if (isDense) agendaItems else agendaItems + Triple("08:30 PM", "Dinner", "90m")
+        Column(verticalArrangement = Arrangement.spacedBy(if (isDense) 8.dp else 12.dp)) {
+            itemsToShow.forEach { (time, event, dur) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Gold left bar
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .height(if (isDense) 30.dp else 34.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(CiyatoGold),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(time, color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
+                        Text(event, color = CiyatoWhite, fontSize = if (isDense) 12.sp else 13.sp,
+                            fontWeight = FontWeight.Medium)
+                    }
+                    Text(dur, color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
                 }
-                Text(dur, color = CiyatoMuted, fontSize = 10.sp)
             }
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.weight(1f))
         Text(
             "View all",
             color = CiyatoBlue,
-            fontSize = 11.sp,
+            fontSize = if (isDense) 11.sp else 12.sp,
             modifier = Modifier.align(Alignment.End),
         )
     }

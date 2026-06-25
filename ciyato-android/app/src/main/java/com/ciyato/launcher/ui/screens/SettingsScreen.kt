@@ -1,22 +1,23 @@
 package com.ciyato.launcher.ui.screens
 
+import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -33,7 +34,6 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val denseLayout by viewModel.denseLayout.collectAsState()
-    val darkMode by viewModel.darkMode.collectAsState()
     val goldAccent by viewModel.goldAccent.collectAsState()
     val smartCategories by viewModel.smartCategories.collectAsState()
     val duplicateShortcuts by viewModel.duplicateShortcuts.collectAsState()
@@ -58,48 +58,39 @@ fun SettingsScreen(
                 top = padding.calculateTopPadding(),
                 bottom = padding.calculateBottomPadding() + 32.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
-            // ── LAUNCHER SECTION ──────────────────────────────────────────────
+            // ── Launcher ──────────────────────────────────────────────────────
             item { SectionHeader("Launcher") }
-
             item {
                 SettingsAction(
                     icon = Icons.Default.Home,
-                    title = "Set Ciyato as default Home app",
-                    subtitle = "Open Android Home app selector",
+                    title = "Set Ciyato as Home",
+                    subtitle = "Choose Ciyato as your default launcher",
                     onClick = {
-                        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
+                        context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
                     }
                 )
             }
             item {
                 SettingsAction(
-                    icon = Icons.Default.SettingsApplications,
+                    icon = Icons.Default.Launch,
                     title = "Switch back to system launcher",
-                    subtitle = "Settings → Default apps → Home app",
+                    subtitle = "Change Home app in system settings",
                     tintColor = CiyatoBlue,
                     onClick = {
-                        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
+                        context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
                     }
                 )
             }
 
-            // ── LAYOUT SECTION ──────────────────────────────────────────────
-            item { SectionHeader("Layout") }
-
+            // ── Layout & Theme ────────────────────────────────────────────────
+            item { SectionHeader("Layout & Theme") }
             item {
                 SettingsToggle(
                     icon = Icons.Default.GridView,
-                    title = "Dense layout",
-                    subtitle = "3-column category grid (off = 2-column)",
+                    title = "Dense Layout",
+                    subtitle = "Show more content on home screen",
                     checked = denseLayout,
                     onCheckedChange = viewModel::setDenseLayout,
                 )
@@ -107,93 +98,58 @@ fun SettingsScreen(
             item {
                 SettingsToggle(
                     icon = Icons.Default.Star,
-                    title = "Gold accent",
-                    subtitle = "Ciyato's signature gold colour",
+                    title = "Gold Accents",
+                    subtitle = "Premium gold highlights",
                     checked = goldAccent,
                     onCheckedChange = viewModel::setGoldAccent,
                 )
             }
+
+            // ── Organization ──────────────────────────────────────────────────
+            item { SectionHeader("Organization") }
             item {
                 SettingsToggle(
-                    icon = Icons.Default.Apps,
-                    title = "Smart categories",
-                    subtitle = "Auto-organize apps into categories",
+                    icon = Icons.Default.Category,
+                    title = "Smart Categories",
+                    subtitle = "Automatic app grouping",
                     checked = smartCategories,
                     onCheckedChange = viewModel::setSmartCategories,
                 )
             }
             item {
                 SettingsToggle(
-                    icon = Icons.Default.CopyAll,
-                    title = "Duplicate smart shortcuts",
-                    subtitle = "Show one app in multiple categories",
+                    icon = Icons.Default.ContentCopy,
+                    title = "Duplicate Shortcuts",
+                    subtitle = "Show apps in multiple contexts",
                     checked = duplicateShortcuts,
                     onCheckedChange = viewModel::setDuplicateShortcuts,
                 )
             }
-            item {
-                SettingsAction(
-                    icon = Icons.Default.RestartAlt,
-                    title = "Reset layout",
-                    subtitle = "Restore default categories and settings",
-                    onClick = { viewModel.resetLayout() }
-                )
-            }
 
-            // ── PRIVACY SECTION ──────────────────────────────────────────────
+            // ── Privacy ───────────────────────────────────────────────────────
             item { SectionHeader("Privacy") }
-
             item {
                 InfoCard(
                     icon = Icons.Default.Lock,
-                    title = "Your data stays on your device",
-                    body = "• Ciyato reads installed app names and icons to build your launcher.\n" +
-                           "• Nothing is uploaded or shared.\n" +
-                           "• No analytics. No ads. No tracking.\n" +
-                           "• File/photo features request permission only when you use them."
+                    title = "Local Organization Only",
+                    body = "All app indexing and categorization happens locally on your device. No data is uploaded to any server."
                 )
             }
 
-            // ── DANGER / UNINSTALL SECTION ───────────────────────────────────
-            item { SectionHeader("Turn off Ciyato") }
-
+            // ── Danger Zone ───────────────────────────────────────────────────
+            item { SectionHeader("Danger Zone") }
             item {
                 SettingsAction(
-                    icon = Icons.Default.ExitToApp,
-                    title = "Disable Ciyato Home Mode",
-                    subtitle = "Open Default Apps → choose another Home app",
-                    tintColor = MaterialTheme.colorScheme.error,
+                    icon = Icons.Default.Info,
+                    title = "App Info / Uninstall",
+                    subtitle = "Open system settings to uninstall",
+                    tintColor = Color(0xFFEF4444),
                     onClick = {
-                        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", context.packageName, null)
                         }
                         context.startActivity(intent)
                     }
-                )
-            }
-            item {
-                SettingsAction(
-                    icon = Icons.Default.Delete,
-                    title = "Uninstall Ciyato",
-                    subtitle = "Open App Info → Uninstall",
-                    tintColor = MaterialTheme.colorScheme.error,
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_DELETE,
-                            Uri.parse("package:${context.packageName}")
-                        ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                Text(
-                    "Ciyato remains your Home app only because you selected it.\n" +
-                    "You can switch back or uninstall at any time.",
-                    color = CiyatoMuted,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }
@@ -203,11 +159,12 @@ fun SettingsScreen(
 @Composable
 private fun SectionHeader(title: String) {
     Text(
-        title,
+        text = title.uppercase(),
         color = CiyatoGold,
         fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
     )
 }
 
@@ -217,28 +174,35 @@ private fun SettingsToggle(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CiyatoBgEl)
-            .border(1.dp, CiyatoBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        color = CiyatoBgEl,
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CiyatoSubtleBorder)
     ) {
-        Icon(icon, contentDescription = null, tint = CiyatoSec, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = CiyatoMuted, fontSize = 11.sp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(icon, null, tint = CiyatoSec, modifier = Modifier.size(24.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text(subtitle, color = CiyatoMuted, fontSize = 12.sp)
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = CiyatoWhite,
+                    checkedTrackColor = CiyatoGold,
+                    uncheckedThumbColor = CiyatoMuted,
+                    uncheckedTrackColor = CiyatoBgEl2
+                )
+            )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = CiyatoGold, checkedTrackColor = CiyatoGold.copy(alpha = 0.3f)),
-        )
     }
 }
 
@@ -247,27 +211,27 @@ private fun SettingsAction(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    tintColor: androidx.compose.ui.graphics.Color = CiyatoSec,
-    onClick: () -> Unit,
+    tintColor: Color = CiyatoWhite,
+    onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CiyatoBgEl)
-            .border(1.dp, CiyatoBorder, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        onClick = onClick,
+        color = CiyatoBgEl,
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CiyatoSubtleBorder)
     ) {
-        Icon(icon, contentDescription = null, tint = tintColor, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = CiyatoMuted, fontSize = 11.sp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(icon, null, tint = if (tintColor == CiyatoWhite) CiyatoSec else tintColor, modifier = Modifier.size(24.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = tintColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text(subtitle, color = CiyatoMuted, fontSize = 12.sp)
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = CiyatoMuted)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null,
-            tint = CiyatoMuted, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -276,16 +240,15 @@ private fun InfoCard(icon: ImageVector, title: String, body: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CiyatoGold.copy(alpha = 0.08f))
-            .border(1.dp, CiyatoGold.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
-            .padding(14.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(CiyatoBgEl2)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, contentDescription = null, tint = CiyatoGold, modifier = Modifier.size(18.dp))
-            Text(title, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, null, tint = CiyatoGold, modifier = Modifier.size(20.dp))
+            Text(title, color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
-        Spacer(Modifier.height(8.dp))
         Text(body, color = CiyatoSec, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }

@@ -45,18 +45,18 @@ fun DuplicateShortcutStrip(
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoGold.copy(alpha = 0.08f))
             .border(1.dp, CiyatoGold.copy(alpha = 0.22f), RoundedCornerShape(22.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
         // Header row: sparkle icon + titles
         Row(
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Gold sparkle badge
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(CiyatoGold.copy(alpha = 0.18f)),
             ) {
@@ -85,18 +85,18 @@ fun DuplicateShortcutStrip(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         // Icon strip with "+" badge on each app
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items(apps.take(6)) { app ->
                 Box(contentAlignment = Alignment.TopEnd) {
                     RealAppIcon(
                         drawable = app.icon,
-                        size = 46.dp,
+                        size = 48.dp,
                         modifier = Modifier.clickable { onAppTap(app) },
                     )
                     // Small gold "+" badge top-right
@@ -104,8 +104,10 @@ fun DuplicateShortcutStrip(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(16.dp)
+                            .offset(x = 2.dp, y = (-2).dp)
                             .clip(CircleShape)
-                            .background(CiyatoGold),
+                            .background(CiyatoGold)
+                            .border(1.5.dp, CiyatoBg, CircleShape),
                     ) {
                         Icon(
                             Icons.Default.Add,
@@ -122,10 +124,10 @@ fun DuplicateShortcutStrip(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(13.dp))
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(CiyatoBgEl2)
-                        .border(1.dp, CiyatoBorder, RoundedCornerShape(13.dp))
+                        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(14.dp))
                         .clickable(onClick = onManage),
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add",
@@ -134,7 +136,7 @@ fun DuplicateShortcutStrip(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         // "Learn more" / Manage link
         Text(
@@ -142,6 +144,7 @@ fun DuplicateShortcutStrip(
             color = CiyatoGold,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
+            modifier = Modifier.align(Alignment.End)
         )
     }
 }

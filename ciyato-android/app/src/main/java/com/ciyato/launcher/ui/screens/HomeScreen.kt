@@ -110,7 +110,7 @@ fun HomeScreen(
         SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date())
     }
 
-    // Dock: Phone → Messages → Chrome → Camera → Ciyato (or fallback to first 5 apps)
+    // Dock apps
     val dockApps = remember(apps) {
         val priority = listOf(
             "com.google.android.dialer",
@@ -141,10 +141,13 @@ fun HomeScreen(
         }
     }
 
-    // Card/icon sizing by density
+    // Density-based sizing
     val categoryColumns = if (denseLayout) 3 else 2
-    val categoryIconSize: Dp = if (denseLayout) 38.dp else 44.dp
-    val categoryCardH: Dp   = if (denseLayout) 114.dp else 136.dp
+    val categoryIconSize: Dp = if (denseLayout) 38.dp else 46.dp
+    val categoryCardH: Dp   = if (denseLayout) 114.dp else 142.dp
+    val topPadding = if (denseLayout) 20.dp else 36.dp
+    val spacing = if (denseLayout) 14.dp else 22.dp
+    val greetingSize = if (denseLayout) 24.sp else 30.sp
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -169,14 +172,14 @@ fun HomeScreen(
                 contentPadding = PaddingValues(
                     start  = 16.dp,
                     end    = 16.dp,
-                    top    = scaffoldPadding.calculateTopPadding() + 20.dp,
-                    bottom = 110.dp,   // reserve space for dock overlay
+                    top    = scaffoldPadding.calculateTopPadding() + topPadding,
+                    bottom = 120.dp,   // reserve space for dock overlay
                 ),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(spacing),
                 modifier = Modifier.fillMaxSize(),
             ) {
 
-                // ── 1. Top bar: greeting + action buttons ──────────────────────
+                // ── 1. Top area: greeting + action buttons ─────────────────────
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -188,58 +191,36 @@ fun HomeScreen(
                                 text = greetingStr,
                                 color = CiyatoWhite,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
-                                lineHeight = 28.sp,
+                                fontSize = greetingSize,
+                                lineHeight = greetingSize * 1.1f,
                             )
-                            Spacer(Modifier.height(2.dp))
+                            Spacer(Modifier.height(if (denseLayout) 2.dp else 4.dp))
                             Text(
                                 text = dateStr,
                                 color = CiyatoSec,
-                                fontSize = 13.sp,
+                                fontSize = if (denseLayout) 13.sp else 14.sp,
                             )
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             // Ciyato AI button
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(CiyatoBgEl)
-                                    .border(1.dp, CiyatoSubtleBorder, CircleShape)
-                                    .clickable {},
-                            ) {
-                                Icon(
-                                    Icons.Default.AutoFixHigh,
-                                    contentDescription = "Ciyato AI",
-                                    tint = CiyatoGold,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
+                            ActionCircle(
+                                icon = Icons.Default.AutoFixHigh,
+                                color = CiyatoGold,
+                                size = if (denseLayout) 42.dp else 48.dp
+                            )
 
-                            // Notifications button with dot badge
+                            // Notifications button
                             Box(contentAlignment = Alignment.TopEnd) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(CircleShape)
-                                        .background(CiyatoBgEl)
-                                        .border(1.dp, CiyatoSubtleBorder, CircleShape)
-                                        .clickable {},
-                                ) {
-                                    Icon(
-                                        Icons.Default.Notifications,
-                                        contentDescription = "Notifications",
-                                        tint = CiyatoSec,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
+                                ActionCircle(
+                                    icon = Icons.Default.Notifications,
+                                    color = CiyatoSec,
+                                    size = if (denseLayout) 42.dp else 48.dp
+                                )
                                 // Red notification dot
                                 Box(
                                     modifier = Modifier
-                                        .size(9.dp)
+                                        .size(if (denseLayout) 9.dp else 10.dp)
                                         .offset(x = (-1).dp, y = 1.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFFEF4444))
@@ -250,16 +231,27 @@ fun HomeScreen(
                     }
                 }
 
-                // ── 2. Search bar (full-width pill) ────────────────────────────
+                // Divider line between greeting and search (Pass 3 requirement)
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.15f)
+                            .height(1.dp)
+                            .background(CiyatoSubtleBorder)
+                    )
+                }
+
+                // ── 2. Search area ─────────────────────────────────────────────
                 item {
                     CiyatoHomeSearchBar(
                         query = searchQuery,
                         onQueryChange = viewModel::setSearch,
+                        isDense = denseLayout,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
-                // ── 3. Search results overlay (replaces rest of content) ───────
+                // ── 3. Search results overlay ──────────────────────────────────
                 if (searchQuery.isNotBlank()) {
                     if (isLoading) {
                         item {
@@ -286,23 +278,23 @@ fun HomeScreen(
                                 items(searchResults.take(12)) { app ->
                                     AppIconTile(
                                         app = app,
-                                        iconSize = 54.dp,
+                                        iconSize = if (denseLayout) 54.dp else 60.dp,
                                         onClick = { viewModel.launchApp(app) },
-                                        modifier = Modifier.width(68.dp),
+                                        modifier = Modifier.width(if (denseLayout) 68.dp else 76.dp),
                                     )
                                 }
                             }
                         }
                     }
-                    return@LazyColumn   // don't render rest while searching
+                    return@LazyColumn
                 }
 
-                // ── 4. Weather + Agenda widgets ────────────────────────────────
+                // ── 4. Widget area ─────────────────────────────────────────────
                 item {
-                    WeatherAgendaRow(modifier = Modifier.fillMaxWidth())
+                    WeatherAgendaRow(isDense = denseLayout, modifier = Modifier.fillMaxWidth())
                 }
 
-                // ── 5. Smart categories header ─────────────────────────────────
+                // ── 5. Smart categories area ───────────────────────────────────
                 item {
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -317,9 +309,9 @@ fun HomeScreen(
                                 "Smart categories",
                                 color = CiyatoWhite,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 17.sp,
+                                fontSize = if (denseLayout) 17.sp else 20.sp,
                             )
-                            // Thin separator line — matches reference
+                            // Header separator
                             Box(
                                 modifier = Modifier
                                     .width(32.dp)
@@ -330,7 +322,7 @@ fun HomeScreen(
                         Text(
                             "Edit",
                             color = CiyatoBlue,
-                            fontSize = 13.sp,
+                            fontSize = if (denseLayout) 13.sp else 14.sp,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -339,36 +331,19 @@ fun HomeScreen(
                 // ── 6. Category grid ───────────────────────────────────────────
                 if (isLoading) {
                     item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                color = CiyatoGold,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(28.dp),
-                            )
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = CiyatoGold, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
                         }
                     }
                 } else {
                     item {
-                        val catsToShow = HOME_CATEGORIES.filter {
-                            viewModel.byCategory(it).isNotEmpty()
-                        }
-
-                        // Pre-compute grid height so nested grid doesn't conflict with LazyColumn
+                        val catsToShow = HOME_CATEGORIES.filter { viewModel.byCategory(it).isNotEmpty() }
                         val rows      = (catsToShow.size + categoryColumns - 1) / categoryColumns
-                        val gapDp     = 10.dp
-                        val gridH     = categoryCardH * rows + gapDp * (rows - 1).coerceAtLeast(0)
+                        val gap      = 10.dp
+                        val gridH     = categoryCardH * rows + gap * (rows - 1).coerceAtLeast(0)
 
                         if (catsToShow.isEmpty()) {
-                            // Fallback — no categories yet (apps still loading or device has few apps)
-                            Text(
-                                "Installing apps…",
-                                color = CiyatoMuted,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(vertical = 16.dp),
-                            )
+                            Text("No apps found", color = CiyatoMuted, fontSize = 13.sp, modifier = Modifier.padding(16.dp))
                         } else {
                             CategoryGrid(
                                 categories    = catsToShow,
@@ -394,26 +369,20 @@ fun HomeScreen(
                     }
                 }
 
-                // Bottom spacer (dock height + safe area)
                 item { Spacer(Modifier.height(16.dp)) }
             }
 
-            // ── Dock: fixed overlay at the very bottom ─────────────────────────
+            // ── Fixed bottom dock overlay ──────────────────────────────────────
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(
-                        start  = 0.dp,
-                        end    = 0.dp,
-                        bottom = scaffoldPadding.calculateBottomPadding() + 20.dp,
-                    ),
+                    .padding(bottom = scaffoldPadding.calculateBottomPadding() + 20.dp),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // Dock row (real apps)
                     if (dockApps.isNotEmpty()) {
                         BottomDock(
                             dockApps = dockApps,
@@ -421,7 +390,6 @@ fun HomeScreen(
                         )
                     }
 
-                    // App drawer + settings nav bar below dock
                     LauncherNavBar(
                         onOpenDrawer   = onOpenDrawer,
                         onOpenSettings = onOpenSettings,
@@ -479,11 +447,15 @@ private fun CategoryGrid(
 private fun CiyatoHomeSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
+    isDense: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val height = if (isDense) 50.dp else 56.dp
+    val fontSize = if (isDense) 14.sp else 15.sp
+
     Box(
         modifier = modifier
-            .height(50.dp)
+            .height(height)
             .clip(RoundedCornerShape(999.dp))
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp))
@@ -506,7 +478,7 @@ private fun CiyatoHomeSearchBar(
                 Text(
                     "Search apps, files, contacts…",
                     color = CiyatoMuted,
-                    fontSize = 14.sp,
+                    fontSize = fontSize,
                 )
             }
         }
@@ -517,7 +489,7 @@ private fun CiyatoHomeSearchBar(
             singleLine = true,
             textStyle = androidx.compose.ui.text.TextStyle(
                 color = CiyatoWhite,
-                fontSize = 14.sp,
+                fontSize = fontSize,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -533,7 +505,7 @@ private fun LauncherNavBar(
     onOpenSettings: () -> Unit,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        horizontalArrangement = Arrangement.spacedBy(36.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(horizontal = 24.dp),
     ) {
@@ -541,21 +513,21 @@ private fun LauncherNavBar(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .clip(CircleShape)
                 .background(CiyatoBgEl.copy(alpha = 0.72f))
                 .border(1.dp, CiyatoSubtleBorder, CircleShape)
                 .clickable(onClick = onOpenDrawer),
         ) {
             Icon(Icons.Default.Apps, "App Drawer",
-                tint = CiyatoWhite, modifier = Modifier.size(22.dp))
+                tint = CiyatoWhite, modifier = Modifier.size(24.dp))
         }
 
         // Favorites placeholder
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .clip(CircleShape)
                 .background(CiyatoBgEl.copy(alpha = 0.72f))
                 .border(1.dp, CiyatoSubtleBorder, CircleShape)
@@ -565,7 +537,7 @@ private fun LauncherNavBar(
                 Icons.Default.Star,
                 "Favorites",
                 tint = CiyatoMuted,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
 
@@ -573,7 +545,7 @@ private fun LauncherNavBar(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .clip(CircleShape)
                 .background(CiyatoBgEl.copy(alpha = 0.72f))
                 .border(1.dp, CiyatoSubtleBorder, CircleShape)
@@ -583,7 +555,7 @@ private fun LauncherNavBar(
                 Icons.Default.Settings,
                 "Settings",
                 tint = CiyatoMuted,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
     }

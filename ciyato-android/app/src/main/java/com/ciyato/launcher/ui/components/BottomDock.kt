@@ -33,21 +33,22 @@ fun BottomDock(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 0.dp)
-            .clip(RoundedCornerShape(28.dp))
+            .padding(horizontal = 14.dp)
+            .clip(RoundedCornerShape(32.dp))
             .background(CiyatoBgEl2.copy(alpha = 0.88f))
-            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(28.dp))
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(32.dp))
+            .padding(horizontal = 22.dp, vertical = 16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             dockApps.take(5).forEach { app ->
                 RealAppIcon(
                     drawable = app.icon,
-                    size = 54.dp,
+                    size = 56.dp,
+                    cornerRadius = 15.dp,
                     modifier = Modifier.clickable { onAppTap(app) },
                 )
             }
