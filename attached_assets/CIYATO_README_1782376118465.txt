@@ -1,0 +1,987 @@
+
+# Ciyato — AI Phone Organizer for Android
+
+Document type: Comprehensive README / Product Requirements / AI Builder Execution Guide  
+Primary platform: Android  
+Primary product category: AI phone organizer, premium launcher, smart file manager, aesthetic Android control layer  
+Prepared for: AI-assisted app builders, Android developers, product designers, security reviewers, and future contributors  
+Version: 0.1 concept-to-build draft  
+Date: 2026-06-25
+
+## One-Line Product Promise
+
+Ciyato turns a messy Android phone into a clean, premium, automatically organized digital environment. It organizes what the user sees on the home screen and what the user stores inside the phone: apps, files, screenshots, downloads, documents, images, videos, WhatsApp media, duplicate files, large files, recently added items, hidden items, work items, creative items, finance items, and personal collections.
+
+## Short Product Positioning
+
+Ciyato is not only a launcher. It is not only a file manager. It is not only a theme app. It is an AI phone organizer for Android. The user opens the app and sees a beautiful phone-control dashboard that behaves like a premium file manager, smart organizer, and setup center. After setup, Ciyato can also become the user's chosen home interface, giving the Android device a cleaner, smoother, more aesthetic, more organized experience. The visible home screen becomes the result of the organization engine. The app interior becomes the control room where the user can manage files, apps, themes, categories, and smart collections.
+
+## Core Sentence That Every Builder Must Remember
+
+If a feature does not support this sentence, do not build it in the first versions: **Ciyato organizes your Android phone beautifully.**
+
+## Executive Summary
+
+The project is built around a simple but powerful observation: many Android phones are technically capable but visually and organizationally messy. A large number of users live inside phones filled with scattered apps, chaotic folders, old downloads, endless screenshots, repeated WhatsApp media, forgotten PDFs, random documents, hidden APKs, unused apps, poor visual themes, inconsistent icons, and file managers that feel purely functional rather than premium. Existing Android launchers can change the home screen. Existing file managers can show files. Existing gallery apps can show photos. Existing minimalist apps can reduce phone usage. But the space between these categories is underserved: a polished, mainstream, aesthetic, automatic organization layer that connects apps, files, screenshots, downloads, and themes into one coherent experience.
+
+Ciyato enters from the strongest emotional point: the phone should feel clean immediately. The first version should focus on a premium smart home interface with automatic app categories, duplicate smart shortcuts, nested app boxes, icon customization, search, and one excellent theme. The second version should deepen the file side: smart file collections, downloads, documents, screenshots, PDFs, APKs, WhatsApp files, large files, duplicates, and recently added items. Later versions can add natural-language AI search, local classification, gallery intelligence, cleanup suggestions, smart routines, widget packs, multiple premium themes, and private collections.
+
+The core strategic difference from a normal launcher is scope. A launcher organizes apps. Ciyato organizes the phone. The core strategic difference from a normal file manager is emotion. A file manager exposes folders. Ciyato turns folders into beautiful smart collections and makes them discoverable from multiple paths. The core strategic difference from a minimalist phone app is intent. Minimalist apps often try to make the phone less attractive. Ciyato tries to make the phone more intentional, more aesthetic, and more useful.
+
+This README is written as a complete project understanding document for an AI builder. It explains product vision, user needs, feature set, versions, architecture, UI behavior, data model, AI logic, security principles, build phases, acceptance criteria, testing requirements, and launch guidance. It is not a final technical specification, but it is detailed enough for a builder to understand what to create, what not to create, what experience matters, and what product promise must be preserved.
+
+
+## Reference Notes Used by This README
+
+This README is primarily a product and execution document. It also includes platform-aware notes so the build plan is realistic. The following official Android and Google Play references should be consulted during implementation and policy review:
+
+- Android RoleManager / ROLE_HOME: https://developer.android.com/reference/android/app/role/RoleManager
+- Android Manage All Files / MANAGE_EXTERNAL_STORAGE: https://developer.android.com/training/data-storage/manage-all-files
+- Google Play All Files Access policy: https://support.google.com/googleplay/android-developer/answer/10467955?hl=en
+- Android package visibility: https://developer.android.com/training/package-visibility
+- Google Play broad package visibility / QUERY_ALL_PACKAGES policy: https://support.google.com/googleplay/android-developer/answer/10158779?hl=en
+- Android 14 selected photos and videos access: https://developer.android.com/about/versions/14/changes/partial-photo-video-access
+- Android privacy and permission minimization guidance: https://developer.android.com/privacy
+
+The document intentionally describes permissions and security at a high level. A dedicated SECURITY.md, PRIVACY.md, Play Store policy declaration pack, threat model, and permission rationale file should be created before production release.
+
+
+## 1. Founder Vision
+
+The founder's vision is to create a product that gives Android users the kind of emotional clarity they often associate with a premium, well-organized phone experience, without forcing them to leave Android. The product should respect Android freedom while giving that freedom structure. Android is powerful because it allows customization, multiple stores, many manufacturers, themes, launchers, file access, and deep personalization. But that same freedom often becomes clutter. A user may have a phone full of apps, screenshots, downloads, WhatsApp folders, old photos, repeated media, and inconsistent icons. The result is a phone that works but does not feel beautiful, organized, or calm.
+
+The founder is not trying to create a small icon pack or another generic launcher. The founder is imagining a full phone organization experience. When the user opens Ciyato, it should feel like entering a premium command center for the phone. The dashboard shows the state of the phone: storage, files, screenshots, documents, apps, recent items, categories, collections, cleanup suggestions, and theme status. When the user exits to the home screen, the phone itself should feel transformed: apps arranged into smart boxes, categories made aesthetic, shortcuts duplicated intelligently, icons cleaned up, and search made easier.
+
+This vision is based on the idea that people do not only want to reduce phone usage. Some people do want digital detox. But many users still want to use their phones heavily; they just want their phones to feel better. They want to use the device more productively, more beautifully, and with less chaos. They want fast access. They want an interface that respects taste. They want everything to be clean without spending hours manually customizing a launcher. They want the phone to manage itself.
+
+The product should therefore avoid the energy of cheap cleaner apps, fake boosters, noisy utility dashboards, and low-trust file managers. It should feel premium, calm, private, smooth, and expensive. The phone should feel like a high-end workspace rather than a storage dump. A good guiding phrase is: **Android gives freedom; Ciyato gives freedom structure.**
+
+## 2. Product Identity
+
+The product identity should be centered on the phrase **AI Phone Organizer for Android**. The phrase is broad enough to include launcher, file manager, gallery organization, smart search, and cleanup. It is specific enough to explain the value to a user. It avoids trapping the product inside the old categories of launcher or file manager.
+
+The app should have two identities that are not contradictory. On the outside, it is the user's home experience. It creates a clean home screen, organized app boxes, a premium theme, consistent icons, and smart categories. On the inside, it is a phone organization dashboard. It behaves like a beautiful file manager and control center where the user manages files, apps, storage, media, categories, permissions, and themes.
+
+The product should not be described as a clone of another phone interface. Inspiration can come from premium operating system design, but the product must have its own name, visual language, and organizing philosophy. The goal is not to copy iOS. The goal is to bring iOS-level clarity and premium organization into Android while preserving Android flexibility.
+
+The identity must also avoid overclaiming. Do not say the app takes total control of the phone. Say the user chooses Ciyato as their home experience and gives permission for phone organization features. Use words such as user-chosen, permission-based, privacy-first, local-first, reversible, transparent, and always under user control. Trust is part of the product identity.
+
+## 3. User Problem
+
+The target user experiences a messy Android phone in several ways. First, apps are scattered across screens or hidden in drawers that require too much scrolling. Second, folders are manually created and rarely maintained. Third, new apps often end up somewhere the user forgets. Fourth, the same app may mentally belong to several categories, but normal folders force it into one place. Fifth, default icons can look inconsistent or ugly across different brands and app styles. Sixth, file managers show directories rather than meaning. Seventh, screenshots, downloads, PDFs, WhatsApp files, APKs, large files, and repeated media accumulate without structure. Eighth, gallery organization can feel functional but not premium. Ninth, people often remember what they are looking for by context rather than filename, such as “the payment screenshot from yesterday” or “the PDF I downloaded for college” or “the client images from WhatsApp.”
+
+The current market gives partial solutions. Launchers solve home screen customization. File managers solve browsing. Gallery apps solve photos. Cleaner apps solve junk. Minimalist apps solve distraction. But the user does not experience the phone in isolated categories. The user's problem is whole-phone clutter. The phone is a living environment. The product should therefore organize the environment, not only one drawer inside it.
+
+## 4. Product Thesis
+
+The thesis is that users will adopt a new Android organization layer if it gives them a strong first-minute improvement, an obvious ongoing utility, and an emotional sense of premium control. The first-minute improvement is the transformed home screen. The ongoing utility is smart file and media organization. The emotional value is aesthetic clarity. The retention driver is that the user comes back to find things faster and feels the phone has become easier to live with.
+
+The product should become valuable even before advanced AI exists. Early versions can use rules, local metadata, package categories, app labels, usage patterns, file extensions, folder origins, timestamps, and user corrections. AI should enhance the organizing intelligence, not serve as a vague marketing layer. The product should begin with reliable smart organization and then deepen with local AI, semantic search, image classification, document classification, and natural-language retrieval.
+
+## 5. Non-Negotiable Design Philosophy
+
+The product must feel premium. Every screen must avoid cheap utility design. Avoid aggressive colors, fake speed meters, fake virus warnings, unnecessary confetti, low-quality icons, cluttered cards, and dark-mode-only dullness. Premium does not mean empty. Premium means intentional spacing, hierarchy, motion, typography, icon discipline, soft glass effects where appropriate, excellent contrast, fast response, and a sense that the app was designed by someone with taste.
+
+The UI must make organization visible. The user should immediately understand that the phone has been categorized. The app should show before-and-after value: number of apps organized, number of files found, number of screenshots grouped, number of duplicate paths created, number of recently added items discovered, and storage categories. The value should be visible without feeling like fear-based marketing.
+
+The product should be powerful but calm. It should never pressure the user into deleting files. It should recommend. It should show. It should explain. It should let the user undo. It should preserve original files unless the user explicitly chooses an action.
+
+## 6. Core Features and Product Requirements
+
+The following features define the product. They are written in a way that an AI builder can understand both product intention and execution requirements.
+
+### 1. Smart Home Interface
+
+Purpose: replace the chaotic Android home experience with a clean, premium, structured interface. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: default home screen role; home dashboard; smart app boxes; recently added area; fast search; theme activation; smooth transition from setup to daily use. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: user can set the app as home; user sees organized categories immediately; layout remains stable after restart; launcher never feels like a temporary overlay. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 2. Automatic App Categorization
+
+Purpose: remove manual folder work by placing apps into meaningful categories. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: work; finance; social; communication; shopping; creativity; study; entertainment; utilities; travel; health; daily. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: common apps land in useful categories; user can correct categories; corrections persist; newly installed apps are categorized quickly. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 3. Duplicate Smart Shortcuts
+
+Purpose: allow one app to appear in multiple relevant places without duplication. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: WhatsApp in Social, Work, Daily; Drive in Documents, Work, Cloud; Canva in Creativity, Work, Content; UPI apps in Finance, Daily, Payments. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: same app can appear in more than one box; launching any shortcut opens the same app; shortcuts are visual references not duplicated app installs; user can remove a shortcut from one category without removing the app. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 4. Nested App Boxes
+
+Purpose: create a premium App Library-style feeling through boxes that contain smaller boxes or grouped clusters. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: category cards; sub-category previews; small icon stacks; visual hierarchy; expandable panels. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: boxes look clean on small and large screens; tapping opens predictable content; animations are smooth; nested groups do not feel confusing. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 5. Premium Theme System
+
+Purpose: make the phone feel visually expensive from the first use. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: one flagship theme at launch; light and dark modes; glass cards; soft gradients; clean typography; consistent icon framing; subtle motion. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: theme feels coherent; icons remain readable; wallpaper and cards do not reduce contrast; theme does not slow older phones. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 6. Icon Customization
+
+Purpose: let users hide ugly or inconsistent default icons behind a clean visual system. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: custom icon packs; automatic icon masking; monochrome mode; rounded square mode; glass tile mode; manual icon replacement. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: icon changes are reversible; app labels remain clear; icons do not break after app update; unsupported apps still look acceptable. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 7. Phone Organizer Dashboard
+
+Purpose: make the Ciyato app itself feel like the control room of the phone. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: storage overview; apps overview; files overview; screenshots overview; documents overview; theme status; permissions status; smart collections. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: user understands the app's value without reading documentation; dashboard loads quickly; dashboard does not over-warn or scare user; each card leads to a useful action. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 8. Smart File Manager
+
+Purpose: turn raw folders into beautiful smart collections. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: downloads; documents; PDFs; APKs; archives; large files; duplicate files; recent files; WhatsApp media; screenshots; videos; creative assets. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: files are not physically moved without explicit user action; collections update after new files arrive; user can open files with native apps; deleted files require confirmation and undo if possible. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 9. Smart Screenshots
+
+Purpose: solve one of the biggest modern Android clutter problems. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: payment screenshots; chat screenshots; shopping screenshots; travel screenshots; study screenshots; design references; memes; receipts; forms. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: screenshot collection is easy to browse; classification errors can be corrected; user can filter by date and source; sensitive screenshots are handled carefully. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 10. Document Intelligence
+
+Purpose: help users find PDFs, invoices, forms, notes, resumes, certificates, college docs, business docs, and receipts. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: file extension; filename parsing; date sorting; folder origin; OCR later; semantic labels later; important document pinning. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: documents are discoverable by type; recent docs are surfaced; important docs can be pinned; private docs are not uploaded by default. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 11. Natural Language Search
+
+Purpose: let users find items through normal memory rather than exact filenames. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: PDF from yesterday; payment screenshot; work apps; large videos; WhatsApp document from this week; recently downloaded APK. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: search returns useful results quickly; search explains categories; offline fallback exists; search does not hallucinate nonexistent files. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 12. Smart Cleanup
+
+Purpose: help users reclaim space without fake booster behavior. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: large files; duplicate files; old downloads; unused APKs; cache guidance; review before delete; undo where possible. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: no fake virus claims; no aggressive deletion; user reviews before removal; cleaning does not break apps or media. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+### 13. Privacy and Trust Layer
+
+Purpose: make users comfortable giving organization permissions. This feature exists because the product is not trying to impress users with isolated utilities; it is trying to produce an immediate feeling that the phone has become clean, structured, and easier to live inside. The feature must therefore be implemented as part of a connected organization system, not as an isolated menu item.
+
+Product behavior: local-first processing; clear permission explanations; no hidden upload; permission audit screen; privacy mode; revoke guidance; security roadmap. The implementation should treat this feature as both a visible user experience and a background organizing rule. The visible part must be beautiful, simple, and easy to understand. The background part must be deterministic enough to feel reliable, yet flexible enough for user correction. The user should never feel that the app is randomly changing the phone without explanation.
+
+Execution guidance: the builder should design the feature with an initial automatic state, a correction state, and a persistence state. The initial state is the app's best guess. The correction state allows the user to rename, move, hide, pin, merge, split, or customize the result. The persistence state ensures the user's correction is remembered across restarts, app updates, category refreshes, and new installs. If the feature relies on AI, the AI should produce suggestions, not irreversible actions. If the feature relies on permissions, the UI must explain the permission in human language before showing the system prompt.
+
+Quality standard: the feature is successful only if it reduces cognitive load. It should not add another layer of chaos. The user should see fewer scattered decisions, not more. For example, the user should not have to manually sort fifty apps after installing the app; the product should do the first pass, then let the user refine. The design should use clear cards, predictable labels, strong spacing, touch-friendly controls, and animations that make state changes understandable.
+
+Acceptance criteria: user understands every permission; app works in partial mode; sensitive files are clearly marked; privacy policy matches actual behavior. These criteria should be used as minimum completion tests. If any acceptance criterion fails, the feature should not be treated as production ready.
+
+Edge cases: the builder must account for older phones, small screens, large screens, manufacturer-specific Android skins, app updates, app removals, file renames, missing thumbnails, corrupted files, slow storage, low memory, disabled permissions, private or work profile apps, language differences, and users who do not want full automation. When the feature cannot operate fully, it must degrade gracefully and explain the limitation without blaming the user.
+
+
+## 7. Release Strategy
+
+The release strategy should protect the product vision while avoiding an impossible first build. The product should be built as one coherent system, but released in phases. Each phase must feel complete enough to provide value. The user should not feel they downloaded an unfinished promise.
+
+### Version 1 — Premium Smart Home and App Organizer
+
+Version 1 is the first public proof that Ciyato can change the feeling of an Android phone. The focus is not deep file intelligence yet. The focus is visible transformation. The user installs the app, completes onboarding, chooses the flagship theme, sets Ciyato as the home interface if they want, and immediately sees apps organized into smart boxes. The phone should feel cleaner within sixty seconds.
+
+Version 1 should include automatic app categories, duplicate smart shortcuts, nested app boxes, search, recently added apps, unused apps, basic app hiding, one premium theme, icon customization, a theme activation toggle, a dashboard that explains what has been organized, and a coming-soon section for Smart Files, Smart Screenshots, Smart Documents, and AI Search. It can also include basic storage overview and file type counters if technically ready, but these should not become the main promise until they are reliable.
+
+Version 1 should not include risky or unfinished deep file actions. It should not delete files aggressively. It should not promise full AI understanding if only rules exist. It should not require every permission at the first screen. The first version must be smooth, stable, aesthetic, and trustworthy. Bad performance in a launcher destroys trust faster than missing features.
+
+### Version 2 — Smart Files and Phone Dashboard
+
+Version 2 extends the product from app organization into file organization. It should be prepared during Version 1 development, not started after Version 1 release. The user opens Ciyato and sees a stronger dashboard: storage status, downloads, documents, PDFs, screenshots, videos, WhatsApp media, large files, duplicate files, recently added files, and old unused files. The file manager should feel like the true interior of the product.
+
+The most important principle for Version 2 is smart views before physical movement. The app should create collections by understanding files, not by moving files into new folders without permission. Users fear losing files. Smart collections give value while preserving trust. Physical file actions such as delete, move, rename, compress, archive, or share should require explicit user confirmation.
+
+Version 2 should also connect files to the home experience. The home dashboard can show “Recent Documents,” “Recent Downloads,” “Payment Screenshots,” or “Work Files” as widgets or quick-access boxes. This connection is what makes Ciyato more than a separate launcher and file manager. The phone becomes organized across visual and storage layers.
+
+### Version 3 — Smart Screenshots, Documents, and Media Collections
+
+Version 3 should specialize in the clutter categories that users feel most strongly. Screenshots are a high-value starting point because they are common, messy, and easy to understand. The app can organize screenshots into payment, chat, shopping, travel, notes, forms, memes, design references, and recent captures. Documents can be organized by extension, filename, date, folder origin, and later OCR or semantic classification. Media collections can focus on locally stored images and videos, WhatsApp media, downloads, camera files, and design assets.
+
+Version 3 should add stronger user correction. When a screenshot is classified incorrectly, the user should be able to change it, and the app should learn locally. When a document is important, the user should be able to pin it. When a collection is unwanted, the user should be able to hide it. The goal is not perfect AI from day one; the goal is a system that becomes more useful as the user shapes it.
+
+### Version 4 — Natural-Language AI Search
+
+Version 4 should introduce natural-language search across apps, files, screenshots, documents, and collections. The user should be able to type or speak queries such as “show me the PDF I downloaded yesterday,” “find payment screenshots from this week,” “open my work apps,” “large videos from WhatsApp,” “recent college document,” or “old APKs I do not use.” The search engine should combine metadata, local indexes, user corrections, and AI classification.
+
+The search experience must be honest. If the app is unsure, it should show likely matches and filters. It should not invent files, pretend to know content it cannot access, or upload private material without explicit consent. Natural-language search is powerful only when trust remains intact.
+
+### Version 5 — Ecosystem, Themes, Widgets, and Premium Features
+
+Version 5 expands the product into a larger ecosystem. This can include multiple premium themes, theme marketplace, widget packs, home widgets for smart files, lock-screen-compatible widgets where platform-safe, productivity modes, private spaces, cloud backup of settings, cross-device profile sync, creator themes, icon packs, and premium AI organization features.
+
+Version 5 should be monetized carefully. The free product should remain useful. Premium should unlock deeper customization, advanced AI, more themes, private collections, backup, and pro workflows. Ads should be avoided in the core experience because they damage the premium feeling.
+
+
+## 8. User Experience Flow
+
+The first launch experience is the most important product moment. The user has likely downloaded Ciyato because their phone feels messy, ugly, or difficult to manage. The onboarding must show value quickly while building trust. It should not open with a wall of permissions. It should open with a promise, a preview, and a guided setup.
+
+### First Screen
+
+The first screen should say something close to: “Your Android phone, organized beautifully.” Below that, the app should explain in one or two lines that Ciyato organizes apps, files, screenshots, and downloads into smart collections while keeping the user in control. The design should be visually premium: clean background, elegant logo, minimal text, strong CTA, and a preview of smart boxes.
+
+### Scan Preview
+
+The app should then offer to analyze the phone. In Version 1, this may focus on installed apps and basic categories. In Version 2, it can include files and screenshots. The scan should show clear counters: number of apps found, number of categories created, number of recently added apps, number of files found, number of screenshots found, number of downloads found, and storage used. The counters should feel useful, not scary.
+
+### Theme Choice
+
+The user should choose the flagship theme. At launch, there may be only one complete theme, but it can have light and dark variants. The product should avoid showing too many unfinished themes. One perfect theme is better than many average themes. The theme preview should show app boxes, file cards, search bar, dashboard, and icons.
+
+### Home Activation
+
+The app should explain that the user can make Ciyato their home experience. The wording should be calm: “Set Ciyato as your home screen to see smart boxes every time you unlock your phone.” The user should understand that this is reversible. The product should not imply that the phone is being permanently changed.
+
+### Dashboard
+
+After setup, the app opens to the Phone Organizer Dashboard. This is where the product becomes more than a launcher. The dashboard should show “Your Phone,” “Smart Apps,” “Smart Files,” “Screenshots,” “Documents,” “Downloads,” “Large Files,” “Recently Added,” and “Theme.” Each card should be useful. No card should exist only for decoration.
+
+### Daily Use
+
+Daily use must be frictionless. The user should not need to think about maintaining categories. New apps should appear in the correct smart boxes. New downloads should appear in recent files. New screenshots should appear in smart screenshot collections. Search should always be available. The app should occasionally recommend organization improvements, but it should not spam notifications.
+
+### Returning User Experience
+
+When the user returns to the app, they should see what changed since last time: new apps, new downloads, new screenshots, large files added, duplicate files found, unused apps, or collections needing review. This gives the app ongoing value. It makes the dashboard feel alive.
+
+## 9. Visual Design Direction
+
+The visual design should be premium, not childish. It should feel closer to a luxury productivity app than a utility cleaner. The design can use soft glass cards, controlled blur, elegant gradients, monochrome icon framing, strong typography, high-contrast text, rounded surfaces, carefully sized shadows, and smooth animations. Dark mode should not be only black; it should use layered dark surfaces. Light mode should not be plain white; it should use subtle depth.
+
+The flagship theme should have a clear identity. It can use rounded smart boxes, nested icon previews, a bottom search pill, category cards, and file collection cards. Icons can be placed inside consistent shapes so the phone feels visually controlled. The home screen should not feel crowded. Every element should have enough spacing to breathe.
+
+Typography must be readable. Many Android apps fail because they use weak hierarchy. The product should use large clear headings, short labels, smaller secondary metadata, and consistent weights. Users should be able to glance at a box and understand it instantly.
+
+Motion should be smooth and functional. When a box opens, it should expand naturally. When an app is added to a smart box, the change should be visible but not distracting. When search activates, the interface should shift cleanly. When files are scanned, progress should be calm. Avoid fake loading animations that make the app feel slow.
+
+The app logo should be memorable, minimal, and premium. It should not look like a generic AI sparkle, a folder icon, or a phone cleaner. The logo should suggest organization, intelligence, and elegance. It should work as a small app icon and as a larger brand mark. Consider a symbol built around a clean grid, nested collection shape, or elegant letterform for C.
+
+
+## 10. Suggested Technical Architecture
+
+This section is guidance for an AI builder or Android team. It is not the only possible architecture, but it describes a practical structure that supports the product vision.
+
+### Recommended Stack
+
+Build the native Android app using Kotlin and Jetpack Compose if possible. Compose is appropriate for a design-heavy app because it supports declarative UI, reusable components, animation, state-driven design, and fast iteration. The app should use a modern architecture such as MVVM or MVI, with clear separation between UI, domain logic, data access, indexing, classification, and platform integration.
+
+Suggested components include: Kotlin, Jetpack Compose, Material 3 foundations customized heavily, Room database for local indexes, DataStore for preferences, WorkManager for background scans, Kotlin coroutines and flows for reactive state, AndroidX libraries for lifecycle and navigation, MediaStore for media indexing where appropriate, Storage Access Framework for user-granted document access where appropriate, and platform launcher APIs for home screen behavior.
+
+### High-Level Modules
+
+The codebase should be modular. A suggested module structure is:
+
+- app: application entry point, dependency injection, navigation shell, startup routing.
+- core-ui: reusable design system, typography, icons, cards, animations, theme tokens.
+- core-data: Room database, DataStore, repositories, local indexes.
+- core-domain: use cases, categorization rules, search logic, collection logic.
+- launcher: home role behavior, app discovery, app categories, shortcut rendering, icon customization.
+- file-organizer: file scanning, file metadata, file collections, storage actions.
+- media-organizer: screenshots, images, videos, media collections.
+- ai-engine: local rules, lightweight classifiers, embeddings later, natural-language query parser later.
+- security: permission explanations, privacy state, audit logs, sensitive action confirmations.
+- onboarding: first launch, setup wizard, theme activation, permission education.
+- settings: customization, privacy, categories, backups, premium settings later.
+
+### Data Model Overview
+
+The app should maintain a local organization index. The index should store metadata and organization labels, not unnecessary copies of user files. For apps, the index can store package name, app label, icon reference or cached themed icon, category assignments, user corrections, hidden state, pinned state, duplicate shortcut collections, usage metadata if available, install time where available, and last updated time. For files, the index can store URI or path reference, display name, MIME type, extension, size, modified time, origin folder, collection tags, sensitive flag, duplicate group ID, thumbnail reference, user notes later, and pinned status. For media, the index can store media URI, type, dimensions, date taken, date added, folder, inferred category, thumbnail, and user correction.
+
+The database should support many-to-many relationships. This is essential because one item can belong to multiple collections. The duplicate shortcut concept should be generalized as multi-path organization. A single app or file can appear in many categories without duplication. This requires item tables, collection tables, and assignment tables.
+
+### Smart Collection Engine
+
+The smart collection engine should operate through layered rules. The first layer is deterministic metadata: extension, MIME type, folder origin, package category, install time, filename keywords, file size, date added, and user-created collections. The second layer is heuristic classification: payment keywords, invoice words, screenshot source folders, WhatsApp media patterns, APK file names, camera folders, download sources, and common app categories. The third layer is AI-assisted classification: image classification, OCR, semantic search, and natural-language query mapping. The fourth layer is user correction: every automatic decision can be adjusted and learned locally.
+
+The engine should never be a black box. When possible, the UI should explain why an item appears in a collection. Example: “Added to Finance because the filename contains invoice and it is a PDF.” Or “Added to WhatsApp Media because it came from the WhatsApp Images folder.” This builds trust.
+
+### Launcher Integration
+
+The launcher must be stable, fast, and conservative with resources. The home screen is not a normal screen; it is a daily system surface. If it crashes, the user loses trust. The launcher module should cache category assignments, icon renderings, and layout state. It should handle app installs, app removals, app updates, work profile availability, hidden apps, disabled apps, and missing icons.
+
+The launcher UI should be able to render smart boxes quickly. It should not perform heavy classification during home screen rendering. Heavy work should occur in background jobs and update the UI through cached results.
+
+### File Organizer Integration
+
+The file organizer should first create smart views. It should avoid physical file movement unless the user explicitly selects move or rename. It should index metadata in the background and show progress transparently. It should account for large storage volumes, slow SD cards, missing permissions, inaccessible directories, and manufacturer differences. It should let the user open files using system intents, share files, rename files, delete files after confirmation, and pin important files.
+
+### AI Engine Strategy
+
+The AI engine should be local-first. The early product can use rules and lightweight local classification. Later versions can use on-device ML models for screenshot recognition, document type classification, and semantic labels. If cloud AI is ever introduced, it must be opt-in, clearly explained, and unnecessary for core functionality. The user's private files should not be uploaded by default. A strong privacy promise can become a differentiator.
+
+### Performance Requirements
+
+The app should feel instant. Home screen load should be near immediate. Search should return basic results quickly even if advanced AI results arrive later. File scanning should not block UI. Background indexing should respect battery and thermal limits. The app should work on budget and mid-range phones, not only flagships. Memory usage must be controlled, thumbnails should be cached carefully, and background jobs should avoid continuous scanning.
+
+
+## 11. Security, Privacy, and Trust Principles
+
+Security will be discussed in a dedicated document later, but this README must still define the product's trust philosophy. Ciyato asks for sensitive access because it organizes sensitive spaces: apps, files, documents, screenshots, and media. This means privacy cannot be added at the end. It must shape the product from the beginning.
+
+### Trust Promise
+
+The product should be built around this promise: **the user stays in control of their phone, their files, their categories, and their data.** The app organizes; it does not secretly extract. The app suggests; it does not silently delete. The app indexes; it does not duplicate or upload unnecessarily. The app explains permissions before asking for them. The app works in partial mode when the user does not give every permission.
+
+### Local-First Data Handling
+
+Local-first means the default organization happens on the device. App categories, file metadata, smart collections, thumbnails, and user corrections should be stored locally. If external services are later introduced for backup, premium AI, or account sync, they should be opt-in and explained clearly. The safest early product is one that does not need user accounts to deliver core value.
+
+### Permission Philosophy
+
+Ask only when the feature needs it. Explain before asking. Offer partial functionality if the user declines. Make permissions reversible. Show a permission audit screen. Avoid asking for everything at first launch. Group permission requests by user intent. For example, if the user turns on Smart Files, then ask for file access. If the user turns on Smart Photos, then ask for media access. If the user activates the home interface, then guide them through default launcher setup. The user should never feel ambushed.
+
+### Sensitive Actions
+
+Deleting files, moving files, renaming files, hiding apps, hiding collections, removing shortcuts, and changing the home interface are sensitive actions. They require confirmation, clear wording, and undo where possible. The product should never use dark patterns to push the user into irreversible cleanup. Cleanup should feel like review, not panic.
+
+### Threat Model Preview
+
+A later SECURITY.md should model risks including unauthorized file access, accidental deletion, malicious categorization, overbroad permissions, data leakage through logs, insecure backups, exposed thumbnails, search index privacy, screenshot sensitivity, file path leakage, cloud upload risks, dependency compromise, malicious intents, and manufacturer-specific permission behavior. The production app should pass static analysis, dependency scanning, privacy review, and manual security review before broad release.
+
+### No Cheap Cleaner Behavior
+
+The app must not claim fake viruses, fake RAM boost, fake speed improvement, fake battery repair, or false threats. It can show junk, large files, duplicates, and unused items, but it must do so with factual language. A premium product earns trust by being calm.
+
+## 12. Platform Awareness
+
+The Android platform has important realities. A home screen app must behave like a launcher and may need to be selected as the default home experience. Broad file access is sensitive. Package visibility is filtered by default on modern Android. Photo and video access is increasingly granular. Different manufacturers may restrict background activity differently. The product should be designed with these realities in mind, not against them.
+
+For the builder, this means the app must degrade gracefully. If it cannot see all files, it should show available collections and explain how to enable more. If it cannot read every installed app, it should still organize visible apps and use launcher-appropriate methods. If the user grants partial media access, it should organize that selected media instead of failing. If the manufacturer kills background jobs, the app should refresh when opened. If a feature cannot be supported on a device, the UI should say so clearly.
+
+
+## 13. AI Builder Execution Plan
+
+This section is written directly for an AI app builder or coding assistant. Follow the sequence. Do not jump into advanced AI before the core product is stable.
+
+### Step 1 — Create the Project Foundation
+
+Create a native Android project. Prefer Kotlin and Jetpack Compose. Set up a clean architecture with modules for UI, domain, data, launcher, files, onboarding, settings, and security. Add Room or an equivalent local database for indexes. Add DataStore for preferences. Add WorkManager for background indexing. Create a design system before building screens. Define theme tokens, typography, spacing, colors, card shapes, icon containers, and motion rules.
+
+### Step 2 — Build the Design System
+
+Build reusable components: CiyatoCard, SmartBox, NestedBoxPreview, AppIconTile, FileCollectionCard, StorageMeter, SearchPill, ThemeToggle, PermissionExplanationCard, DashboardSection, EmptyState, LoadingState, ErrorState, ConfirmationSheet, BottomSheet, and SettingsRow. Every later screen should use these components. The design system should make the app feel consistent.
+
+### Step 3 — Build Onboarding
+
+Create onboarding screens: welcome, product promise, app scan preview, theme preview, home activation guidance, dashboard introduction. The onboarding should store whether the user completed setup. It should allow skipping optional permissions. It should never block the entire app unless a feature truly cannot work without a permission.
+
+### Step 4 — Build App Discovery and Categories
+
+Implement app discovery suitable for launcher behavior. Create a local app index. Store package name, label, icon reference, install/update metadata where available, and category assignments. Create a category rule engine using package names, labels, known app maps, and user corrections. Build default categories. Add many-to-many assignment support so one app can appear in multiple smart boxes.
+
+### Step 5 — Build the Smart Home Screen
+
+Create the home screen UI with smart boxes, search, recent apps, daily apps, and category previews. The home screen should render from cached local data. It should not perform heavy scans while drawing. Add edit mode so the user can rename boxes, hide boxes, reorder boxes, remove a shortcut from one box, pin apps, and change icon style.
+
+### Step 6 — Build Duplicate Smart Shortcuts
+
+Represent each visible shortcut as an assignment, not as an app duplicate. The app table stores one app. The collection assignment table stores where it appears. This is essential. The UI should let users understand that the app is not duplicated; it is simply accessible through multiple paths.
+
+### Step 7 — Build the Phone Organizer Dashboard
+
+The dashboard is the app interior. Create cards for Apps Organized, Recent Apps, Smart Files, Storage, Screenshots, Documents, Downloads, Theme, and Coming Soon. In Version 1, some cards can show preview state. In Version 2, they become real file collections. The dashboard must feel like the control center of the phone.
+
+### Step 8 — Build Basic File Collections
+
+Create file metadata scanning through platform-appropriate APIs. Start with safe categories such as downloads, documents, images, videos, APKs, audio, archives, large files, and recent files. Store metadata locally. Do not move files. Render smart collections as beautiful cards. Let users open files using system intents.
+
+### Step 9 — Build Smart File Manager UI
+
+Create file manager screens that avoid raw directory ugliness. Show smart collections first, then allow deeper browsing. Each file card should show name, type, size, modified date, source collection, and actions. Actions include open, share, pin, rename where safe, delete with confirmation, and view details. Bulk actions must be carefully confirmed.
+
+### Step 10 — Add Screenshots and Documents Intelligence
+
+Detect screenshots by folder, media type, filename patterns, and dimensions where useful. Create screenshot categories. Detect documents by extension and filename. Add pins and important labels. Add correction UI. Add optional OCR later.
+
+### Step 11 — Add Search
+
+Start with simple search across apps and indexed files. Use labels, categories, filenames, extensions, and dates. Then add query parsing for phrases such as yesterday, this week, large, recent, PDF, screenshot, payment, WhatsApp, work, and downloads. Later add AI semantic search. Search must be fast and must not hallucinate.
+
+### Step 12 — Add Privacy Screens
+
+Create privacy center, permission audit, local data explanation, data deletion, reset app organization, export settings later, and revoke guidance. Make the trust layer visible. Users should feel safe because they can see what the app can access.
+
+### Step 13 — Test on Real Devices
+
+Test on Xiaomi/Redmi/HyperOS or MIUI, Realme UI, Oppo ColorOS, Vivo FuntouchOS, Samsung One UI, Motorola/stock Android, and at least one low-end device. Test launcher stability, app discovery, file indexing, media access, dark mode, light mode, orientation, battery optimization behavior, restarts, app updates, and permission denial.
+
+### Step 14 — Prepare Store Listing and Website
+
+The listing should not overpromise. The first public promise should match available features. Use positioning: “AI Phone Organizer for Android,” “smart app boxes,” “premium home interface,” “smart file collections,” “duplicate smart shortcuts,” “beautiful Android organization.” Screenshots should show before/after, smart boxes, dashboard, and file collections. The privacy message should be prominent.
+
+## 14. Build Order and Milestones
+
+Milestone 1: Product shell, branding, design system, onboarding prototype.  
+Milestone 2: App index, categories, smart boxes, duplicate shortcut data model.  
+Milestone 3: Launcher home screen, search, edit mode, icon customization.  
+Milestone 4: Dashboard, theme activation, settings, privacy center.  
+Milestone 5: Basic file categories and storage overview.  
+Milestone 6: Smart files UI, recent files, documents, downloads, screenshots.  
+Milestone 7: Cleanup suggestions, large files, duplicates, review flow.  
+Milestone 8: Natural-language search v1.  
+Milestone 9: Beta testing, performance optimization, crash fixes.  
+Milestone 10: Store readiness, privacy policy, permission declarations, marketing assets.
+
+Each milestone should produce a testable build. Do not wait until all features exist before testing. A launcher must be tested early because stability is critical.
+
+
+## 15. Smart Categories
+
+The default app categories should be useful but not excessive. Suggested categories include Daily, Recently Added, Social, Messaging, Work, Productivity, Finance, Payments, Shopping, Travel, Food, Entertainment, Music, Video, Creativity, Camera, Editing, Study, Reading, Health, Fitness, Utilities, Settings, Cloud, Browser, Games, Hidden, and Unsorted. The user should be able to hide categories they do not need.
+
+A category is not a folder in the old sense. It is a smart collection. It can contain apps, files, documents, screenshots, and later actions or widgets. For Version 1, categories may contain only apps. For Version 2 and beyond, a category like Work can show apps and work files. This is an important future direction: collections should eventually span item types.
+
+## 16. Smart Collections Across Item Types
+
+The long-term power of Ciyato is that a collection can contain different kinds of things. A Work collection can contain Slack, Gmail, Drive, PDFs, recent downloads, meeting screenshots, invoices, and client images. A Finance collection can contain banking apps, UPI apps, payment screenshots, receipts, invoices, and tax documents. A Creativity collection can contain Canva, CapCut, gallery folders, design references, downloaded images, fonts, and project files. This cross-type organization is what makes the product more powerful than a normal launcher.
+
+The data model should therefore avoid assuming that collections only contain apps or only contain files. A collection assignment should include item ID, item type, collection ID, assignment source, confidence, user override state, and timestamp. This lets the app support mixed collections later without rebuilding the architecture.
+
+## 17. Search Philosophy
+
+Search is one of the strongest retention features. The user should always feel that if they cannot visually find something, search can find it. The search bar should be present in the home interface and inside the dashboard. It should search apps first because that is fast and expected. It should then search files, categories, documents, screenshots, and collections. Results should be grouped clearly: Apps, Files, Screenshots, Documents, Collections, Settings.
+
+Natural-language search should be built in layers. First, support exact app and file names. Second, support filters such as PDF, image, video, large, recent, today, yesterday, this week, downloads, screenshots. Third, support semantic terms such as payment, receipt, college, work, design, travel. Fourth, support AI search over OCR and embeddings if implemented later. The user should not need to remember exact filenames.
+
+## 18. File Manager Philosophy
+
+The file manager should not begin with raw folders. It should begin with meaning. Users usually do not think in directories. They think in tasks: downloads, documents, screenshots, WhatsApp files, recent items, large files, duplicates, payment proof, college docs, client files, videos, memes, and things to delete. The file manager should show smart collections first and raw browsing second.
+
+The file manager should also look better than default file managers. It should use cards, thumbnails, metadata, clean filters, and clear actions. It should avoid overwhelming the user with paths unless the user asks for details. A power user can still see paths, but the default view should be human.
+
+## 19. Cleanup Philosophy
+
+Cleanup must be trustworthy. The app should not act like an old cleaner app that screams about danger. It should show calm facts: “You have 2.4 GB of large videos,” “You have 318 duplicate images,” “You have 46 APK files,” “You have 714 screenshots older than 6 months.” Then it should let the user review. Deletion should be explicit. Bulk delete should have a review screen. The app should never delete silently. Cleanup should feel like organizing a premium workspace, not fighting a fake infection.
+
+## 20. AI Philosophy
+
+The word AI should mean assistance, not magic. In early versions, the product can use rule-based intelligence and still deliver value. Calling every rule AI is not necessary. As the product matures, AI can improve classification, search, document understanding, screenshot grouping, and smart suggestions. The best AI feature is not a chatbot. The best AI feature is the feeling that the phone quietly understands where things belong.
+
+AI should be used to reduce user effort. It should not create unpredictable behavior. The user should be able to see and correct AI decisions. Corrections should improve future suggestions locally. If AI confidence is low, the app should place items in Review or Suggested, not force them into sensitive categories.
+
+## 21. Brand and Naming
+
+The working name is Ciyato. The name should be treated as a premium technology brand. It should not be over-explained. The app icon and wordmark should feel clean, modern, and slightly futuristic. The subtitle can do the explanation: AI Phone Organizer for Android. Marketing can use phrases such as “your Android, organized beautifully,” “apps and files in smart collections,” “a cleaner home screen and smarter files,” and “turn Android chaos into clarity.”
+
+Avoid cheap words such as booster, super cleaner, magic phone, virus cleaner, RAM repair, or secret control. These words position the product in a low-trust category. The product should feel more like a premium OS companion than a utility app.
+
+## 22. Monetization
+
+The early product should likely use a freemium model. The free version must be good enough to create trust and adoption. It can include the flagship theme, basic app organization, search, smart boxes, and basic file collections. Premium can include advanced themes, deeper icon customization, AI smart collections, natural-language search, private collections, advanced file insights, duplicate cleanup tools, backup of organization settings, and pro widgets.
+
+Avoid ads in the core experience. Ads would make the app feel cheap and would be especially damaging because the product asks for trust around files and organization. If monetization is needed early, use lifetime early supporter pricing, annual subscriptions, or premium theme packs.
+
+## 23. Success Metrics
+
+Measure activation, not only downloads. Important metrics include onboarding completion, home activation rate, smart category acceptance, number of manual corrections, search usage, file collection usage, day-one retention, day-seven retention, day-thirty retention, crash-free sessions, launcher stability, average home screen load time, file scan completion rate, permission grant rate by feature, cleanup review completion, premium conversion, and uninstall reasons.
+
+A key metric should be: time to first wow. The user should feel improvement within one minute. Another key metric should be: time to find. Search and smart collections should reduce the time needed to open apps or find files.
+
+## 24. Risks and Mitigations
+
+Risk: the app feels like another launcher. Mitigation: position as AI Phone Organizer and include dashboard plus file collections.  
+Risk: the app feels like another file manager. Mitigation: make home interface transformation visible.  
+Risk: permissions scare users. Mitigation: permission explanations, partial modes, privacy center, local-first processing.  
+Risk: AI categorization is wrong. Mitigation: use rules first, show confidence, allow correction.  
+Risk: performance is poor. Mitigation: caching, background indexing, lightweight home rendering.  
+Risk: design is average. Mitigation: prioritize one flagship theme and design system before feature expansion.  
+Risk: Google Play review issues. Mitigation: make file management a true core feature, use least broad APIs where possible, maintain policy documentation, and avoid misleading claims.  
+Risk: Android manufacturer differences. Mitigation: test widely and degrade gracefully.  
+Risk: user loses files. Mitigation: smart views before physical movement, confirmations, undo, and no silent deletion.
+
+
+## 25. Minimum Viable Product Acceptance Criteria
+
+The MVP is ready for closed beta only when the following are true. The app installs cleanly on supported Android devices. The onboarding communicates the value clearly. The user can activate the smart home experience. Apps are categorized automatically. The user can see duplicate smart shortcuts. The user can search for apps. The flagship theme looks premium. The app dashboard opens quickly. The app does not crash during normal launcher use. The user can correct categories. Corrections persist after restart. The app does not require unnecessary permissions for unrelated features. The privacy screen exists. The app explains what it does in normal language.
+
+The MVP is ready for open beta only when the launcher is stable across multiple manufacturer skins, performance is acceptable on mid-range devices, file overview is at least partially functional if advertised, onboarding analytics are working, crash reports are monitored, privacy policy exists, store assets exist, and user feedback from closed beta has been reviewed.
+
+The MVP is ready for public release only when the app has strong visual polish, clear store positioning, low crash rate, no misleading claims, a support channel, a privacy policy, terms, permission declarations, rollback strategy, and a roadmap that does not promise unavailable features as already present.
+
+## 26. Testing Checklist
+
+Test first launch with no permissions. Test first launch with all permissions. Test denial flows. Test setting as default home. Test removing default home. Test app install event. Test app uninstall event. Test app update event. Test category corrections. Test duplicate shortcuts. Test search. Test hidden apps. Test icon customization. Test dark mode. Test light mode. Test low storage. Test airplane mode. Test restart. Test launcher crash recovery. Test file opening. Test file deletion confirmation. Test media access. Test partial photo access. Test large libraries. Test slow devices. Test manufacturer battery restrictions. Test orientation if supported. Test accessibility font sizes. Test TalkBack basics. Test languages where labels are not English. Test work profile if possible. Test private space behavior where applicable. Test store build signing and release build performance.
+
+## 27. Documentation to Create Next
+
+After this README, create the following documents:
+
+- PRODUCT_SPEC.md: detailed screen-by-screen product specification.
+- DESIGN_SYSTEM.md: colors, typography, motion, components, icon rules, spacing.
+- SECURITY.md: threat model, permissions, data handling, dependency security.
+- PRIVACY.md: user-facing privacy promise and data behavior.
+- PLAY_STORE_POLICY.md: permission rationale and policy review notes.
+- ROADMAP.md: detailed version plan.
+- TESTING.md: device matrix, manual tests, automated tests.
+- API_AND_DATA_MODEL.md: database schema, repositories, item model, collection model.
+- AI_ENGINE.md: classification rules, local models, search strategy, user correction learning.
+- MARKETING.md: positioning, website copy, app store listing, launch videos, screenshots.
+
+## 28. Final Builder Instruction
+
+Build Ciyato as one coherent organization product. Do not build disconnected utilities. The user should never feel that the launcher, file manager, dashboard, and themes are separate products glued together. Every part should support the same promise: a cleaner home screen, smarter files, and a more beautiful Android experience.
+
+The first version must win emotionally. The phone should look better. The second version must win functionally. Files should become easier to find. The later versions must win intelligently. The phone should begin to feel like it understands the user. This is the path from launcher to organizer to Android intelligence layer.
+
+## 29. User Personas and Jobs To Be Done
+
+### Clutter-Sensitive User
+
+This user feels mental friction when the phone is visually messy. They may not use productivity language, but they know that scattered apps, random folders, and repeated screenshots irritate them. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+### Working Professional
+
+This user receives PDFs, invoices, screenshots, documents, client media, meeting notes, and payment proofs. They need fast retrieval and a calm phone workspace. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+### Student
+
+This user saves study PDFs, screenshots, forms, timetables, WhatsApp notes, lecture images, and app links. Their phone becomes an informal academic archive. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+### Creator
+
+This user collects references, edits images, stores videos, downloads assets, uses social apps, and constantly switches between creative tools. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+### Aesthetic Android User
+
+This user wants Android freedom but dislikes inconsistent icons, rough themes, and cheap interface design. They value taste and customization. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+### Power User
+
+This user wants smart organization but also wants manual control, search, file details, custom collections, and reversible actions. Their job to be done is not simply to open an app faster. Their job is to reduce the friction between memory and action. They remember things in human categories, not technical paths. They want the phone to match how they think. For this persona, Ciyato must provide automatic organization, visual calm, fast search, and manual refinement. The experience should make the user feel that their phone has become more mature and more obedient to their way of living. The key product risk for this persona is over-automation. If the app makes decisions they cannot understand or reverse, trust drops. The correct approach is to show smart suggestions, make organization visible, and allow every important decision to be corrected.
+
+
+## 30. User Stories
+
+### Story 1
+
+As a user, I want my newly installed apps to appear in sensible categories so I do not lose them in the app drawer. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 2
+
+As a user, I want one app to appear in multiple smart boxes so I can find it through different mental paths. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 3
+
+As a user, I want my home screen to look premium immediately after setup so I feel the app has changed my phone. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 4
+
+As a user, I want to open Ciyato and see my phone's files organized by meaning rather than raw folders. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 5
+
+As a user, I want to find recent downloads quickly without remembering filenames. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 6
+
+As a user, I want screenshots grouped because screenshots become the messiest part of my phone. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 7
+
+As a user, I want to hide apps or categories without deleting anything. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 8
+
+As a user, I want to undo organizational changes because I need to trust the app. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 9
+
+As a user, I want search to find apps, files, screenshots, and documents from one place. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 10
+
+As a user, I want the app to explain permissions in normal language before asking for them. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 11
+
+As a user, I want all important organization to remain on my phone unless I choose sync or cloud features. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+### Story 12
+
+As a user, I want the app to feel smooth on my current Android phone, not only expensive devices. The product should satisfy this through a combination of automatic indexing, smart collections, clean visual design, and user-controlled correction. The acceptance test is that a first-time user can complete the task without documentation. The failure state should be understandable, and the user should always have a next action. This story should be tested in both fresh-install and returning-user contexts because organization products become more valuable over time only if they handle change gracefully.
+
+
+## 31. Screen-by-Screen Requirements
+
+### Welcome Screen
+
+Purpose: introduce the promise, logo, and first CTA. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Setup Scan Screen
+
+Purpose: show app/file discovery preview and value counters. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Theme Preview Screen
+
+Purpose: show flagship home interface and allow activation. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Home Screen
+
+Purpose: render smart boxes, search, recent items, and premium theme. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### App Box Detail
+
+Purpose: show all apps in a category with edit controls. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Dashboard
+
+Purpose: show phone organization status and smart collection cards. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Smart Files
+
+Purpose: show file collections, filters, and recent files. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Screenshots
+
+Purpose: show screenshot groups and category filters. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Documents
+
+Purpose: show PDFs, forms, invoices, notes, and pinned docs. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Search
+
+Purpose: search across apps and files with grouped results. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Privacy Center
+
+Purpose: explain permissions, local data, and user controls. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+### Settings
+
+Purpose: customize theme, icon style, categories, search, and privacy. The screen should be visually consistent with the premium design system. It should have one primary purpose, one clear visual hierarchy, and no unnecessary clutter. It should render useful empty states and handle permission denial. It should avoid technical language unless the user asks for details. Every screen must have a path back to the main dashboard or home experience. Animations should support comprehension, not decoration. The screen must be tested with long app names, long file names, missing thumbnails, different languages, accessibility font scaling, and low-end device performance.
+
+
+
+## 32. Quality Bar
+
+The quality bar for Ciyato is high because the product's promise is emotional. A normal file utility can survive ugly design if it solves a narrow task. Ciyato cannot. If the app looks average, the promise collapses. If the launcher lags, the promise collapses. If file organization feels risky, the promise collapses. If permissions feel suspicious, the promise collapses. Therefore, quality must be measured not only through technical completion but through user feeling.
+
+The product should be reviewed through five lenses: beauty, speed, trust, usefulness, and coherence. Beauty means the interface feels premium. Speed means the launcher, dashboard, search, and collections respond quickly. Trust means the user understands permissions and file actions. Usefulness means the organization actually helps users find things. Coherence means every feature feels like part of the same product.
+
+A feature should not ship because it exists. It should ship because it strengthens the central promise. If a feature makes the product feel wider but not deeper, delay it. If a feature requires a permission but delivers little value, delay it. If a feature looks visually unfinished, delay it. The product wins by feeling refined.
+
+## 33. Anti-Goals
+
+Do not build a fake cleaner. Do not build a random theme marketplace before the flagship experience is excellent. Do not build a cloud AI product that uploads private files by default. Do not build twenty disconnected dashboards. Do not build lock screen hacks in the MVP. Do not build aggressive notifications. Do not build confusing permission funnels. Do not build a clone of any existing OS interface. Do not build a product that only developers understand. Do not build a feature just because another launcher has it. Do not sacrifice stability for visual tricks. Do not move user files without explicit consent. Do not delete anything silently. Do not market unavailable features as already present.
+
+## 34. Launch Narrative
+
+The launch story should be simple: Android phones are powerful but messy. Ciyato organizes them beautifully. The first ads should show a chaotic Android home screen becoming smart boxes, scattered apps becoming clean categories, and messy files becoming beautiful collections. The marketing should not sound technical. It should show the emotional result.
+
+Possible launch lines include: “Your Android, organized beautifully.” “A cleaner home screen. Smarter files. One app.” “Stop searching through chaos.” “Apps, screenshots, downloads, and documents in smart collections.” “The premium organization layer your Android was missing.”
+
+Launch videos should show before and after. First second: messy phone. Second to fourth second: Ciyato scan and smart organization. Fifth to eighth second: premium home screen. Ninth to twelfth second: smart files and screenshots. Final: logo and promise. The video must feel smooth and high-end, not like a generic app ad.
+
+## 35. Closing Vision
+
+Ciyato begins as a smart launcher and file organizer, but the larger vision is an Android intelligence layer. The phone should eventually understand what the user is trying to find, where items belong, what clutter matters, what can be reviewed, and how the user prefers to organize digital life. The product does not need to replace Android. It needs to make Android feel more intentional.
+
+The winning version of Ciyato will not be the one with the most features. It will be the one that makes the user feel, within the first minute, that their phone has become cleaner, calmer, smarter, and more beautiful.
+
+## 36. Detailed Implementation Deep Dives
+
+### Design System
+
+The Design System must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Design System, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Design System should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Design System must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Launcher Engine
+
+The Launcher Engine must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Launcher Engine, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Launcher Engine should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Launcher Engine must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### App Categorization Engine
+
+The App Categorization Engine must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the App Categorization Engine, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The App Categorization Engine should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the App Categorization Engine must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Shortcut Assignment Engine
+
+The Shortcut Assignment Engine must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Shortcut Assignment Engine, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Shortcut Assignment Engine should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Shortcut Assignment Engine must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Dashboard
+
+The Dashboard must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Dashboard, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Dashboard should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Dashboard must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### File Indexer
+
+The File Indexer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the File Indexer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The File Indexer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the File Indexer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Media Indexer
+
+The Media Indexer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Media Indexer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Media Indexer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Media Indexer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Screenshot Classifier
+
+The Screenshot Classifier must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Screenshot Classifier, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Screenshot Classifier should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Screenshot Classifier must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Document Organizer
+
+The Document Organizer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Document Organizer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Document Organizer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Document Organizer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Search Engine
+
+The Search Engine must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Search Engine, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Search Engine should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Search Engine must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Privacy Center
+
+The Privacy Center must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Privacy Center, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Privacy Center should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Privacy Center must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Settings
+
+The Settings must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Settings, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Settings should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Settings must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Onboarding
+
+The Onboarding must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Onboarding, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Onboarding should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Onboarding must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Performance Layer
+
+The Performance Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Performance Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Performance Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Performance Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Testing Layer
+
+The Testing Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Testing Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Testing Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Testing Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Analytics Layer
+
+The Analytics Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Analytics Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Analytics Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Analytics Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Monetization Layer
+
+The Monetization Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Monetization Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Monetization Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Monetization Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Marketing Layer
+
+The Marketing Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Marketing Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Marketing Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Marketing Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Support Layer
+
+The Support Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Support Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Support Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Support Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+### Future AI Layer
+
+The Future AI Layer must be designed as a first-class part of Ciyato, not as a quick add-on. The builder should define the user-facing promise of this module, the internal data it needs, the permissions it may require, the failure states it must handle, and the quality standard it must meet before release. Every module should have a clear owner in the architecture, even if an AI builder creates the first prototype. This prevents the project from becoming a collection of screens without a durable system behind them.
+
+For the Future AI Layer, the implementation should begin with a minimal reliable version. The first version should be predictable, testable, and easy to correct. After that, intelligence can be added. This matters because users forgive missing advanced features more easily than they forgive broken basic behavior. In an organization product, wrong organization is worse than no organization if the user cannot understand or reverse it. The module should therefore expose state clearly, store user corrections, and avoid irreversible background actions.
+
+The Future AI Layer should also be designed for premium perception. This means it should load quickly, use the shared design system, avoid visual clutter, and explain itself in human language. If it requires a scan, the scan should show calm progress. If it produces suggestions, the suggestions should be reviewable. If it fails because a permission is missing, the empty state should describe the missing capability and the benefit of enabling it. If the device is too old or restricted, the module should degrade gracefully rather than showing broken UI.
+
+Testing for the Future AI Layer must include normal cases, denial cases, slow-device cases, large-data cases, and update cases. For example, if the module deals with files, test thousands of files, missing thumbnails, strange filenames, unsupported formats, and deleted items. If the module deals with apps, test app install, app removal, app update, duplicate shortcuts, work profiles, and hidden apps. If the module deals with search, test misspellings, partial names, category terms, dates, and empty results. No module should be considered ready because it works only on the developer's device.
+
+
+---
+
+Approximate word count at generation: 23982 words.

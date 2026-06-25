@@ -1,0 +1,1253 @@
+import { useState } from "react";
+
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+const T = {
+  bg: "#0B0F12",
+  bgEl: "#12171B",
+  bgEl2: "#1A2028",
+  card: "rgba(255,255,255,0.06)",
+  cardStr: "rgba(255,255,255,0.09)",
+  cardMed: "rgba(255,255,255,0.12)",
+  border: "rgba(255,255,255,0.10)",
+  borderSub: "rgba(255,255,255,0.06)",
+  white: "#F4F5F6",
+  sec: "#AEB4BA",
+  muted: "#727A82",
+  gold: "#C6A15B",
+  goldSoft: "#E2C37B",
+  blue: "#7DB7FF",
+  green: "#39C66A",
+  lightBg: "#F5F2EC",
+  lightCard: "rgba(255,255,255,0.72)",
+  lightBorder: "rgba(0,0,0,0.06)",
+  lightText: "#191B1F",
+  lightSec: "#5F646A",
+};
+
+// ─── ICONS (SVG inline) ────────────────────────────────────────────────────────
+const Icon = ({ name, size = 20, color = "currentColor", style = {} }) => {
+  const icons = {
+    search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+    mic: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>,
+    bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+    star4: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={style}><path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"/></svg>,
+    home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    folder: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+    grid: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+    settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    photo: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+    map: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+    shared: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    tools: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+    plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    chevRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polyline points="9 18 15 12 9 6"/></svg>,
+    chevDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polyline points="6 9 12 15 18 9"/></svg>,
+    more: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+    moreV: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
+    filter: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>,
+    duplicate: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+    cloud: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    link: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+    palette: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>,
+    eye: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+    ai: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={style}><path d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z M19 14 L19.8 17.2 L23 18 L19.8 18.8 L19 22 L18.2 18.8 L15 18 L18.2 17.2 Z M5 3 L5.6 5.4 L8 6 L5.6 6.6 L5 9 L4.4 6.6 L2 6 L4.4 5.4 Z"/></svg>,
+    plane: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>,
+    zap: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    lock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+    android: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={style}><path d="M17.523 15.3414C17.2367 15.3414 17.0048 15.1032 17.0048 14.8106V10.6819C17.0048 10.3893 17.2367 10.1511 17.523 10.1511C17.8093 10.1511 18.0412 10.3893 18.0412 10.6819V14.8106C18.0412 15.1032 17.8093 15.3414 17.523 15.3414ZM6.47696 15.3414C6.19068 15.3414 5.95874 15.1032 5.95874 14.8106V10.6819C5.95874 10.3893 6.19068 10.1511 6.47696 10.1511C6.76324 10.1511 6.99519 10.3893 6.99519 10.6819V14.8106C6.99519 15.1032 6.76324 15.3414 6.47696 15.3414ZM9.59012 17.8985C9.59012 18.191 9.35817 18.4293 9.07189 18.4293C8.78562 18.4293 8.55367 18.191 8.55367 17.8985V13.7697C8.55367 13.4772 8.78562 13.239 9.07189 13.239C9.35817 13.239 9.59012 13.4772 9.59012 13.7697V17.8985ZM15.4463 17.8985C15.4463 18.191 15.2144 18.4293 14.9281 18.4293C14.6418 18.4293 14.4099 18.191 14.4099 17.8985V13.7697C14.4099 13.4772 14.6418 13.239 14.9281 13.239C15.2144 13.239 15.4463 13.4772 15.4463 13.7697V17.8985ZM15.4463 8.95972H8.55367V7.22699C8.55367 5.65733 9.81668 4.375 11.3608 4.375H12.6392C14.1833 4.375 15.4463 5.65733 15.4463 7.22699V8.95972ZM14.4099 7.22699C14.4099 6.2384 13.6137 5.43142 12.6392 5.43142H11.3608C10.3863 5.43142 9.59012 6.2384 9.59012 7.22699V7.90327H14.4099V7.22699Z"/></svg>,
+    clock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    file: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+    down: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+    sun: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
+    moon: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+    paw: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={style}><ellipse cx="6" cy="10.5" rx="2" ry="3"/><ellipse cx="12" cy="8" rx="2.5" ry="3.5"/><ellipse cx="18" cy="10.5" rx="2" ry="3"/><ellipse cx="9" cy="6" rx="1.5" ry="2"/><ellipse cx="15" cy="6" rx="1.5" ry="2"/><path d="M12 13c-4 0-7 2.5-7 6s10 5 14 0-3-6-7-6z"/></svg>,
+    camera: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+    pin: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    cutlery: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
+    screenshot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>,
+    vault: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/><path d="M12 15v2"/><path d="M9.5 9.5L8 8"/><path d="M14.5 9.5L16 8"/></svg>,
+    transfer: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+    video: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+    apk: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>,
+    whatsapp: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={style}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.003 0C5.374 0 0 5.373 0 12c0 2.106.549 4.09 1.508 5.814L.054 23.427l5.776-1.516A11.935 11.935 0 0 0 12.003 24C18.63 24 24 18.627 24 12c0-6.627-5.37-12-11.997-12zm0 21.818a9.818 9.818 0 0 1-5.03-1.383l-.36-.214-3.73.979 1-3.64-.237-.374A9.808 9.808 0 0 1 2.18 12c0-5.423 4.398-9.818 9.822-9.818 5.423 0 9.818 4.395 9.818 9.818 0 5.423-4.395 9.818-9.817 9.818z"/></svg>,
+  };
+  return icons[name] || <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={style}><circle cx="12" cy="12" r="10"/></svg>;
+};
+
+// ─── SHARED COMPONENTS ─────────────────────────────────────────────────────────
+
+const StatusBar = ({ light = false }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px 4px", fontSize: 12, fontWeight: 600, color: light ? T.lightText : T.white, letterSpacing: 0.2 }}>
+    <span>9:30</span>
+    <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#1a1a1a", border: "2px solid #333", position: "absolute", left: "50%", transform: "translateX(-50%)", top: 8 }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <svg width={16} height={12} viewBox="0 0 16 12" fill={light ? T.lightText : T.white}><path d="M8 2C4.5 2 1.5 3.5 0 6c1.5 2.5 4.5 4 8 4s6.5-1.5 8-4c-1.5-2.5-4.5-4-8-4zm0 6.5c-1.4 0-2.5-1.1-2.5-2.5S6.6 3.5 8 3.5 10.5 4.6 10.5 6 9.4 8.5 8 8.5z"/></svg>
+      <svg width={14} height={12} viewBox="0 0 14 12" fill={light ? T.lightText : T.white}><rect x="0" y="6" width="2" height="6" rx="1"/><rect x="3" y="4" width="2" height="8" rx="1"/><rect x="6" y="2" width="2" height="10" rx="1"/><rect x="9" y="0" width="2" height="12" rx="1"/></svg>
+      <svg width={24} height={12} viewBox="0 0 24 12" fill={light ? T.lightText : T.white}><rect x="0" y="1" width="20" height="10" rx="2" stroke={light ? T.lightText : T.white} strokeWidth="1.5" fill="none"/><rect x="20.5" y="3.5" width="2" height="5" rx="1" fill={light ? T.lightText : T.white}/><rect x="1.5" y="2.5" width="17" height="7" rx="1"/></svg>
+    </div>
+  </div>
+);
+
+const CiyatoLogo = ({ size = 28, showStar = true, light = false }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ width: size + 4, height: size + 4, borderRadius: 10, background: light ? T.lightText : "#1a1f24", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${light ? "rgba(0,0,0,0.15)" : T.border}` }}>
+      <span style={{ fontSize: size * 0.65, fontWeight: 700, color: T.white, fontFamily: "Inter, system-ui, sans-serif", letterSpacing: -1 }}>C</span>
+      {showStar && <span style={{ fontSize: size * 0.32, color: T.gold, marginLeft: -2, marginBottom: size * 0.1 }}>✦</span>}
+    </div>
+  </div>
+);
+
+const AppIconPlaceholder = ({ label, bg, emoji, size = 44 }) => (
+  <div style={{ width: size, height: size, borderRadius: size * 0.27, background: bg || "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: size * 0.45 }}>
+    {emoji || "📱"}
+  </div>
+);
+
+// Real app icon colors & emojis
+const APP_ICONS = {
+  Google: { bg: "#fff", emoji: "🔵" },
+  Notion: { bg: "#fff", emoji: "📝" },
+  Slack: { bg: "#4A154B", emoji: "💬" },
+  WhatsApp: { bg: "#25D366", emoji: "💬" },
+  Instagram: { bg: "linear-gradient(135deg,#E1306C,#833AB4)", emoji: "📸" },
+  LinkedIn: { bg: "#0077B5", emoji: "💼" },
+  Drive: { bg: "#fff", emoji: "🟡" },
+  Lightroom: { bg: "#001E36", emoji: "📷" },
+  Chrome: { bg: "#fff", emoji: "🌐" },
+  Gmail: { bg: "#fff", emoji: "📧" },
+  Maps: { bg: "#fff", emoji: "🗺️" },
+  Zoom: { bg: "#2D8CFF", emoji: "📹" },
+  Figma: { bg: "#1E1E1E", emoji: "🎨" },
+  Spotify: { bg: "#1DB954", emoji: "🎵" },
+  Netflix: { bg: "#E50914", emoji: "🎬" },
+  YouTube: { bg: "#FF0000", emoji: "▶️" },
+  Airbnb: { bg: "#FF5A5F", emoji: "🏠" },
+  PayPal: { bg: "#003087", emoji: "💳" },
+  Phone: { bg: "#4CAF50", emoji: "📞" },
+  Camera: { bg: "#000", emoji: "📷" },
+  Photos: { bg: "#FF9800", emoji: "🖼️" },
+  Copilot: { bg: "#0078D4", emoji: "🤖" },
+  Notion2: { bg: "#fff", emoji: "N" },
+  Premiere: { bg: "#9999FF", emoji: "🎬" },
+  Photoshop: { bg: "#31A8FF", emoji: "🖌️" },
+  Default: { bg: "rgba(255,255,255,0.1)", emoji: "📱" },
+};
+
+const AppIcon = ({ app = "Default", size = 44, badge }) => {
+  const info = APP_ICONS[app] || APP_ICONS.Default;
+  const emojiMap = {
+    Google: "G", Notion: "N", Slack: "#", WhatsApp: "W", Instagram: "In",
+    LinkedIn: "in", Drive: "▲", Lightroom: "Lr", Chrome: "⊙", Gmail: "M",
+    Maps: "⬡", Zoom: "Z", Figma: "F", Spotify: "♫", Netflix: "N",
+    YouTube: "▶", Airbnb: "✦", PayPal: "P", Phone: "✆", Camera: "⊙",
+    Photos: "⊡", Copilot: "⬡", Premiere: "Pr", Photoshop: "Ps",
+  };
+  const colors = {
+    Google: "#4285F4", Notion: "#000", Slack: "#fff", WhatsApp: "#fff",
+    Instagram: "#fff", LinkedIn: "#fff", Drive: "#FBBC04", Lightroom: "#31A8FF",
+    Chrome: "#4285F4", Gmail: "#EA4335", Maps: "#34A853", Zoom: "#fff",
+    Figma: "#fff", Spotify: "#fff", Netflix: "#fff", YouTube: "#fff",
+    Airbnb: "#fff", PayPal: "#fff", Phone: "#fff", Camera: "#fff",
+    Photos: "#fff", Copilot: "#fff", Premiere: "#fff", Photoshop: "#fff",
+  };
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <div style={{ width: size, height: size, borderRadius: size * 0.27, background: info.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: size * 0.42, fontWeight: 700, color: colors[app] || T.white, fontFamily: "Inter, system-ui, sans-serif", border: app === "Default" ? `1px solid ${T.border}` : "none", overflow: "hidden" }}>
+        {emojiMap[app] || "✦"}
+      </div>
+      {badge && <div style={{ position: "absolute", top: -4, right: -4, background: T.gold, borderRadius: 10, minWidth: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#000", padding: "0 3px" }}>{badge}</div>}
+    </div>
+  );
+};
+
+const GlassCard = ({ children, style = {}, onClick }) => (
+  <div onClick={onClick} style={{ background: T.cardStr, border: `1px solid ${T.border}`, borderRadius: 20, padding: 18, backdropFilter: "blur(12px)", cursor: onClick ? "pointer" : "default", transition: "background 0.2s", ...style }}
+    onMouseEnter={e => { if (onClick) e.currentTarget.style.background = T.cardMed; }}
+    onMouseLeave={e => { if (onClick) e.currentTarget.style.background = T.cardStr; }}>
+    {children}
+  </div>
+);
+
+const SearchBar = ({ placeholder = "Search apps, files, contacts…", light = false, extra }) => (
+  <div style={{ display: "flex", alignItems: "center", background: light ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.08)", borderRadius: 50, padding: "11px 16px", gap: 10, border: `1px solid ${light ? "rgba(0,0,0,0.08)" : T.border}` }}>
+    <Icon name="search" size={17} color={light ? T.lightSec : T.muted} />
+    <span style={{ flex: 1, fontSize: 14, color: light ? T.lightSec : T.muted }}>{placeholder}</span>
+    {extra}
+  </div>
+);
+
+const BottomNav = ({ active = "home", items, light = false }) => {
+  const defaultItems = [
+    { id: "home", label: "Home", icon: "home" },
+    { id: "files", label: "Files", icon: "folder" },
+    { id: "search", label: "Search", icon: "search" },
+    { id: "shared", label: "Shared", icon: "shared" },
+    { id: "tools", label: "Tools", icon: "tools" },
+  ];
+  const nav = items || defaultItems;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-around", padding: "10px 8px 16px", background: light ? "rgba(245,242,236,0.95)" : "rgba(18,23,27,0.95)", borderTop: `1px solid ${light ? T.lightBorder : T.borderSub}`, backdropFilter: "blur(20px)", gap: 4 }}>
+      {nav.map(item => (
+        <div key={item.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "4px 12px", borderRadius: 12, flex: 1, cursor: "pointer" }}>
+          <div style={{ position: "relative" }}>
+            <Icon name={item.icon} size={22} color={active === item.id ? T.gold : (light ? T.lightSec : T.muted)} />
+            {active === item.id && <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 16, height: 2, background: T.gold, borderRadius: 2 }} />}
+          </div>
+          <span style={{ fontSize: 10, color: active === item.id ? T.gold : (light ? T.lightSec : T.muted), fontWeight: active === item.id ? 600 : 400 }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const FilterChip = ({ label, active, light }) => (
+  <div style={{ padding: "7px 16px", borderRadius: 50, background: active ? T.gold : (light ? "rgba(0,0,0,0.07)" : T.card), border: `1px solid ${active ? T.gold : (light ? T.lightBorder : T.border)}`, fontSize: 13, fontWeight: active ? 600 : 400, color: active ? "#000" : (light ? T.lightText : T.sec), cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+    {label}
+  </div>
+);
+
+// ─── PHONE FRAME ───────────────────────────────────────────────────────────────
+const PhoneFrame = ({ children, light = false }) => (
+  <div style={{ width: "100%", maxWidth: 390, height: "100%", maxHeight: 840, background: light ? T.lightBg : T.bg, borderRadius: 44, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04)", position: "relative", border: "8px solid #1a1f24" }}>
+    {children}
+  </div>
+);
+
+// ─── SCREEN: HOME DENSE ────────────────────────────────────────────────────────
+const HomeScreen = () => {
+  const categories = [
+    { name: "Work", count: 12, apps: ["Google", "Notion", "Slack"], extra: 8 },
+    { name: "Social", count: 9, apps: ["WhatsApp", "Instagram", "LinkedIn"], extra: 5 },
+    { name: "Finance", count: 6, apps: ["PayPal", "Lightroom", "Maps"], extra: 2 },
+    { name: "Creativity", count: 11, apps: ["Lightroom", "Google", "Figma"], extra: 7 },
+    { name: "Utilities", count: 16, apps: ["Chrome", "Drive", "Chrome"], extra: 11 },
+    { name: "Daily", count: 8, apps: ["Camera", "Photos", "Phone"], extra: 4 },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 0", scrollbarWidth: "none" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>Good morning, Alex ☀️</div>
+            <div style={{ fontSize: 13, color: T.sec, marginTop: 2 }}>Tuesday, May 20</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="star4" size={16} color={T.white} />
+            </div>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+              <Icon name="bell" size={16} color={T.white} />
+              <div style={{ position: "absolute", top: 6, right: 7, width: 7, height: 7, borderRadius: 4, background: T.gold, border: "1.5px solid " + T.bg }} />
+            </div>
+          </div>
+        </div>
+        <SearchBar />
+        {/* Weather + Today */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+          <GlassCard style={{ padding: 16 }}>
+            <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: -1 }}>24°</div>
+            <div style={{ fontSize: 12, color: T.sec, marginTop: 2 }}>Partly sunny</div>
+            <div style={{ fontSize: 11, color: T.muted }}>Feels like 26°</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+              <span style={{ fontSize: 11, color: T.muted }}>New York</span>
+              <span style={{ fontSize: 11, color: T.green, background: "rgba(57,198,106,0.15)", padding: "2px 6px", borderRadius: 10 }}>AQI 42 ●</span>
+            </div>
+          </GlassCard>
+          <GlassCard style={{ padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Today</span>
+              <Icon name="plus" size={16} color={T.muted} />
+            </div>
+            {[["10:00 AM", "Design Sync", "60m", T.blue], ["02:30 PM", "Client Call", "45m", T.gold], ["06:00 PM", "Gym Session", "60m", "#9B8EFF"]].map(([t, e, d, c]) => (
+              <div key={t} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
+                <div style={{ width: 2.5, height: "100%", minHeight: 28, background: c, borderRadius: 2, marginTop: 2 }} />
+                <div>
+                  <div style={{ fontSize: 10, color: T.muted }}>{t}</div>
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>{e}</div>
+                  <div style={{ fontSize: 10, color: T.muted }}>{d}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: T.blue, marginTop: 4 }}>View all</div>
+          </GlassCard>
+        </div>
+        {/* Smart Categories */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 600 }}>Smart categories</span>
+            <div style={{ width: 40, height: 2, background: T.gold, borderRadius: 2 }} />
+          </div>
+          <span style={{ fontSize: 13, color: T.blue }}>Edit</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          {categories.map(cat => (
+            <GlassCard key={cat.name} style={{ padding: 12, cursor: "pointer" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 1 }}>{cat.name}</div>
+              <div style={{ fontSize: 10, color: T.muted, marginBottom: 8 }}>{cat.count} apps</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {cat.apps.map((a, i) => <AppIcon key={i} app={a} size={28} />)}
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: T.card, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: T.muted, fontWeight: 600 }}>+{cat.extra}</div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+        {/* Duplicate Shortcuts */}
+        <GlassCard style={{ marginTop: 12, padding: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Duplicate smart shortcuts</div>
+          <div style={{ fontSize: 11, color: T.muted, marginBottom: 10 }}>One app, multiple places</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {["Zoom", "Notion", "WhatsApp", "Drive"].map((a, i) => (
+              <div key={i} style={{ position: "relative" }}>
+                <AppIcon app={a} size={40} />
+                <div style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: 7, background: T.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="plus" size={8} color="#000" />
+                </div>
+              </div>
+            ))}
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: T.card, border: `1px dashed ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="plus" size={16} color={T.muted} />
+            </div>
+          </div>
+        </GlassCard>
+        {/* Bottom Dock */}
+        <div style={{ margin: "14px 0 12px", padding: "12px 16px", background: "rgba(255,255,255,0.05)", borderRadius: 28, border: `1px solid ${T.border}`, display: "flex", justifyContent: "space-around" }}>
+          {["Phone", "Zoom", "Chrome", "Camera", "Copilot"].map((a, i) => <AppIcon key={i} app={a} size={48} />)}
+        </div>
+      </div>
+      <BottomNav active="home" />
+    </div>
+  );
+};
+
+// ─── SCREEN: HOME SPACIOUS ─────────────────────────────────────────────────────
+const HomeSpaciousScreen = () => (
+  <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+    <StatusBar />
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px 24px 0", scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>Good morning, Alex ☀️</div>
+          <div style={{ fontSize: 14, color: T.sec, marginTop: 4 }}>Tuesday, May 20</div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {["star4", "bell"].map((ic, i) => (
+            <div key={i} style={{ width: 40, height: 40, borderRadius: 20, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name={ic} size={18} color={i === 1 ? T.white : T.white} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <SearchBar />
+      {/* Large weather card */}
+      <GlassCard style={{ marginTop: 18, padding: 22, background: "linear-gradient(135deg, rgba(30,50,80,0.7) 0%, rgba(20,30,50,0.8) 100%)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 52, fontWeight: 200, letterSpacing: -2 }}>24°</div>
+            <div style={{ fontSize: 15, color: T.sec }}>Partly sunny · New York</div>
+            <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>Feels like 26° · Humidity 65%</div>
+          </div>
+          <div style={{ fontSize: 56 }}>⛅</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          {["Mon 22°", "Tue 24°", "Wed 19°", "Thu 21°"].map(d => (
+            <div key={d} style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "8px 4px", textAlign: "center", fontSize: 11, color: T.sec }}>{d}</div>
+          ))}
+        </div>
+      </GlassCard>
+      {/* Today agenda */}
+      <GlassCard style={{ marginTop: 14, padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>Today</span>
+          <Icon name="plus" size={18} color={T.muted} />
+        </div>
+        {[["10:00 AM", "Design Sync", "60m", T.blue], ["02:30 PM", "Client Call", "45m", T.gold], ["06:00 PM", "Gym Session", "60m", "#9B8EFF"]].map(([t, e, d, c]) => (
+          <div key={t} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${T.borderSub}` }}>
+            <div style={{ width: 3, height: 36, background: c, borderRadius: 3 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{e}</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{t} · {d}</div>
+            </div>
+          </div>
+        ))}
+        <div style={{ fontSize: 12, color: T.blue, marginTop: 10, textAlign: "center" }}>View all</div>
+      </GlassCard>
+      {/* Categories - 2 col spacious */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 22, marginBottom: 14 }}>
+        <span style={{ fontSize: 16, fontWeight: 600 }}>Smart categories</span>
+        <span style={{ fontSize: 13, color: T.blue }}>Edit</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {[{ name: "Work", count: 12, apps: ["Google", "Notion", "Slack"], extra: 8 }, { name: "Social", count: 9, apps: ["WhatsApp", "Instagram", "LinkedIn"], extra: 5 }, { name: "Finance", count: 6, apps: ["PayPal", "Chrome", "Maps"], extra: 2 }, { name: "Creativity", count: 11, apps: ["Lightroom", "Figma", "Photoshop"], extra: 7 }].map(cat => (
+          <GlassCard key={cat.name} style={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{cat.name}</div>
+            <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>{cat.count} apps</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {cat.apps.map((a, i) => <AppIcon key={i} app={a} size={34} />)}
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: T.muted, fontWeight: 600 }}>+{cat.extra}</div>
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+      <div style={{ marginBottom: 16 }} />
+    </div>
+    <BottomNav active="home" />
+  </div>
+);
+
+// ─── SCREEN: APP DRAWER ────────────────────────────────────────────────────────
+const AppDrawerScreen = () => {
+  const sections = [
+    { name: "Suggested", count: 8, apps: ["Chrome", "Notion", "WhatsApp"], extra: 5, sub: "Based on your usage" },
+    { name: "Recently Added", count: 6, apps: ["Lightroom", "Figma", "Drive"], extra: 3, sub: "Latest additions" },
+    { name: "Work", count: 12, apps: ["Gmail", "Slack", "LinkedIn"], extra: 9 },
+    { name: "Social", count: 9, apps: ["WhatsApp", "Instagram", "Notion"], extra: 6 },
+    { name: "Utilities", count: 16, apps: ["Chrome", "Drive", "Maps"], extra: 13 },
+    { name: "Creativity", count: 11, apps: ["Lightroom", "Photoshop", "Premiere"], extra: 8 },
+    { name: "Entertainment", count: 8, apps: ["YouTube", "Netflix", "Spotify"], extra: 5 },
+    { name: "Travel", count: 7, apps: ["Maps", "Airbnb", "Phone"], extra: 4 },
+    { name: "Finance", count: 6, apps: ["PayPal", "Phone", "Maps"], extra: 3 },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px 0", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CiyatoLogo size={22} />
+            <span style={{ fontSize: 20, fontWeight: 700 }}>Ciyato</span>
+          </div>
+          <div style={{ padding: "6px 14px", borderRadius: 50, background: T.cardStr, border: `1px solid ${T.border}`, fontSize: 12, fontWeight: 500, color: T.sec }}>Smart App Library</div>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ flex: 1 }}><SearchBar placeholder="Search apps, files, contacts…" /></div>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="filter" size={18} color={T.sec} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 12, marginBottom: 4 }}>
+          {[0, 1, 2].map(i => <div key={i} style={{ width: i === 0 ? 20 : 6, height: 6, borderRadius: 3, background: i === 0 ? T.gold : T.muted }} />)}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+          {sections.map((sec, idx) => (
+            idx === sections.length - 2 ? (
+              <div key={sec.name} style={{ gridColumn: "1 / -1" }}>
+                <GlassCard style={{ padding: 16, position: "relative", overflow: "hidden", background: "rgba(198,161,91,0.12)", border: `1px solid rgba(198,161,91,0.2)` }}>
+                  <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="star4" size={12} color={T.gold} />
+                    <span style={{ color: T.gold }}>Duplicate</span> smart shortcuts
+                  </div>
+                  <div style={{ fontSize: 11, color: T.sec, marginBottom: 10 }}>One app, multiple places. Always in context.</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {["Zoom", "Notion", "WhatsApp", "Drive"].map((a, i) => (
+                      <div key={i} style={{ position: "relative" }}>
+                        <AppIcon app={a} size={36} />
+                        <div style={{ position: "absolute", top: -3, right: -3, width: 12, height: 12, borderRadius: 6, background: T.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Icon name="plus" size={7} color="#000" />
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: T.gold, fontWeight: 600, marginLeft: 4 }}>Learn more</div>
+                  </div>
+                </GlassCard>
+              </div>
+            ) : (
+              <GlassCard key={sec.name} style={{ padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{sec.name}</span>
+                </div>
+                <div style={{ fontSize: 10, color: T.muted, marginBottom: 8 }}>{sec.count} apps{sec.sub ? ` · ${sec.sub}` : ""}</div>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {sec.apps.map((a, i) => <AppIcon key={i} app={a} size={32} />)}
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: T.card, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: T.muted, fontWeight: 600 }}>+{sec.extra}</div>
+                </div>
+              </GlassCard>
+            )
+          ))}
+        </div>
+        <div style={{ marginBottom: 10 }} />
+      </div>
+      <BottomNav active="grid" items={[{ id: "grid", label: "Apps", icon: "grid" }, { id: "folder", label: "Files", icon: "folder" }, { id: "star", label: "Starred", icon: "star4" }, { id: "settings", label: "Settings", icon: "settings" }]} />
+    </div>
+  );
+};
+
+// ─── SCREEN: THEME STUDIO ──────────────────────────────────────────────────────
+const ThemeStudioScreen = () => {
+  const [darkMode, setDarkMode] = useState("Auto");
+  const [homeActive, setHomeActive] = useState(true);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white, overflowY: "auto", scrollbarWidth: "none" }}>
+      <StatusBar />
+      <div style={{ padding: "8px 20px 20px" }}>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Theme Studio</div>
+        <div style={{ fontSize: 13, color: T.sec, marginBottom: 20 }}>Customize Everything</div>
+        {/* Settings panel */}
+        <GlassCard style={{ padding: 0, overflow: "hidden", marginBottom: 16 }}>
+          {/* Toggle */}
+          <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.borderSub}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>Ciyato Home Active</div>
+                <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Experience the full power of Ciyato launcher.</div>
+              </div>
+              <div onClick={() => setHomeActive(!homeActive)} style={{ width: 48, height: 26, borderRadius: 13, background: homeActive ? T.gold : T.card, border: `1px solid ${homeActive ? T.gold : T.border}`, position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
+                <div style={{ position: "absolute", top: 2, left: homeActive ? 22 : 2, width: 20, height: 20, borderRadius: 10, background: "#fff", transition: "left 0.2s", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }} />
+              </div>
+            </div>
+          </div>
+          {/* Settings rows */}
+          {[
+            { label: "Icon Style", value: "Glass Rounded", icon: "grid" },
+            { label: "Glass Mode", value: "Medium", icon: "eye" },
+            { label: "Typography", value: "Inter", icon: "file" },
+            { label: "Smart Box Style", value: "Elevated", icon: "duplicate" },
+            { label: "Dock Style", value: "Platform", icon: "down" },
+          ].map((row, i) => (
+            <div key={row.label} style={{ display: "flex", alignItems: "center", padding: "14px 18px", borderBottom: i < 4 ? `1px solid ${T.borderSub}` : "none", cursor: "pointer" }}>
+              <Icon name={row.icon} size={17} color={T.muted} />
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 500, marginLeft: 12 }}>{row.label}</span>
+              <span style={{ fontSize: 12, color: T.muted }}>{row.value}</span>
+              <Icon name="chevRight" size={14} color={T.muted} style={{ marginLeft: 4 }} />
+            </div>
+          ))}
+          {/* Color accents row */}
+          <div style={{ display: "flex", alignItems: "center", padding: "14px 18px", borderTop: `1px solid ${T.borderSub}` }}>
+            <Icon name="palette" size={17} color={T.muted} />
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, marginLeft: 12 }}>Color Accents</span>
+            <div style={{ display: "flex", gap: 5 }}>
+              {[T.gold, "#39C66A", "#3B82F6", "#8B5CF6", "#EF4444"].map((c, i) => (
+                <div key={i} style={{ width: 18, height: 18, borderRadius: 9, background: c, border: i === 0 ? "2px solid #fff" : "none" }} />
+              ))}
+              <div style={{ width: 18, height: 18, borderRadius: 9, background: T.card, border: `1px dashed ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="plus" size={10} color={T.muted} />
+              </div>
+            </div>
+          </div>
+          {/* Dark mode */}
+          <div style={{ padding: "14px 18px", borderTop: `1px solid ${T.borderSub}` }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+              <Icon name="moon" size={17} color={T.muted} />
+              <span style={{ fontSize: 13, fontWeight: 500, marginLeft: 12, flex: 1 }}>Dark Mode</span>
+              <Icon name="chevDown" size={16} color={T.muted} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["Auto", "Light", "Dark"].map(m => (
+                <div key={m} onClick={() => setDarkMode(m)} style={{ flex: 1, padding: "8px 0", borderRadius: 50, background: darkMode === m ? T.gold : T.card, border: `1px solid ${darkMode === m ? T.gold : T.border}`, textAlign: "center", fontSize: 12, fontWeight: 600, color: darkMode === m ? "#000" : T.sec, cursor: "pointer" }}>{m}</div>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
+        {/* Live Preview */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Icon name="eye" size={16} color={T.gold} />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Live Preview</span>
+        </div>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+          {[T.gold, "#AEB4BA", "#7DB7FF"].map((accent, i) => (
+            <div key={i} style={{ minWidth: 110, background: T.bgEl, borderRadius: 16, overflow: "hidden", border: `2px solid ${i === 0 ? T.gold : T.borderSub}`, flexShrink: 0 }}>
+              <div style={{ background: i === 0 ? "linear-gradient(135deg,#1a1f24,#0d1117)" : i === 1 ? "#2a2a2a" : "#0d1a2d", padding: 8 }}>
+                <div style={{ fontSize: 8, color: T.white, fontWeight: 600, marginBottom: 6 }}>Good morning ☀️</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginBottom: 4 }}>
+                  {["Work", "Social", "Finance", "Daily"].map(c => (
+                    <div key={c} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 6, padding: "5px 6px", fontSize: 7, color: T.sec, fontWeight: 500 }}>{c}</div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 4, padding: "5px", background: "rgba(255,255,255,0.04)", borderRadius: 8 }}>
+                  {["Phone", "Chrome", "Zoom", "Copilot"].map((a, j) => (
+                    <div key={j} style={{ width: 18, height: 18, borderRadius: 6, background: accent === T.gold && j === 0 ? "#4CAF50" : "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#fff" }}>•</div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ padding: 6, borderTop: `1px solid ${T.borderSub}` }}>
+                <div style={{ width: "100%", height: 3, borderRadius: 2, background: accent, marginBottom: 3 }} />
+                <div style={{ fontSize: 7, color: accent, fontWeight: 600 }}>{i === 0 ? "Gold" : i === 1 ? "Neutral" : "Ocean"}</div>
+              </div>
+              {i === 0 && <div style={{ position: "absolute", bottom: 2, right: 2 }}><Icon name="check" size={10} color={T.gold} /></div>}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 16, padding: "14px 16px", background: "rgba(198,161,91,0.08)", borderRadius: 16, border: `1px solid rgba(198,161,91,0.15)` }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <Icon name="star4" size={16} color={T.gold} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Built for focus. Designed for you.</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Every detail. Your style. Ciyato makes it yours.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── SCREEN: CIYATO FILES ──────────────────────────────────────────────────────
+const FilesScreen = () => {
+  const categories = [
+    { name: "Screenshots", count: "1,342", icon: "screenshot", bg: "#1B3A6B", emoji: "🗒️" },
+    { name: "Documents", count: "842", icon: "file", bg: "#1B4A2A", emoji: "📄" },
+    { name: "Downloads", count: "1,245", icon: "down", bg: "#6B3B1B", emoji: "⬇️" },
+    { name: "Photos", count: "12,546", icon: "photo", bg: "#4A1B6B", emoji: "🖼️" },
+    { name: "Videos", count: "528", icon: "video", bg: "#4A1B1B", emoji: "🎬" },
+    { name: "APKs", count: "92", icon: "apk", bg: "#3B3B1B", emoji: "📦" },
+    { name: "WhatsApp", count: "2,105", icon: "whatsapp", bg: "#1B4A1B", emoji: "💬" },
+  ];
+  const recentFiles = [
+    { name: "Project_Proposal.pdf", icon: "📄", type: "pdf", color: "#E53935" },
+    { name: "Brand_Deck.pptx", icon: "📊", type: "pptx", color: "#E65100" },
+    { name: "IMG_2024_05.jpg", icon: "🖼️", type: "jpg", color: "#3949AB" },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px 0", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>Ciyato Files</div>
+            <div style={{ fontSize: 12, color: T.gold }}>AI Phone Organizer</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="search" size={16} color={T.sec} />
+            </div>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.cardStr, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="moreV" size={16} color={T.sec} />
+            </div>
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}><SearchBar placeholder="Search files, folders…" /></div>
+        {/* Storage overview */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+          <GlassCard style={{ padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ position: "relative", width: 64, height: 64 }}>
+              <svg width="64" height="64" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="26" fill="none" stroke={T.cardStr} strokeWidth="6" />
+                <circle cx="32" cy="32" r="26" fill="none" stroke={T.gold} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 26 * 0.53} ${2 * Math.PI * 26 * 0.47}`} strokeDashoffset={2 * Math.PI * 26 * 0.25} strokeLinecap="round" />
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>53%</div>
+                <div style={{ fontSize: 8, color: T.muted }}>Used</div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Storage overview</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>68 GB used</div>
+              <div style={{ fontSize: 11, color: T.sec }}>128 GB total</div>
+              <div style={{ width: 80, height: 3, background: T.card, borderRadius: 2, marginTop: 6 }}>
+                <div style={{ width: "53%", height: "100%", background: T.gold, borderRadius: 2 }} />
+              </div>
+              <div style={{ fontSize: 11, color: T.gold, marginTop: 6 }}>Clean suggestions: 2.4 GB ›</div>
+            </div>
+          </GlassCard>
+          <GlassCard style={{ padding: 14, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 90 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 24, background: "rgba(57,198,106,0.15)", border: `2px solid ${T.green}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+              <Icon name="check" size={22} color={T.green} />
+            </div>
+            <div style={{ fontSize: 11, color: T.green, fontWeight: 600, textAlign: "center" }}>Excellent</div>
+            <div style={{ fontSize: 10, color: T.muted, textAlign: "center", marginTop: 2 }}>Cleanup status</div>
+          </GlassCard>
+        </div>
+        {/* Categories */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0 10px" }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>Categories</span>
+          <span style={{ fontSize: 12, color: T.blue }}>View all</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {categories.map(cat => (
+            <GlassCard key={cat.name} style={{ padding: 12, cursor: "pointer" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, marginBottom: 8 }}>{cat.emoji}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{cat.name}</div>
+              <div style={{ fontSize: 10, color: T.muted }}>{cat.count}</div>
+            </GlassCard>
+          ))}
+        </div>
+        {/* Recent files */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0 10px" }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>Recent files</span>
+        </div>
+        <GlassCard style={{ padding: 12 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            {recentFiles.map((f, i) => (
+              <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: f.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{f.icon}</div>
+                <div style={{ fontSize: 9, color: T.sec, textAlign: "center", wordBreak: "break-all" }}>{f.name}</div>
+              </div>
+            ))}
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px 8px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <div style={{ fontSize: 11, color: T.blue, fontWeight: 600 }}>View all</div>
+              <div style={{ fontSize: 10, color: T.muted }}>+12</div>
+            </div>
+          </div>
+        </GlassCard>
+        {/* Duplicate + Large */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+          <GlassCard style={{ padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(198,161,91,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="duplicate" size={14} color={T.gold} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Duplicate files</div>
+                <div style={{ fontSize: 11, color: T.gold }}>1.8 GB</div>
+              </div>
+              <Icon name="chevRight" size={14} color={T.muted} style={{ marginLeft: "auto" }} />
+            </div>
+            <div style={{ fontSize: 10, color: T.muted }}>Review duplicates</div>
+          </GlassCard>
+          <GlassCard style={{ padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(198,161,91,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="file" size={14} color={T.gold} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Large files</div>
+                <div style={{ fontSize: 11, color: T.gold }}>8.3 GB</div>
+              </div>
+              <Icon name="chevRight" size={14} color={T.muted} style={{ marginLeft: "auto" }} />
+            </div>
+            <div style={{ fontSize: 10, color: T.muted }}>Review large files</div>
+          </GlassCard>
+        </div>
+        {/* Quick actions */}
+        <div style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 10px" }}>Quick actions</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+          {[{ label: "AI Cleanup", sub: "2.4 GB", bg: "#1B3A8C", icon: "ai" }, { label: "Junk files", sub: "1.1 GB", bg: "#2A2A2A", icon: "x" }, { label: "Vault", sub: "Secure files", bg: "#1A2030", icon: "vault" }, { label: "File transfer", sub: "Share files", bg: "#1A2A1A", icon: "transfer" }].map(a => (
+            <GlassCard key={a.label} style={{ padding: 10, alignItems: "center", textAlign: "center", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 9, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name={a.icon} size={14} color={T.white} />
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600 }}>{a.label}</div>
+              <div style={{ fontSize: 9, color: T.muted }}>{a.sub}</div>
+            </GlassCard>
+          ))}
+        </div>
+      </div>
+      <BottomNav active="home" items={[{ id: "home", label: "Home", icon: "home" }, { id: "files", label: "Files", icon: "folder" }, { id: "search", label: "Search", icon: "search" }, { id: "shared", label: "Shared", icon: "shared" }, { id: "tools", label: "Tools", icon: "tools" }]} />
+    </div>
+  );
+};
+
+// ─── SCREEN: SMART COLLECTIONS ─────────────────────────────────────────────────
+const SmartCollectionsScreen = () => {
+  const [tab, setTab] = useState("smart");
+  const collections = [
+    { name: "Work Files", count: "1,234 files", bg: "#1B3A6B", icon: "📁", tags: ["W", "X", "P"] },
+    { name: "Receipts", count: "347 files", bg: "#1B4A2A", icon: "🧾", tags: ["PDF", "PDF"] },
+    { name: "PDFs", count: "567 files", bg: "#4A1B1B", icon: "📄", tags: ["PDF", "PDF", "+3"] },
+    { name: "Contracts", count: "89 files", bg: "#2A1B4A", icon: "📋", tags: ["PDF", "DOC"] },
+    { name: "Screen Recordings", count: "124 files", bg: "#3B1B6B", icon: "🎬", tags: [] },
+    { name: "Design Assets", count: "312 files", bg: "#4A3B1B", icon: "🎨", tags: ["Ps", "Ai", "Xd"] },
+    { name: "WhatsApp Media", count: "2,142 files", bg: "#1B4A1B", icon: "💬", tags: [] },
+    { name: "Travel", count: "233 files", bg: "#1B2A4A", icon: "✈️", tags: [] },
+    { name: "College", count: "445 files", bg: "#3B1B2A", icon: "🎓", tags: ["PDF", "PPT", "DOC"] },
+    { name: "Recently Added", count: "1,025 files", bg: "#2A2A2A", icon: "🕐", tags: [] },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px 0", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>Ciyato Files</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Icon name="search" size={18} color={T.sec} />
+            <Icon name="moreV" size={18} color={T.sec} />
+          </div>
+        </div>
+        {/* Segmented control */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <div onClick={() => setTab("smart")} style={{ padding: "8px 18px", borderRadius: 50, background: tab === "smart" ? T.gold : T.cardStr, border: `1px solid ${tab === "smart" ? T.gold : T.border}`, fontSize: 13, fontWeight: 600, color: tab === "smart" ? "#000" : T.sec, cursor: "pointer" }}>Smart Collections</div>
+          <div onClick={() => setTab("timeline")} style={{ padding: "8px 18px", borderRadius: 50, background: tab === "timeline" ? T.gold : T.cardStr, border: `1px solid ${tab === "timeline" ? T.gold : T.border}`, fontSize: 13, fontWeight: 600, color: tab === "timeline" ? "#000" : T.sec, cursor: "pointer" }}>Timeline</div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 4 }}>Most recent <Icon name="chevDown" size={12} color={T.muted} /></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {collections.map(col => (
+            <GlassCard key={col.name} style={{ padding: 14, cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: col.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{col.icon}</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{col.name}</div>
+                  <div style={{ fontSize: 10, color: T.muted }}>{col.count}</div>
+                </div>
+              </div>
+              {col.tags.length > 0 && (
+                <div style={{ display: "flex", gap: 4 }}>
+                  {col.tags.map((t, i) => (
+                    <div key={i} style={{ padding: "2px 7px", borderRadius: 4, background: "rgba(255,255,255,0.1)", fontSize: 9, fontWeight: 600, color: T.sec }}>{t}</div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          ))}
+        </div>
+        {/* Storage summary */}
+        <GlassCard style={{ marginTop: 14, padding: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ position: "relative", width: 48, height: 48 }}>
+              <svg width="48" height="48" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="18" fill="none" stroke={T.card} strokeWidth="5" />
+                <circle cx="24" cy="24" r="18" fill="none" stroke={T.gold} strokeWidth="5" strokeDasharray={`${2 * Math.PI * 18 * 0.62} ${2 * Math.PI * 18 * 0.38}`} strokeDashoffset={2 * Math.PI * 18 * 0.25} strokeLinecap="round" />
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>62%</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Storage used</div>
+              <div style={{ fontSize: 11, color: T.muted }}>63.2 GB / 128 GB</div>
+            </div>
+            <div style={{ padding: "6px 14px", borderRadius: 50, background: T.card, border: `1px solid ${T.border}`, fontSize: 12, color: T.sec }}>Manage</div>
+          </div>
+          {[["Duplicates found", "1.32 GB"], ["Large files", "1.13 GB"]].map(([label, size]) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", padding: "10px 0", borderTop: `1px solid ${T.borderSub}` }}>
+              <div style={{ flex: 1, fontSize: 13 }}>{label}</div>
+              <div style={{ fontSize: 12, color: T.muted, marginRight: 10 }}>{size}</div>
+              <div style={{ padding: "5px 12px", borderRadius: 50, background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.sec, cursor: "pointer" }}>Review</div>
+            </div>
+          ))}
+        </GlassCard>
+        <div style={{ marginBottom: 16 }} />
+      </div>
+    </div>
+  );
+};
+
+// ─── SCREEN: CIYATO PHOTOS ─────────────────────────────────────────────────────
+const PhotosScreen = () => {
+  const collections = [
+    { name: "Family Moments", count: "1,248 items", img: "👨‍👩‍👧‍👦", colors: ["#4A90D9", "#2C5F8A"], icon: null },
+    { name: "Friends Forever", count: "843 items", img: "👯", colors: ["#C97B3E", "#8B4A1F"], icon: "shared" },
+    { name: "Travel Adventures", count: "521 items", img: "🏔️", colors: ["#3A8A5C", "#1F5C3A"], icon: "pin" },
+    { name: "Delicious Eats", count: "398 items", img: "🍱", colors: ["#6B3B8A", "#3B1F5C"], icon: "cutlery" },
+    { name: "Furry Friends", count: "286 items", img: "🐕", colors: ["#8A6B3A", "#5C3F1F"], icon: "paw" },
+    { name: "Sunset Vibes", count: "207 items", img: "🌅", colors: ["#8A4A2A", "#5C2A0F"], icon: "photo" },
+    { name: "Little Wonders", count: "615 items", img: "👶", colors: ["#2A8A8A", "#0F5C5C"], icon: "star4" },
+    { name: "Memories", count: "1,102 items", img: "📷", colors: ["#3A3A3A", "#1A1A1A"], icon: null },
+  ];
+  const chips = ["Personal", "Shared", "Activity", "Work", "Recent"];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+        <div style={{ padding: "8px 18px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>Ciyato Photos</div>
+              <div style={{ fontSize: 12, color: T.gold, display: "flex", alignItems: "center", gap: 4 }}>AI-sorted moments and media <Icon name="star4" size={11} color={T.gold} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ width: 34, height: 34, borderRadius: 17, background: "linear-gradient(135deg,#C6A15B,#8B6B2A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👤</div>
+              <Icon name="moreV" size={18} color={T.sec} />
+            </div>
+          </div>
+          <SearchBar placeholder="Search photos, albums, places…" />
+          <div style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto", scrollbarWidth: "none" }}>
+            {chips.map((c, i) => <FilterChip key={c} label={c} active={i === 0} />)}
+          </div>
+        </div>
+        {/* Photo grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "14px 18px 0" }}>
+          {collections.map((col, i) => (
+            <div key={col.name} style={{ borderRadius: 18, overflow: "hidden", position: "relative", height: 170, background: `linear-gradient(135deg, ${col.colors[0]}, ${col.colors[1]})`, cursor: "pointer" }}>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56, opacity: 0.7 }}>{col.img}</div>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.75) 100%)" }} />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 12px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{col.name}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{col.count}</div>
+              </div>
+              {col.icon && (
+                <div style={{ position: "absolute", bottom: 10, right: 10, width: 22, height: 22, borderRadius: 11, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name={col.icon} size={11} color="#fff" />
+                </div>
+              )}
+              {i === collections.length - 1 && (
+                <div style={{ position: "absolute", bottom: 10, right: 10, width: 38, height: 38, borderRadius: 19, background: T.gold, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(198,161,91,0.5)" }}>
+                  <Icon name="search" size={18} color="#000" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginBottom: 16 }} />
+      </div>
+      <div style={{ padding: "8px 18px", display: "flex", justifyContent: "center" }}>
+        <div style={{ padding: "10px 24px", borderRadius: 50, background: T.bgEl, border: `1px solid ${T.gold}`, display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: T.gold }}>
+          <Icon name="star4" size={14} color={T.gold} />
+          AI ORGANIZED
+        </div>
+      </div>
+      <BottomNav active="photos" items={[{ id: "photos", label: "Photos", icon: "photo" }, { id: "collections", label: "Collections", icon: "folder" }, { id: "search", label: "Search", icon: "search" }, { id: "map", label: "Map", icon: "map" }]} />
+    </div>
+  );
+};
+
+// ─── SCREEN: AI SEARCH ─────────────────────────────────────────────────────────
+const AISearchScreen = () => {
+  const fileResults = [
+    { name: "Brand_Deck.pptx", meta: "PPTX · 18.7 MB · Yesterday", loc: "Internal storage / Work", emoji: "📊", bg: "#E65100" },
+    { name: "Invoice_0421.pdf", meta: "PDF · 1.8 MB · 2 days ago", loc: "Downloads", emoji: "📄", bg: "#E53935" },
+    { name: "Meeting_Notes.docx", meta: "DOCX · 560 KB · 2 days ago", loc: "Internal storage / Work", emoji: "📝", bg: "#1565C0" },
+  ];
+  const screenshots = [
+    { label: "Payment_success", sub: "Yesterday", emoji: "💳" },
+    { label: "UPI_Transfer", sub: "Yesterday", emoji: "💸" },
+    { label: "Bank_statement", sub: "2 days ago", emoji: "🏦" },
+  ];
+  const promptPills = ["Show PDFs from yesterday", "Find payment screenshots", "Work apps", "Recent WhatsApp files"];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.white }}>
+      <StatusBar />
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px 0", scrollbarWidth: "none" }}>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 14 }}>AI Search</div>
+        <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.08)", borderRadius: 50, padding: "11px 16px", gap: 10, border: `1px solid ${T.border}`, marginBottom: 12 }}>
+          <span style={{ flex: 1, fontSize: 14, color: T.muted }}>Search apps, files, photos, and documents</span>
+          <Icon name="mic" size={18} color={T.gold} />
+        </div>
+        <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
+          {["All", "Apps", "Files", "Photos", "Documents"].map((f, i) => <FilterChip key={f} label={f} active={i === 0} />)}
+        </div>
+        {/* Prompt pills */}
+        <div style={{ marginBottom: 16 }}>
+          {promptPills.map((p, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, background: T.cardStr, borderRadius: 14, border: `1px solid ${T.border}`, cursor: "pointer" }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: T.bgEl2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                {["📄", "🗒️", "💼", "💬"][i]}
+              </div>
+              <span style={{ fontSize: 14, color: T.sec }}>{p}</span>
+            </div>
+          ))}
+        </div>
+        {/* Top match */}
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Top match</div>
+        <GlassCard style={{ marginBottom: 14, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "#E53935", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📄</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Project_Proposal.pdf</div>
+            <div style={{ fontSize: 11, color: T.muted }}>PDF · 2.4 MB · Yesterday</div>
+            <div style={{ fontSize: 11, color: T.muted }}>Documents</div>
+          </div>
+          <Icon name="moreV" size={16} color={T.muted} />
+        </GlassCard>
+        {/* Files */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Files</span>
+          <span style={{ fontSize: 12, color: T.blue }}>View all</span>
+        </div>
+        <GlassCard style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}>
+          {fileResults.map((f, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderBottom: i < fileResults.length - 1 ? `1px solid ${T.borderSub}` : "none" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: f.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{f.emoji}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{f.name}</div>
+                <div style={{ fontSize: 10, color: T.muted }}>{f.meta}</div>
+                <div style={{ fontSize: 10, color: T.muted }}>{f.loc}</div>
+              </div>
+              <Icon name="moreV" size={14} color={T.muted} />
+            </div>
+          ))}
+        </GlassCard>
+        {/* Screenshots */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Screenshots</span>
+          <span style={{ fontSize: 12, color: T.blue }}>View all</span>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          {screenshots.map((s, i) => (
+            <div key={i} style={{ flex: 1, background: T.cardStr, borderRadius: 14, border: `1px solid ${T.border}`, overflow: "hidden", minHeight: 90 }}>
+              <div style={{ background: T.bgEl, padding: "14px 10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 70, fontSize: 24 }}>{s.emoji}</div>
+              <div style={{ padding: "6px 8px" }}>
+                <div style={{ fontSize: 10, fontWeight: 500, color: T.sec }}>{s.label}</div>
+                <div style={{ fontSize: 9, color: T.muted }}>{s.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Apps */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Apps</span>
+          <span style={{ fontSize: 12, color: T.blue }}>View all</span>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+          {[["WhatsApp", "WhatsApp"], ["Gmail", "Gmail"], ["Drive", "Drive"], ["Slack", "Slack"], ["Notion", "Notion"]].map(([a, l]) => (
+            <div key={a} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <AppIcon app={a} size={44} />
+              <span style={{ fontSize: 10, color: T.sec }}>{l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── SCREEN: BEFORE / AFTER ────────────────────────────────────────────────────
+const BeforeAfterScreen = () => (
+  <div style={{ display: "flex", flexDirection: "column", height: "100%", background: T.bgEl, fontFamily: "Inter, system-ui, sans-serif", color: T.white, overflowY: "auto", scrollbarWidth: "none" }}>
+    {/* Header */}
+    <div style={{ padding: "32px 24px 0", textAlign: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <CiyatoLogo size={28} />
+        <span style={{ fontSize: 24, fontWeight: 700 }}>Ciyato</span>
+      </div>
+      <div style={{ display: "inline-block", padding: "6px 18px", borderRadius: 50, background: T.card, border: `1px solid ${T.border}`, fontSize: 12, color: T.sec, marginBottom: 20 }}>AI Phone Organizer for Android</div>
+      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, lineHeight: 1.2, marginBottom: 8 }}>
+        From <span style={{ color: T.gold }}>chaos</span> to clarity.
+      </div>
+      <div style={{ fontSize: 14, color: T.sec, marginBottom: 24 }}>One place for everything. Smarter categories. Faster access.</div>
+    </div>
+    {/* Before/After panels */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px" }}>
+      {/* Before */}
+      <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px 6px" }}>
+          <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 50, background: "#2a2a2a", border: `1px solid #444`, fontSize: 11, fontWeight: 700, color: T.sec, marginBottom: 4 }}>Before</div>
+          <div style={{ fontSize: 10, color: T.muted }}>Cluttered. Scattered. Hard to find.</div>
+          <div style={{ width: 24, height: 1.5, background: T.muted, marginTop: 4 }} />
+        </div>
+        <div style={{ padding: "0 10px 10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
+            {["🖼️","🧮","🗺️","▶️","🛠️","📁","💼","⚙️","📞","🌐","📧","▶️","🔵","📸","🐦","💼","💬","🕺","💬","🖼️","📅"].map((e, i) => (
+              <div key={i} style={{ background: `hsl(${(i * 47) % 360}, 40%, 20%)`, borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", aspectRatio: "1", fontSize: 12, gap: 1 }}>
+                <span>{e}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 9, color: T.muted, borderTop: `1px solid ${T.borderSub}`, paddingTop: 8 }}>Downloads ↗</div>
+          {["invoice_78291.pdf", "Screenshot_2024.png", "IMG_2024_05.jpg"].map((f, i) => (
+            <div key={i} style={{ padding: "4px 0", fontSize: 9, color: T.muted, display: "flex", gap: 6 }}>
+              <span style={{ fontSize: 10 }}>{["📄","🖼️","🖼️"][i]}</span>{f}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* After */}
+      <div style={{ background: "rgba(198,161,91,0.05)", borderRadius: 20, border: `1px solid rgba(198,161,91,0.2)`, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px 6px" }}>
+          <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 50, background: "rgba(198,161,91,0.15)", border: `1px solid ${T.gold}`, fontSize: 11, fontWeight: 700, color: T.gold, marginBottom: 4 }}>After</div>
+          <div style={{ fontSize: 10, color: T.sec }}>Organized. Intelligent. Effortless.</div>
+          <div style={{ width: 24, height: 1.5, background: T.gold, marginTop: 4 }} />
+        </div>
+        <div style={{ padding: "0 10px 10px", fontSize: 8 }}>
+          <div style={{ marginBottom: 6, color: T.sec }}>Good morning, Alex ☀️</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, marginBottom: 4 }}>
+            {["Work 12apps", "Social 9apps", "Finance 6apps", "Daily 8apps"].map(c => (
+              <div key={c} style={{ background: T.card, borderRadius: 6, padding: "4px 6px", fontSize: 8, color: T.sec }}>{c}</div>
+            ))}
+          </div>
+          <div style={{ background: T.cardStr, borderRadius: 8, padding: "6px 8px", marginBottom: 4 }}>
+            <div style={{ fontSize: 8, color: T.muted, marginBottom: 3 }}>Duplicate smart shortcuts</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {["Zoom", "Notion", "WhatsApp", "Drive"].map(a => (
+                <div key={a} style={{ width: 18, height: 18, borderRadius: 5, background: T.card, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8 }}>•</div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-around", background: T.card, borderRadius: 8, padding: "5px 4px" }}>
+            {["📞","💬","🌐","📷"].map((e, i) => (
+              <div key={i} style={{ width: 22, height: 22, borderRadius: 7, background: T.bgEl, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>{e}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+    {/* Bullets */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, padding: "16px 16px 0", marginTop: 4 }}>
+      <div style={{ padding: "0 0 0 4px" }}>
+        {["Too many apps", "Unclear structure", "Hard to find files", "Lost time & focus"].map(b => (
+          <div key={b} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 8, background: "rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 9, color: "#EF4444", fontWeight: 700 }}>✕</span>
+            </div>
+            <span style={{ fontSize: 11, color: T.muted }}>{b}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: "0 0 0 4px" }}>
+        {["Smart categories", "Organized files", "Instant access", "More time for you"].map(b => (
+          <div key={b} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 8, background: "rgba(198,161,91,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 9, color: T.gold, fontWeight: 700 }}>✓</span>
+            </div>
+            <span style={{ fontSize: 11, color: T.sec }}>{b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    {/* Footer */}
+    <div style={{ margin: "16px 16px 24px", padding: "14px 20px", background: T.card, borderRadius: 20, border: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Icon name="star4" size={14} color={T.gold} />
+        <span style={{ fontSize: 12, color: T.sec }}>Ciyato brings clarity to your digital life.</span>
+      </div>
+      <span style={{ fontSize: 11, color: T.gold, fontWeight: 600 }}>Smarter. Faster. Yours.</span>
+    </div>
+  </div>
+);
+
+// ─── SCREEN: SHOWCASE ──────────────────────────────────────────────────────────
+const ShowcaseScreen = () => {
+  const features = [
+    { icon: "ai", label: "AI-Powered", sub: "AI suggestions that learn you." },
+    { icon: "lock", label: "Privacy First", sub: "Your data stays private and secure." },
+    { icon: "zap", label: "Lightning Fast", sub: "Low latency. High performance." },
+    { icon: "android", label: "Made for Android", sub: "Seamless. Powerful. Native." },
+  ];
+  const cards = [
+    { title: "Smart App Library", desc: "Automatically organize your apps, your way.", icon: "grid", accent: "#3B82F6" },
+    { title: "Duplicate Shortcuts", desc: "One app, multiple places.", icon: "duplicate", accent: T.gold },
+    { title: "Theme Studio", desc: "Personalize your experience.", icon: "palette", accent: "#9B8EFF" },
+    { title: "Smart Collections", desc: "Find anything faster.", icon: "folder", accent: "#39C66A" },
+    { title: "Ciyato Photos", desc: "AI-powered gallery.", icon: "photo", accent: "#F97316" },
+    { title: "AI Search", desc: "Find anything, instantly.", icon: "search", accent: T.blue },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: T.bgEl, fontFamily: "Inter, system-ui, sans-serif", color: T.white, overflowY: "auto", scrollbarWidth: "none" }}>
+      <div style={{ padding: "28px 20px 0", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <CiyatoLogo size={30} />
+          <span style={{ fontSize: 26, fontWeight: 800 }}>Ciyato</span>
+        </div>
+        <div style={{ fontSize: 12, color: T.sec, marginBottom: 20 }}>The complete AI phone organization ecosystem</div>
+      </div>
+      {/* Main phone preview */}
+      <div style={{ padding: "0 20px 20px" }}>
+        <GlassCard style={{ padding: 16, background: "rgba(198,161,91,0.07)", border: `1px solid rgba(198,161,91,0.18)` }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
+            <Icon name="home" size={20} color={T.gold} />
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Ciyato Home</div>
+              <div style={{ fontSize: 11, color: T.muted }}>Your smart, personalized launcher</div>
+            </div>
+          </div>
+          {/* Mini home preview */}
+          <div style={{ background: T.bg, borderRadius: 14, padding: 12, marginBottom: 4 }}>
+            <div style={{ fontSize: 11, color: T.sec, marginBottom: 8 }}>Good morning, Alex ☀️</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 5, marginBottom: 8 }}>
+              {["Work", "Social", "Finance", "Creativity", "Utilities", "Daily"].map(c => (
+                <div key={c} style={{ background: T.card, borderRadius: 8, padding: "6px", fontSize: 9, color: T.sec, fontWeight: 500 }}>{c}</div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6, background: T.card, borderRadius: 10, padding: 8 }}>
+              {["Phone", "Chrome", "Zoom", "Camera", "Copilot"].map(a => (
+                <div key={a} style={{ width: 26, height: 26, borderRadius: 8, background: T.cardStr, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>•</div>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
+        {/* Feature cards grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+          {cards.map(card => (
+            <GlassCard key={card.title} style={{ padding: 14 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: `${card.accent}22`, border: `1px solid ${card.accent}40`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+                <Icon name={card.icon} size={16} color={card.accent} />
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{card.title}</div>
+              <div style={{ fontSize: 10, color: T.muted, lineHeight: 1.4 }}>{card.desc}</div>
+            </GlassCard>
+          ))}
+        </div>
+        {/* Footer strip */}
+        <div style={{ marginTop: 14, padding: "16px", background: T.bg, borderRadius: 20, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {features.map(f => (
+              <div key={f.label} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(198,161,91,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon name={f.icon} size={14} color={T.gold} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: T.gold }}>{f.label}</div>
+                  <div style={{ fontSize: 10, color: T.muted, lineHeight: 1.4 }}>{f.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 16, textAlign: "center", paddingTop: 12, borderTop: `1px solid ${T.borderSub}` }}>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>Ciyato</div>
+            <div style={{ fontSize: 11, color: T.gold }}>Organize Smarter. Live Better.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────────
+const SCREENS = [
+  { id: "home", label: "Home Dense" },
+  { id: "home-spacious", label: "Home Spacious" },
+  { id: "app-drawer", label: "App Drawer" },
+  { id: "theme-studio", label: "Theme Studio" },
+  { id: "files", label: "Ciyato Files" },
+  { id: "collections", label: "Smart Collections" },
+  { id: "photos", label: "Ciyato Photos" },
+  { id: "ai-search", label: "AI Search" },
+  { id: "before-after", label: "Before / After" },
+  { id: "showcase", label: "Showcase" },
+];
+
+export default function App() {
+  const [activeScreen, setActiveScreen] = useState("home");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const screenComponents = {
+    "home": <HomeScreen />,
+    "home-spacious": <HomeSpaciousScreen />,
+    "app-drawer": <AppDrawerScreen />,
+    "theme-studio": <ThemeStudioScreen />,
+    "files": <FilesScreen />,
+    "collections": <SmartCollectionsScreen />,
+    "photos": <PhotosScreen />,
+    "ai-search": <AISearchScreen />,
+    "before-after": <BeforeAfterScreen />,
+    "showcase": <ShowcaseScreen />,
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100vh", background: "#070A0D", fontFamily: "Inter, system-ui, sans-serif", overflow: "hidden" }}>
+      {/* Sidebar */}
+      {sidebarOpen && (
+        <div style={{ width: 220, background: "#0D1116", borderRight: `1px solid ${T.borderSub}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${T.borderSub}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <CiyatoLogo size={22} />
+              <span style={{ fontSize: 16, fontWeight: 700, color: T.white }}>Ciyato</span>
+            </div>
+            <div style={{ fontSize: 10, color: T.gold, marginLeft: 30 }}>AI Phone Organizer</div>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "10px 8px", scrollbarWidth: "none" }}>
+            {SCREENS.map(s => (
+              <div key={s.id} onClick={() => setActiveScreen(s.id)}
+                style={{ padding: "9px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", fontSize: 12, fontWeight: activeScreen === s.id ? 600 : 400, color: activeScreen === s.id ? T.white : T.muted, background: activeScreen === s.id ? T.cardStr : "transparent", borderLeft: activeScreen === s.id ? `2px solid ${T.gold}` : "2px solid transparent", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (activeScreen !== s.id) e.currentTarget.style.background = T.card; }}
+                onMouseLeave={e => { if (activeScreen !== s.id) e.currentTarget.style.background = "transparent"; }}>
+                {s.label}
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.borderSub}`, fontSize: 10, color: T.muted }}>
+            Front-end prototype v1.0
+          </div>
+        </div>
+      )}
+      {/* Toggle sidebar button */}
+      <div onClick={() => setSidebarOpen(!sidebarOpen)}
+        style={{ position: "absolute", left: sidebarOpen ? 208 : 8, top: "50%", transform: "translateY(-50%)", zIndex: 100, width: 24, height: 48, background: T.cardStr, border: `1px solid ${T.border}`, borderRadius: sidebarOpen ? "0 8px 8px 0" : 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "left 0.2s" }}>
+        <Icon name={sidebarOpen ? "chevRight" : "chevRight"} size={12} color={T.muted} style={{ transform: sidebarOpen ? "rotate(180deg)" : "none" }} />
+      </div>
+      {/* Main content - phone frame centered */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "radial-gradient(ellipse at center, #1a1f24 0%, #070A0D 70%)", padding: 20 }}>
+        <div style={{ width: 390, height: 840, borderRadius: 44, overflow: "hidden", boxShadow: "0 60px 120px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06)", border: "8px solid #1C2028", background: T.bg }}>
+          {screenComponents[activeScreen]}
+        </div>
+      </div>
+      {/* Screen picker strip at bottom on mobile */}
+      <style>{`
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { display: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
+    </div>
+  );
+}
