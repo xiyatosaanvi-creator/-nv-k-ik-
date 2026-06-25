@@ -28,6 +28,7 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
 fun DashboardScreen(
     viewModel: LauncherViewModel,
     onOpenFiles: () -> Unit,
+    onOpenPhotos: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenTheme: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -40,7 +41,8 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Ciyato", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Text("AI Active", color = CiyatoGold, fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -51,6 +53,14 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = "AI",
+                            tint = CiyatoGold, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notifications",
+                            tint = CiyatoSec)
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = CiyatoSec)
                     }
@@ -67,6 +77,15 @@ fun DashboardScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Greeting
+            item {
+                Column {
+                    Text("Good morning, Alex ☀", color = CiyatoWhite,
+                        fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Your phone is organized.", color = CiyatoSec, fontSize = 13.sp)
+                }
+            }
+
             // Storage card (mock for beta)
             item {
                 Column(
@@ -78,12 +97,15 @@ fun DashboardScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Phone Storage", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                            Text("68 GB used of 128 GB", color = CiyatoSec, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                            Text("Phone Storage", color = CiyatoWhite,
+                                fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text("68 GB used of 128 GB", color = CiyatoSec,
+                                fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
                             Spacer(Modifier.height(10.dp))
                             LinearProgressIndicator(
                                 progress = { 0.53f },
-                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                modifier = Modifier.fillMaxWidth().height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
                                 color = CiyatoGold,
                                 trackColor = CiyatoBgEl2,
                             )
@@ -100,18 +122,23 @@ fun DashboardScreen(
             }
 
             // Quick actions
-            item { Text("Quick Actions", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+            item {
+                Text("Quick Actions", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     QuickAction(Icons.Default.AutoFixHigh, "AI Organize", CiyatoGold, Modifier.weight(1f))
                     QuickAction(Icons.Default.Delete, "Clean Up", CiyatoBlue, Modifier.weight(1f))
-                    QuickAction(Icons.Default.CopyAll, "Duplicates", MaterialTheme.colorScheme.error, Modifier.weight(1f))
+                    QuickAction(Icons.Default.CopyAll, "Duplicates",
+                        MaterialTheme.colorScheme.error, Modifier.weight(1f))
                     QuickAction(Icons.Default.PhotoAlbum, "Smart Album", CiyatoGreen, Modifier.weight(1f))
                 }
             }
 
-            // Recent activity (mock)
-            item { Text("Recent", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+            // Recent activity
+            item {
+                Text("Recent", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
@@ -125,14 +152,22 @@ fun DashboardScreen(
                 }
             }
 
-            // Feature shortcuts
-            item { Text("Features", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+            // Features — now includes Photos
+            item {
+                Text("Features", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeatureRow(Icons.Default.Folder,     "Ciyato Files",   "All your files, organized.", CiyatoBlue,  onOpenFiles)
-                    FeatureRow(Icons.Default.Search,     "AI Search",      "Find anything instantly.",   CiyatoGold,  onOpenSearch)
-                    FeatureRow(Icons.Default.Palette,    "Theme Studio",   "Customize your launcher.",   CiyatoGreen, onOpenTheme)
-                    FeatureRow(Icons.Default.Settings,   "Settings",       "Launcher & privacy options.", CiyatoSec,   onOpenSettings)
+                    FeatureRow(Icons.Default.Folder, "Ciyato Files",
+                        "All your files, organized.", CiyatoBlue, onOpenFiles)
+                    FeatureRow(Icons.Default.Photo, "Ciyato Photos",
+                        "AI-sorted moments and media.", CiyatoGoldSoft, onOpenPhotos)
+                    FeatureRow(Icons.Default.Search, "AI Search",
+                        "Find anything instantly.", CiyatoGold, onOpenSearch)
+                    FeatureRow(Icons.Default.Palette, "Theme Studio",
+                        "Customize your launcher.", CiyatoGreen, onOpenTheme)
+                    FeatureRow(Icons.Default.Settings, "Settings",
+                        "Launcher & privacy options.", CiyatoSec, onOpenSettings)
                 }
             }
         }
@@ -140,13 +175,18 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun QuickAction(icon: ImageVector, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+private fun QuickAction(
+    icon: ImageVector,
+    label: String,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(color.copy(alpha = 0.12f))
-            .padding(12.dp)
+            .padding(12.dp),
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(6.dp))
@@ -167,18 +207,24 @@ private fun ActivityRow(icon: ImageVector, label: String, time: String) {
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(CiyatoBgEl2)
+            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
+                .background(CiyatoBgEl2),
         ) {
             Icon(icon, contentDescription = null, tint = CiyatoSec, modifier = Modifier.size(18.dp))
         }
-        Text(label, color = CiyatoWhite, fontSize = 13.sp, Modifier.weight(1f))
+        Text(label, color = CiyatoWhite, fontSize = 13.sp, modifier = Modifier.weight(1f))
         Text(time, color = CiyatoMuted, fontSize = 11.sp)
     }
 }
 
 @Composable
-private fun FeatureRow(icon: ImageVector, title: String, sub: String,
-                       color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+private fun FeatureRow(
+    icon: ImageVector,
+    title: String,
+    sub: String,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
@@ -191,7 +237,8 @@ private fun FeatureRow(icon: ImageVector, title: String, sub: String,
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.15f))
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp))
+                .background(color.copy(alpha = 0.15f)),
         ) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
         }
@@ -199,6 +246,7 @@ private fun FeatureRow(icon: ImageVector, title: String, sub: String,
             Text(title, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Text(sub, color = CiyatoMuted, fontSize = 11.sp)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.ChevronRight, contentDescription = null,
+            tint = CiyatoMuted, modifier = Modifier.size(18.dp))
     }
 }

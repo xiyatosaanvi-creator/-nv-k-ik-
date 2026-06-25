@@ -6,8 +6,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -16,13 +16,14 @@ import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
- * MainActivity — the app's settings/dashboard entry point.
+ * MainActivity — the app's dashboard/settings entry point.
  * Launched when the user taps the Ciyato icon from another launcher.
  *
  * Routes:
- *   onboarding  →  (first launch only)
- *   dashboard   →  (main control center)
+ *   onboarding  →  first launch
+ *   dashboard   →  main control center
  *   files       →  Ciyato Files
+ *   photos      →  Ciyato Photos
  *   search      →  AI Search
  *   theme       →  Theme Studio
  *   settings    →  Settings
@@ -61,16 +62,21 @@ class MainActivity : ComponentActivity() {
 
                     composable("dashboard") {
                         DashboardScreen(
-                            viewModel     = viewModel,
-                            onOpenFiles   = { navController.navigate("files") },
-                            onOpenSearch  = { navController.navigate("search") },
-                            onOpenTheme   = { navController.navigate("theme") },
-                            onOpenSettings= { navController.navigate("settings") },
+                            viewModel      = viewModel,
+                            onOpenFiles    = { navController.navigate("files") },
+                            onOpenPhotos   = { navController.navigate("photos") },
+                            onOpenSearch   = { navController.navigate("search") },
+                            onOpenTheme    = { navController.navigate("theme") },
+                            onOpenSettings = { navController.navigate("settings") },
                         )
                     }
 
                     composable("files") {
                         FilesScreen(onBack = { navController.popBackStack() })
+                    }
+
+                    composable("photos") {
+                        PhotosScreen(onBack = { navController.popBackStack() })
                     }
 
                     composable("search") {
