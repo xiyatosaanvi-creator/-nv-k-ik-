@@ -3,6 +3,7 @@ package com.ciyato.launcher.ui.components
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -19,18 +21,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.ciyato.launcher.data.InstalledApp
+import com.ciyato.launcher.ui.theme.CiyatoLightSec
 import com.ciyato.launcher.ui.theme.CiyatoMuted
 import com.ciyato.launcher.ui.theme.CiyatoSec
 
 /**
  * Displays the REAL installed-app icon from the device.
- * Never uses fake/placeholder icons for real apps.
- * Falls back to a muted placeholder only if the icon is null (should not happen in practice).
+ * - Never uses fake/placeholder icons for real apps.
+ * - Corner radius: 14dp by default — matches Ciyato rounded icon style.
+ * - Falls back silently if icon fails.
  */
 @Composable
 fun RealAppIcon(
     drawable: Drawable,
     size: Dp = 52.dp,
+    cornerRadius: Dp = 14.dp,
     modifier: Modifier = Modifier,
 ) {
     val bmp = drawable.toBitmap(size.value.toInt() * 2, size.value.toInt() * 2)
@@ -39,18 +44,20 @@ fun RealAppIcon(
         contentDescription = null,
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(cornerRadius)),
     )
 }
 
 /**
- * Full app icon + label tile used in the app grid.
+ * Full app icon + label tile — used in grids and rows.
+ * labelColor defaults to CiyatoSec (dark); pass CiyatoLightSec for light-mode drawer.
  */
 @Composable
 fun AppIconTile(
     app: InstalledApp,
     iconSize: Dp = 52.dp,
     showLabel: Boolean = true,
+    labelColor: Color = CiyatoSec,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -58,14 +65,14 @@ fun AppIconTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clickable(onClick = onClick)
-            .padding(4.dp),
+            .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
         RealAppIcon(drawable = app.icon, size = iconSize)
         if (showLabel) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(5.dp))
             Text(
                 text = app.label,
-                color = CiyatoSec,
+                color = labelColor,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
