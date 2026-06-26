@@ -15,7 +15,7 @@ const usageEventSchema = z.object({
   launchCount:  z.number().int().nonnegative().default(0),
   totalUsageMs: z.number().int().nonnegative().default(0),
   lastLaunchedAt: z.string().datetime({ offset: true }).optional().nullable(),
-  dailyStats:   z.record(z.number()).optional(),
+  dailyStats:   z.record(z.string(), z.number()).optional(),
 });
 
 const batchUsageSchema = z.object({
