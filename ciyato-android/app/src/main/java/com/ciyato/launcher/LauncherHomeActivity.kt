@@ -11,20 +11,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.LocationHelper
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoBg
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
- * LauncherHomeActivity — the REAL launcher home screen.
+ * LauncherHomeActivity — the REAL home screen.
  *
- * This activity has HOME + DEFAULT intent-filter categories in AndroidManifest.xml.
- * Android will offer Ciyato as a Home app because of this.
+ * Has HOME + DEFAULT intent-filter categories so Android offers Ciyato
+ * as a default Home app. singleTask prevents duplicate instances.
  *
- * Navigation uses a sealed class so screens can carry parameters (e.g. which category).
- * Zero-latency switching — no Jetpack Nav overhead for the launcher shell.
+ * Navigation uses a sealed class (not Jetpack Nav) for zero-latency
+ * transitions without the overhead of a NavController.
  */
 class LauncherHomeActivity : ComponentActivity() {
 
@@ -38,11 +40,9 @@ class LauncherHomeActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
 
-        // Suppress back-press on the launcher home screen (standard launcher behaviour).
+        // Suppress back press — standard launcher behaviour (pressing Home never closes it).
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                // Do nothing — prevents launcher from closing on Home.
-            }
+            override fun handleOnBackPressed() = Unit
         })
 
         setContent {
@@ -53,23 +53,35 @@ class LauncherHomeActivity : ComponentActivity() {
     }
 }
 
-/** Top-level navigation sealed class — carries parameters where needed. */
+// ── Navigation sealed class ────────────────────────────────────────────────────
+
 private sealed class LauncherDest {
-    object Home : LauncherDest()
-    object Drawer : LauncherDest()
-    object Search : LauncherDest()
-    object Settings : LauncherDest()
+    object Home              : LauncherDest()
+    object Drawer            : LauncherDest()
+    object Settings          : LauncherDest()
     data class CategoryDetail(val category: AppCategory) : LauncherDest()
-    object DuplicateShortcuts : LauncherDest()
-    object WeatherDetail : LauncherDest()
-    object Agenda : LauncherDest()
+    object DuplicateShortcuts: LauncherDest()
+    object WeatherDetail     : LauncherDest()
+    object Agenda            : LauncherDest()
 }
+
+// ── Root composable ───────────────────────────────────────────────────────────
 
 @Composable
 private fun LauncherRoot(viewModel: LauncherViewModel) {
+    val context = LocalContext.current
     var dest by remember { mutableStateOf<LauncherDest>(LauncherDest.Home) }
 
+    // Auto-fetch weather on startup if location permission is already granted.
+    // This ensures the home screen WeatherCard shows live data immediately.
+    LaunchedEffect(Unit) {
+        if (LocationHelper.hasPermission(context)) {
+            viewModel.fetchWeather(context)
+        }
+    }
+
     when (val d = dest) {
+
         is LauncherDest.Home -> HomeScreen(
             viewModel       = viewModel,
             onOpenDrawer    = { dest = LauncherDest.Drawer },
@@ -85,12 +97,6 @@ private fun LauncherRoot(viewModel: LauncherViewModel) {
             viewModel       = viewModel,
             onBack          = { dest = LauncherDest.Home },
             onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
-        )
-
-        is LauncherDest.Search -> SearchScreen(
-            viewModel = viewModel,
-            onBack    = { dest = LauncherDest.Home },
-            onCategoryFilter = { cat -> dest = LauncherDest.CategoryDetail(cat) },
         )
 
         is LauncherDest.Settings -> SettingsScreen(
@@ -110,7 +116,8 @@ private fun LauncherRoot(viewModel: LauncherViewModel) {
         )
 
         is LauncherDest.WeatherDetail -> WeatherDetailScreen(
-            onBack = { dest = LauncherDest.Home },
+            viewModel = viewModel,           // ← shares live state with HomeScreen WeatherCard
+            onBack    = { dest = LauncherDest.Home },
         )
 
         is LauncherDest.Agenda -> AgendaScreen(

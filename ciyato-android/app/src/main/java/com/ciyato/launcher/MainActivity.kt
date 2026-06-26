@@ -7,32 +7,34 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.LocationHelper
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
- * MainActivity — the app's dashboard/settings entry point.
- * Launched when the user taps the Ciyato icon from another launcher.
+ * MainActivity — dashboard/settings entry point.
+ * Launched from the app drawer (LAUNCHER intent-filter).
  *
  * Routes:
- *   onboarding              →  first launch
+ *   onboarding              →  first-run experience
  *   dashboard               →  main control center
- *   files                   →  Ciyato Files (SAF-based, permission-aware)
- *   photos                  →  Ciyato Photos (Photo Picker, permission-aware)
- *   search                  →  AI Search (real apps, locked file/photo sections)
+ *   files                   →  Ciyato Files (SAF)
+ *   photos                  →  Ciyato Photos
+ *   search                  →  AI Search
  *   theme                   →  Theme Studio
  *   settings                →  Settings
- *   category_detail/{name}  →  Category detail screen (all apps in category)
- *   duplicate_shortcuts     →  Duplicate shortcuts management screen
- *   weather_detail          →  Weather + location permission screen
- *   agenda                  →  Agenda/Today screen (mock for beta)
+ *   category_detail/{name}  →  Category detail (real apps)
+ *   duplicate_shortcuts     →  Duplicate shortcuts management
+ *   weather_detail          →  Live weather (Open-Meteo)
+ *   agenda                  →  Agenda / Today
  */
 class MainActivity : ComponentActivity() {
 
@@ -42,28 +44,33 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            statusBarStyle     = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
 
         setContent {
             CiyatoTheme {
+                val context           = LocalContext.current
                 val onboardingDone by viewModel.onboardingDone.collectAsState()
-                val navController = rememberNavController()
+                val navController     = rememberNavController()
+                val startDest         = if (onboardingDone) "dashboard" else "onboarding"
 
-                val startDest = if (onboardingDone) "dashboard" else "onboarding"
+                // Auto-fetch weather if permission already granted
+                LaunchedEffect(Unit) {
+                    if (LocationHelper.hasPermission(context)) {
+                        viewModel.fetchWeather(context)
+                    }
+                }
 
                 NavHost(navController = navController, startDestination = startDest) {
 
                     composable("onboarding") {
-                        OnboardingScreen(
-                            onDone = {
-                                viewModel.setOnboardingDone()
-                                navController.navigate("dashboard") {
-                                    popUpTo("onboarding") { inclusive = true }
-                                }
+                        OnboardingScreen(onDone = {
+                            viewModel.setOnboardingDone()
+                            navController.navigate("dashboard") {
+                                popUpTo("onboarding") { inclusive = true }
                             }
-                        )
+                        })
                     }
 
                     composable("dashboard") {
@@ -77,18 +84,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable("files") {
-                        FilesScreen(onBack = { navController.popBackStack() })
-                    }
-
-                    composable("photos") {
-                        PhotosScreen(onBack = { navController.popBackStack() })
-                    }
+                    composable("files")   { FilesScreen(onBack = { navController.popBackStack() }) }
+                    composable("photos")  { PhotosScreen(onBack = { navController.popBackStack() }) }
 
                     composable("search") {
                         SearchScreen(
-                            viewModel = viewModel,
-                            onBack    = { navController.popBackStack() },
+                            viewModel        = viewModel,
+                            onBack           = { navController.popBackStack() },
                             onCategoryFilter = { cat ->
                                 navController.navigate("category_detail/${cat.name}")
                             },
@@ -96,26 +98,21 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("theme") {
-                        ThemeStudioScreen(
-                            viewModel = viewModel,
-                            onBack    = { navController.popBackStack() },
-                        )
+                        ThemeStudioScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
                     }
 
                     composable("settings") {
-                        SettingsScreen(
-                            viewModel = viewModel,
-                            onBack    = { navController.popBackStack() },
-                        )
+                        SettingsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
                     }
 
-                    // ── Functional wiring: new screens ─────────────────────────
+                    // ── Functional wiring screens ──────────────────────────────
+
                     composable(
-                        route = "category_detail/{categoryName}",
+                        route     = "category_detail/{categoryName}",
                         arguments = listOf(navArgument("categoryName") { type = NavType.StringType }),
                     ) { backStack ->
-                        val categoryName = backStack.arguments?.getString("categoryName") ?: ""
-                        val category = runCatching { AppCategory.valueOf(categoryName) }.getOrNull()
+                        val name     = backStack.arguments?.getString("categoryName") ?: ""
+                        val category = runCatching { AppCategory.valueOf(name) }.getOrNull()
                         if (category != null) {
                             CategoryDetailScreen(
                                 category  = category,
@@ -128,22 +125,19 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("duplicate_shortcuts") {
-                        DuplicateShortcutsScreen(
+                        DuplicateShortcutsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                    }
+
+                    composable("weather_detail") {
+                        // Shares viewModel.weatherState with home screen WeatherCard
+                        WeatherDetailScreen(
                             viewModel = viewModel,
                             onBack    = { navController.popBackStack() },
                         )
                     }
 
-                    composable("weather_detail") {
-                        WeatherDetailScreen(
-                            onBack = { navController.popBackStack() },
-                        )
-                    }
-
                     composable("agenda") {
-                        AgendaScreen(
-                            onBack = { navController.popBackStack() },
-                        )
+                        AgendaScreen(onBack = { navController.popBackStack() })
                     }
                 }
             }

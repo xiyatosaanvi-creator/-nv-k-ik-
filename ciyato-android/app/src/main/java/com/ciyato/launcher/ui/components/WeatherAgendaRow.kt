@@ -6,32 +6,38 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ciyato.launcher.data.WeatherRepository
+import com.ciyato.launcher.data.WeatherRepository.WeatherState
 import com.ciyato.launcher.ui.theme.*
 
 /**
- * PASS 1-2-3 — Weather + Agenda widget row.
+ * Weather + Agenda widget row — live weather via Open-Meteo.
  *
- * Both cards are now clickable:
- *   onWeatherTap → opens WeatherDetailScreen (with permission flow)
- *   onAgendaTap  → opens AgendaScreen
+ * WeatherCard now reflects [weatherState] from the ViewModel:
+ *   - NoPermission / null → shows "--°" with "Enable weather" hint
+ *   - Loading             → spinner
+ *   - Success             → shows real temperature, condition, location
+ *   - Error               → shows "!" with error hint
  *
- * Visual design is unchanged from the reference.
+ * onWeatherTap and onAgendaTap are required callbacks.
  */
 
-private val agendaItems = listOf(
+private val AGENDA_ITEMS = listOf(
     Triple("10:00 AM", "Design Sync", "60m"),
     Triple("02:30 PM", "Client Call", "45m"),
     Triple("06:00 PM", "Gym Session", "60m"),
@@ -40,6 +46,7 @@ private val agendaItems = listOf(
 @Composable
 fun WeatherAgendaRow(
     isDense: Boolean = true,
+    weatherState: WeatherState? = null,
     onWeatherTap: () -> Unit = {},
     onAgendaTap: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -51,6 +58,7 @@ fun WeatherAgendaRow(
     ) {
         WeatherCard(
             isDense      = isDense,
+            weatherState = weatherState,
             onTap        = onWeatherTap,
             modifier     = Modifier.weight(1f).fillMaxHeight(),
         )
@@ -62,15 +70,19 @@ fun WeatherAgendaRow(
     }
 }
 
+// ─── Weather Card ─────────────────────────────────────────────────────────────
+
 @Composable
 fun WeatherCard(
     isDense: Boolean,
+    weatherState: WeatherState? = null,
     onTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val padding = if (isDense) 16.dp else 20.dp
-    val tempSize = if (isDense) 30.sp else 36.sp
-    val iconSize = if (isDense) 30.dp else 36.dp
+    val padding    = if (isDense) 14.dp else 18.dp
+    val tempSize   = if (isDense) 30.sp else 36.sp
+    val iconSize   = if (isDense) 28.dp else 34.dp
+    val subtextSz  = if (isDense) 10.sp else 12.sp
 
     Column(
         modifier = modifier
@@ -78,46 +90,97 @@ fun WeatherCard(
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
             .clickable(onClick = onTap)
-            .semantics { contentDescription = "Weather — tap to view details and enable live weather" }
+            .semantics { contentDescription = "Weather — tap for details" }
             .padding(padding),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Sun + temp top block
-        Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                Icons.Outlined.WbSunny,
-                contentDescription = null,
-                tint = CiyatoGoldSoft,
-                modifier = Modifier.size(iconSize).padding(top = 2.dp),
-            )
-            Column {
-                Text(
-                    "24°",
-                    color = CiyatoWhite,
-                    fontSize = tempSize,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = if (isDense) 32.sp else 38.sp,
-                )
-                Text(
-                    "Partly sunny",
-                    color = CiyatoSec,
-                    fontSize = if (isDense) 12.sp else 13.sp,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Bottom location block
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("Feels like 26°", color = CiyatoMuted, fontSize = if (isDense) 11.sp else 12.sp)
-            Text("New York  ·  AQI 42", color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
+        when (val ws = weatherState) {
+            is WeatherState.Success -> WeatherCardSuccess(ws, tempSize, iconSize, subtextSz, isDense)
+            is WeatherState.Loading -> WeatherCardLoading(isDense)
+            else                    -> WeatherCardFallback(tempSize, iconSize, subtextSz, isDense)
         }
     }
 }
+
+@Composable
+private fun WeatherCardSuccess(
+    ws: WeatherState.Success,
+    tempSize: androidx.compose.ui.unit.TextUnit,
+    iconSize: androidx.compose.ui.unit.Dp,
+    subtextSz: androidx.compose.ui.unit.TextUnit,
+    isDense: Boolean,
+) {
+    val icon: ImageVector = when {
+        ws.weatherCode == 0 && ws.isDay  -> Icons.Outlined.WbSunny
+        ws.weatherCode == 0 && !ws.isDay -> Icons.Default.DarkMode
+        ws.weatherCode in 1..2           -> Icons.Default.Cloud
+        ws.weatherCode in 51..99         -> Icons.Default.Umbrella
+        else                             -> Icons.Default.Cloud
+    }
+    val iconTint = when {
+        ws.weatherCode == 0  -> CiyatoGoldSoft
+        ws.weatherCode in 51..99 -> CiyatoBlue
+        else -> CiyatoSec
+    }
+
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, null, tint = iconTint, modifier = Modifier.size(iconSize).padding(top = 2.dp))
+        Column {
+            Text("${ws.tempC}°", color = CiyatoWhite, fontSize = tempSize,
+                fontWeight = FontWeight.Bold, lineHeight = tempSize * 1.05f)
+            Text(ws.condition, color = CiyatoSec, fontSize = subtextSz, maxLines = 1)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("Feels like ${ws.feelsLikeC}°", color = CiyatoMuted, fontSize = subtextSz)
+        Text(
+            "${ws.locationName}  ·  ${ws.humidity}% RH",
+            color = CiyatoMuted,
+            fontSize = (subtextSz.value - 1).sp,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun WeatherCardLoading(isDense: Boolean) {
+    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            color = CiyatoGold,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(if (isDense) 22.dp else 26.dp),
+        )
+    }
+    Text("Loading…", color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
+}
+
+@Composable
+private fun WeatherCardFallback(
+    tempSize: androidx.compose.ui.unit.TextUnit,
+    iconSize: androidx.compose.ui.unit.Dp,
+    subtextSz: androidx.compose.ui.unit.TextUnit,
+    isDense: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(Icons.Outlined.WbSunny, null, tint = CiyatoGoldSoft.copy(alpha = 0.5f),
+            modifier = Modifier.size(iconSize).padding(top = 2.dp))
+        Column {
+            Text("--°", color = CiyatoWhite.copy(alpha = 0.5f), fontSize = tempSize,
+                fontWeight = FontWeight.Bold, lineHeight = tempSize * 1.05f)
+            Text("Enable weather", color = CiyatoMuted, fontSize = subtextSz)
+        }
+    }
+    Text("Tap to set up", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+}
+
+// ─── Agenda Card ──────────────────────────────────────────────────────────────
 
 @Composable
 fun AgendaCard(
@@ -134,21 +197,17 @@ fun AgendaCard(
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
             .clickable(onClick = onTap)
-            .semantics { contentDescription = "Today's agenda — tap to view full agenda" }
+            .semantics { contentDescription = "Today's agenda — tap to view all" }
             .padding(horizontal = paddingH, vertical = paddingV),
     ) {
-        // Header row
+        // Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                "Today",
-                color = CiyatoWhite,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = if (isDense) 14.sp else 16.sp,
-            )
+            Text("Today", color = CiyatoWhite, fontWeight = FontWeight.SemiBold,
+                fontSize = if (isDense) 14.sp else 16.sp)
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -156,27 +215,20 @@ fun AgendaCard(
                     .clip(RoundedCornerShape(6.dp))
                     .background(CiyatoGlassStr),
             ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add event",
-                    tint = CiyatoSec,
-                    modifier = Modifier.size(if (isDense) 14.dp else 16.dp),
-                )
+                Icon(Icons.Default.Add, "Add event", tint = CiyatoSec,
+                    modifier = Modifier.size(if (isDense) 14.dp else 16.dp))
             }
         }
 
         Spacer(Modifier.height(if (isDense) 8.dp else 12.dp))
 
-        // Agenda items
-        val itemsToShow = if (isDense) agendaItems else agendaItems + Triple("08:30 PM", "Dinner", "90m")
         Column(verticalArrangement = Arrangement.spacedBy(if (isDense) 8.dp else 12.dp)) {
-            itemsToShow.forEach { (time, event, dur) ->
+            AGENDA_ITEMS.take(if (isDense) 3 else 4).forEach { (time, event, dur) ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Gold left bar
                     Box(
                         modifier = Modifier
                             .width(3.dp)
@@ -195,11 +247,7 @@ fun AgendaCard(
         }
 
         Spacer(Modifier.weight(1f))
-        Text(
-            "View all",
-            color = CiyatoBlue,
-            fontSize = if (isDense) 11.sp else 12.sp,
-            modifier = Modifier.align(Alignment.End),
-        )
+        Text("View all", color = CiyatoBlue, fontSize = if (isDense) 11.sp else 12.sp,
+            modifier = Modifier.align(Alignment.End))
     }
 }
