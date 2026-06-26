@@ -6,7 +6,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -42,7 +41,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CiyatoTheme {
-                val onboardingDone by viewModel.onboardingDone.collectAsStateWithLifecycle()
+                val onboardingDone by viewModel.onboardingDone.collectAsState()
                 val navController = rememberNavController()
 
                 val startDest = if (onboardingDone) "dashboard" else "onboarding"

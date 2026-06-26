@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,7 +50,7 @@ fun SearchScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = CiyatoSec)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = CiyatoSec)
                     }
                     Text("AI Search", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
@@ -94,7 +96,7 @@ fun SearchScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SuggestionPill("Show PDFs from yesterday", Icons.Default.Description)
                         SuggestionPill("Find payment screenshots", Icons.Default.Payments)
-                        SuggestionPill("Recent WhatsApp files", Icons.Default.Chat)
+                        SuggestionPill("Recent WhatsApp files", Icons.AutoMirrored.Filled.Chat)
                     }
                 }
             } else {

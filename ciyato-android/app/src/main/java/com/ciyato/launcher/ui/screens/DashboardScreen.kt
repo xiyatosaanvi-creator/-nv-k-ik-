@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,8 +80,16 @@ fun DashboardScreen(
         ) {
             // Greeting
             item {
+                val greetingStr = remember {
+                    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                    when {
+                        hour < 12 -> "Good morning ☀️"
+                        hour < 17 -> "Good afternoon 🌞"
+                        else      -> "Good evening 🌙"
+                    }
+                }
                 Column {
-                    Text("Good morning, Alex ☀", color = CiyatoWhite,
+                    Text(greetingStr, color = CiyatoWhite,
                         fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text("Your phone is organized.", color = CiyatoSec, fontSize = 13.sp)
                 }

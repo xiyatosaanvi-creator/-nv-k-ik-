@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +39,10 @@ fun RealAppIcon(
     cornerRadius: Dp = 14.dp,
     modifier: Modifier = Modifier,
 ) {
-    val bmp = drawable.toBitmap(size.value.toInt() * 2, size.value.toInt() * 2)
+    // Cache the bitmap — only recompute when the drawable reference changes.
+    val bmp = remember(drawable) {
+        drawable.toBitmap((size.value * 2).toInt().coerceAtLeast(1), (size.value * 2).toInt().coerceAtLeast(1))
+    }
     Image(
         bitmap = bmp.asImageBitmap(),
         contentDescription = null,

@@ -136,9 +136,10 @@ fun AppDrawerScreen(
 
     // When a filter chip is active, flatten to a single section
     val sectionsToShow = remember(activeFilter, populatedSections) {
-        when (activeFilter) {
+        val filter = activeFilter   // capture to local val to allow smart cast
+        when (filter) {
             null -> populatedSections
-            else -> listOf(DrawerSection(activeFilter, activeFilter.displayName, false))
+            else -> listOf(DrawerSection(filter, filter.displayName, false))
         }
     }
 
@@ -447,7 +448,7 @@ private fun DrawerSectionCard(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .padding(horizontal = 18.dp, bottom = 14.dp)
+                        .padding(start = 18.dp, top = 0.dp, end = 18.dp, bottom = 14.dp)
                         .align(Alignment.End),
                 )
             }

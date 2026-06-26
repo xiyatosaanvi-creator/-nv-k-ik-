@@ -30,8 +30,17 @@ android {
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
+            // No applicationIdSuffix — installs cleanly as com.ciyato.launcher
             isDebuggable = true
+        }
+    }
+
+    // ── Output APK naming ─────────────────────────────────────────────────────
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Ciyato.apk"
         }
     }
 
@@ -77,4 +86,19 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// ── After build: copy APK to project root for easy access ─────────────────────
+tasks.whenTaskAdded {
+    if (name == "assembleDebug") {
+        doLast {
+            val buildOutputDir = layout.buildDirectory.get().asFile
+            val apkSrc = file("${buildOutputDir}/outputs/apk/debug/Ciyato.apk")
+            val apkDst = file("${rootDir}/Ciyato.apk")
+            if (apkSrc.exists()) {
+                apkSrc.copyTo(apkDst, overwrite = true)
+                println("✅ APK ready at: ${apkDst.absolutePath}")
+            }
+        }
+    }
 }

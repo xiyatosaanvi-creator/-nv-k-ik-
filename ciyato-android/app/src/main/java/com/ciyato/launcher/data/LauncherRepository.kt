@@ -35,7 +35,8 @@ class LauncherRepository(private val context: Context) {
                 addCategory(Intent.CATEGORY_LAUNCHER)
             }
 
-            val resolveInfoList = pm.queryIntentActivities(mainIntent, 0)
+            @Suppress("DEPRECATION")
+            val resolveInfoList = pm.queryIntentActivities(mainIntent, PackageManager.GET_META_DATA)
                 .sortedBy { it.loadLabel(pm).toString().lowercase() }
 
             val installed = resolveInfoList.mapNotNull { ri ->
@@ -46,14 +47,13 @@ class LauncherRepository(private val context: Context) {
                     val label    = ri.loadLabel(pm).toString()
                     val icon     = ri.loadIcon(pm)
 
-                    // Skip Ciyato itself from the app list shown in drawer
-                    // (settings entry is separate)
-                    // if (pkg == context.packageName) return@mapNotNull null
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-                    val appInfo   = pm.getApplicationInfo(pkg, 0)
-                    val isSystem  = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                    val installMs = try { pm.getPackageInfo(pkg, 0).firstInstallTime } catch (_: Exception) { 0L }
-                    val updateMs  = try { pm.getPackageInfo(pkg, 0).lastUpdateTime   } catch (_: Exception) { 0L }
+                    // Single getPackageInfo call to get both install and update times
+                    val pkgInfo = try { pm.getPackageInfo(pkg, 0) } catch (_: Exception) { null }
+                    val installMs = pkgInfo?.firstInstallTime ?: 0L
+                    val updateMs  = pkgInfo?.lastUpdateTime   ?: 0L
 
                     val primary   = AppCategorizer.categorize(pkg, label)
                     val secondary = AppCategorizer.secondaryCategories(pkg, label, primary)

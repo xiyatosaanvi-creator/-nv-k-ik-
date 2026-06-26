@@ -2,6 +2,7 @@ package com.ciyato.launcher
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.ciyato.launcher.ui.screens.AppDrawerScreen
 import com.ciyato.launcher.ui.screens.HomeScreen
 import com.ciyato.launcher.ui.screens.SearchScreen
@@ -45,16 +45,19 @@ class LauncherHomeActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
 
+        // Suppress back-press on the launcher home screen (standard launcher behaviour).
+        // Uses the modern OnBackPressedCallback instead of deprecated onBackPressed().
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Do nothing — prevents launcher from closing when back is pressed on home.
+            }
+        })
+
         setContent {
             CiyatoTheme {
                 LauncherRoot(viewModel = viewModel)
             }
         }
-    }
-
-    // Intercept back-press: on the home screen, back does nothing (standard launcher behaviour)
-    override fun onBackPressed() {
-        // Do not call super — prevents launcher from closing when back is pressed on home
     }
 }
 

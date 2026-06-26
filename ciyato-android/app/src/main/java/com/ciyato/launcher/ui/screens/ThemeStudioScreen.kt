@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,7 +45,7 @@ fun ThemeStudioScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CiyatoSec)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = CiyatoSec)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg)
@@ -87,9 +88,20 @@ fun ThemeStudioScreen(
                 item {
                     ThemeOption(
                         title = "Appearance",
-                        subtitle = "Dark Mode Active",
+                        subtitle = when (darkMode) {
+                            "dark"  -> "Dark Mode"
+                            "light" -> "Light Mode"
+                            else    -> "System Default"
+                        },
                         icon = Icons.Default.Brightness4,
-                        onClick = { /* Toggle logic */ }
+                        onClick = {
+                            val next = when (darkMode) {
+                                "dark"  -> "light"
+                                "light" -> "auto"
+                                else    -> "dark"
+                            }
+                            viewModel.setDarkMode(next)
+                        }
                     )
                 }
 

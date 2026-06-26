@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +37,7 @@ fun FilesScreen(onBack: () -> Unit) {
                 title = { Text("Ciyato Files", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = CiyatoSec)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = CiyatoSec)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg)
@@ -144,7 +146,7 @@ private val fileCategories = listOf(
     FileCategory("Screenshots", Icons.Default.Screenshot, Color(0xFF7DB7FF)),
     FileCategory("Documents", Icons.Default.Description, Color(0xFF39C66A)),
     FileCategory("Downloads", Icons.Default.Download, Color(0xFFC6A15B)),
-    FileCategory("WhatsApp", Icons.Default.Chat, Color(0xFF25D366))
+    FileCategory("WhatsApp", Icons.AutoMirrored.Filled.Chat, Color(0xFF25D366))
 )
 
 @Composable

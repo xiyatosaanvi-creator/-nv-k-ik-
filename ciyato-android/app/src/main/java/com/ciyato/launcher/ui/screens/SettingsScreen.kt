@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Launch
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,7 +47,7 @@ fun SettingsScreen(
                 title = { Text("Settings", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CiyatoSec)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = CiyatoSec)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
@@ -74,7 +76,7 @@ fun SettingsScreen(
             }
             item {
                 SettingsAction(
-                    icon = Icons.Default.Launch,
+                    icon = Icons.AutoMirrored.Filled.Launch,
                     title = "Switch back to system launcher",
                     subtitle = "Change Home app in system settings",
                     tintColor = CiyatoBlue,

@@ -12,7 +12,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("c
 /** Persists user preferences locally via DataStore. No cloud sync. */
 class LauncherSettingsRepository(private val context: Context) {
 
-    companion object {
+    private companion object {
         val KEY_ONBOARDING_DONE   = booleanPreferencesKey("onboarding_done")
         val KEY_DENSE_LAYOUT      = booleanPreferencesKey("dense_layout")
         val KEY_DARK_MODE         = stringPreferencesKey("dark_mode")   // "auto" | "dark" | "light"
@@ -27,7 +27,7 @@ class LauncherSettingsRepository(private val context: Context) {
     val darkMode: Flow<String>         = context.dataStore.data.map { it[KEY_DARK_MODE]            ?: "auto"}
     val goldAccent: Flow<Boolean>      = context.dataStore.data.map { it[KEY_GOLD_ACCENT]          ?: true  }
     val smartCategories: Flow<Boolean> = context.dataStore.data.map { it[KEY_SMART_CATEGORIES]     ?: true  }
-    val duplicateShortcuts: Flow<Boolean>= context.dataStore.data.map { it[KEY_DUPLICATE_SHORTCUTS]?: true  }
+    val duplicateShortcuts: Flow<Boolean> = context.dataStore.data.map { it[KEY_DUPLICATE_SHORTCUTS] ?: true  }
     val iconStyle: Flow<String>        = context.dataStore.data.map { it[KEY_ICON_STYLE]           ?: "real"}
 
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[KEY_ONBOARDING_DONE] = done }

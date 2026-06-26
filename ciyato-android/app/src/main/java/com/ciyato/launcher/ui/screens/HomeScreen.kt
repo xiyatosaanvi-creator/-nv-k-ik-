@@ -101,9 +101,9 @@ fun HomeScreen(
     val greetingStr = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         when {
-            hour < 12 -> "Good morning, Alex ☀\uFE0F"
-            hour < 17 -> "Good afternoon, Alex \uD83C\uDF1E"
-            else      -> "Good evening, Alex \uD83C\uDF19"
+            hour < 12 -> "Good morning ☀️"
+            hour < 17 -> "Good afternoon 🌞"
+            else      -> "Good evening 🌙"
         }
     }
     val dateStr = remember {
@@ -397,6 +397,26 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+// ─── Action circle button (used in top bar area) ───────────────────────────────
+@Composable
+private fun ActionCircle(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: androidx.compose.ui.graphics.Color,
+    size: Dp,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(CiyatoBgEl)
+            .border(1.dp, CiyatoSubtleBorder, androidx.compose.foundation.shape.CircleShape),
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(size * 0.5f))
     }
 }
 
