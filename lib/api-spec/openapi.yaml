@@ -2,14 +2,22 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: Ciyato API — smart Android launcher backend
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: settings
+    description: User settings and preferences
+  - name: devices
+    description: Device registration and management
+  - name: analytics
+    description: App usage analytics
 paths:
   /healthz:
     get:
@@ -24,7 +32,300 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /v1/auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Create a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in to an existing account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateMe
+      tags: [auth]
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+
+  /v1/settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get user settings
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    $ref: "#/components/schemas/UserSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update user settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsRequest"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    $ref: "#/components/schemas/UserSettings"
+
+  /v1/devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List registered devices
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+    post:
+      operationId: registerDevice
+      tags: [devices]
+      summary: Register a new device
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "201":
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device:
+                    $ref: "#/components/schemas/Device"
+
+  /v1/devices/{deviceId}:
+    patch:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update device metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device:
+                    $ref: "#/components/schemas/Device"
+    delete:
+      operationId: removeDevice
+      tags: [devices]
+      summary: Remove a device
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Device removed
+
+  /v1/analytics/usage:
+    post:
+      operationId: postUsage
+      tags: [analytics]
+      summary: Ingest app usage events (batch)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchUsageRequest"
+      responses:
+        "202":
+          description: Events accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: integer
+    get:
+      operationId: getUsage
+      tags: [analytics]
+      summary: Get app usage events
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        "200":
+          description: Usage events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AppUsageEvent"
+
+  /v1/analytics/usage/summary:
+    get:
+      operationId: getUsageSummary
+      tags: [analytics]
+      summary: Get aggregated usage summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Usage summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    $ref: "#/components/schemas/UsageSummary"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +334,316 @@ components:
           type: string
       required:
         - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - code
+            - message
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - createdAt
+        - updatedAt
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        displayName:
+          type: string
+      required:
+        - email
+        - password
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    UserSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        theme:
+          type: string
+          enum: [dark, light, auto]
+        accentColor:
+          type: string
+        iconShape:
+          type: string
+          enum: [squircle, circle, rounded_rect, square]
+        gridDensity:
+          type: string
+          enum: [compact, comfortable, spacious]
+        hapticIntensity:
+          type: string
+          enum: [off, light, medium, strong]
+        bedtimeEnabled:
+          type: boolean
+        bedtimeStart:
+          type: string
+        bedtimeEnd:
+          type: string
+        focusCategories:
+          type: array
+          items:
+            type: string
+        hiddenApps:
+          type: array
+          items:
+            type: string
+        pinnedApps:
+          type: array
+          items:
+            type: string
+        customGreeting:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - theme
+        - accentColor
+        - iconShape
+        - gridDensity
+        - hapticIntensity
+        - bedtimeEnabled
+        - bedtimeStart
+        - bedtimeEnd
+        - focusCategories
+        - hiddenApps
+        - pinnedApps
+        - updatedAt
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [dark, light, auto]
+        accentColor:
+          type: string
+        iconShape:
+          type: string
+        gridDensity:
+          type: string
+        hapticIntensity:
+          type: string
+        bedtimeEnabled:
+          type: boolean
+        bedtimeStart:
+          type: string
+        bedtimeEnd:
+          type: string
+        focusCategories:
+          type: array
+          items:
+            type: string
+        hiddenApps:
+          type: array
+          items:
+            type: string
+        pinnedApps:
+          type: array
+          items:
+            type: string
+        customGreeting:
+          type: string
+          nullable: true
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        deviceName:
+          type: string
+        deviceModel:
+          type: string
+          nullable: true
+        androidVersion:
+          type: string
+          nullable: true
+        appVersion:
+          type: string
+          nullable: true
+        pushToken:
+          type: string
+          nullable: true
+        lastSeenAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - deviceName
+        - lastSeenAt
+        - createdAt
+
+    RegisterDeviceRequest:
+      type: object
+      properties:
+        deviceName:
+          type: string
+        deviceModel:
+          type: string
+        androidVersion:
+          type: string
+        appVersion:
+          type: string
+        pushToken:
+          type: string
+        metadata:
+          type: object
+      required:
+        - deviceName
+
+    AppUsageEvent:
+      type: object
+      properties:
+        packageName:
+          type: string
+        appLabel:
+          type: string
+        category:
+          type: string
+        launchCount:
+          type: integer
+        totalUsageMs:
+          type: integer
+        lastLaunchedAt:
+          type: string
+          format: date-time
+          nullable: true
+        dailyStats:
+          type: object
+      required:
+        - packageName
+        - appLabel
+        - category
+        - launchCount
+        - totalUsageMs
+
+    BatchUsageRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppUsageEvent"
+          minItems: 1
+          maxItems: 500
+      required:
+        - deviceId
+        - events
+
+    UsageSummary:
+      type: object
+      properties:
+        totalLaunches:
+          type: integer
+        totalUsageMs:
+          type: integer
+        totalUsageHours:
+          type: number
+        topApps:
+          type: array
+          items:
+            type: object
+            properties:
+              packageName:
+                type: string
+              appLabel:
+                type: string
+              category:
+                type: string
+              launchCount:
+                type: integer
+              totalUsageMs:
+                type: integer
+        appCount:
+          type: integer
+      required:
+        - totalLaunches
+        - totalUsageMs
+        - totalUsageHours
+        - topApps
+        - appCount
 
