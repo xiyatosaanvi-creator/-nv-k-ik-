@@ -65,6 +65,12 @@ fun SearchScreen(
         }
     }
 
+    val frequentApps = remember { viewModel.byUsageFrequency().take(8) }
+    val groups = remember(searchResults) {
+        searchResults.groupBy { it.category.displayName }
+            .filter { it.value.size >= 2 && it.key != "Other" }
+    }
+
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
@@ -155,7 +161,6 @@ fun SearchScreen(
                 }
 
                 // Most-used apps (Suggestion 37)
-                val frequentApps = remember { viewModel.byUsageFrequency().take(8) }
                 if (frequentApps.isNotEmpty()) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -231,10 +236,6 @@ fun SearchScreen(
                     }
 
                     // ── Category grouping (Suggestion 42) ────────────────────
-                    val groups = remember(searchResults) {
-                        searchResults.groupBy { it.category.displayName }
-                            .filter { it.value.size >= 2 && it.key != "Other" }
-                    }
                     if (groups.isNotEmpty()) {
                         item { Text("By category", color = CiyatoSec, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
                         groups.entries.take(4).forEach { (cat, apps) ->

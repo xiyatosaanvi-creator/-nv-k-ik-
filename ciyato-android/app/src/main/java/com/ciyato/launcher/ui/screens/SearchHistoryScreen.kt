@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import com.ciyato.launcher.viewmodel.searchHistory
+import com.ciyato.launcher.viewmodel.clearSearchHistory
+import com.ciyato.launcher.viewmodel.removeSearchQuery
 
 /**
  * SearchHistoryScreen — Suggestion #108

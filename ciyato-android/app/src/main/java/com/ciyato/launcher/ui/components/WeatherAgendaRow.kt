@@ -147,7 +147,7 @@ private fun WeatherCardSuccess(
 }
 
 @Composable
-private fun WeatherCardLoading(isDense: Boolean) {
+private fun ColumnScope.WeatherCardLoading(isDense: Boolean) {
     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
             color = CiyatoGold,

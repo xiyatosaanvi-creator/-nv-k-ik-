@@ -33,6 +33,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
@@ -68,6 +69,7 @@ fun NlFileSearchScreen(
     var results by remember { mutableStateOf<List<NlFileResult>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     var hasSearched by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val quickQueries = listOf(
         "payment screenshot from yesterday",
@@ -118,7 +120,7 @@ fun NlFileSearchScreen(
                     placeholder = { Text("e.g. payment screenshot from yesterday", color = CiyatoMuted, fontSize = 13.sp) },
                     leadingIcon = { Icon(Icons.Default.AutoAwesome, null, tint = CiyatoGold, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
-                        IconButton(onClick = { kotlinx.coroutines.GlobalScope.kotlinx.coroutines.launch { search(query) } }) {
+                        IconButton(onClick = { scope.launch { search(query) } }) {
                             Icon(Icons.Default.Search, null, tint = CiyatoSec)
                         }
                     },
@@ -134,7 +136,7 @@ fun NlFileSearchScreen(
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = {
-                        kotlinx.coroutines.GlobalScope.launch { search(query) }
+                        scope.launch { search(query) }
                     }),
                 )
             }
@@ -150,7 +152,7 @@ fun NlFileSearchScreen(
                             .background(CiyatoBgEl)
                             .clickable {
                                 query = q
-                                kotlinx.coroutines.GlobalScope.launch { search(q) }
+                                scope.launch { search(q) }
                             }
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),

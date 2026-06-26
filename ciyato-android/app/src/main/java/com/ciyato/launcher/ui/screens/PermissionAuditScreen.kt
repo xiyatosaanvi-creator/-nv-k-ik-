@@ -125,7 +125,6 @@ fun PermissionAuditScreen(
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
-private enum class RiskLevel { HIGH, MEDIUM, LOW }
 
 private data class AuditedApp(
     val app: InstalledApp,
@@ -242,7 +241,7 @@ private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RealAppIcon(app = audited.app, size = 36.dp)
+            RealAppIcon(drawable = audited.app.icon, size = 36.dp)
             Column(modifier = Modifier.weight(1f)) {
                 Text(audited.app.label, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(audited.app.packageName.take(36), color = CiyatoMuted, fontSize = 10.sp)

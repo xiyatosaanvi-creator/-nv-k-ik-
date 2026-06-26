@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import kotlinx.coroutines.launch
 
 /**
  * SettingsScreen — fully expanded with all configurable options.
@@ -371,12 +373,12 @@ private fun CrashLogsScreen(context: Context, onBack: () -> Unit) {
                 contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize().padding(p),
             ) {
-                androidx.compose.foundation.lazy.items(logs) { file ->
+                items(logs) { file ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(CiyatoBgEl)
                             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(12.dp))
                             .clickable {
-                                kotlinx.coroutines.MainScope().launch {
+                                scope.launch {
                                     selectedContent = CrashReporter.readLog(file)
                                 }
                             }.padding(14.dp),

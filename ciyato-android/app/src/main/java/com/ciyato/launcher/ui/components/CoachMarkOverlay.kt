@@ -121,7 +121,7 @@ fun rememberCoachMarkController(
 }
 
 class CoachMarkController {
-    private val _seenIds = mutableStateSetOf<String>()
+    private val _seenIds = mutableStateListOf<String>()
     private val _currentMark = mutableStateOf<CoachMark?>(null)
 
     val currentMark: State<CoachMark?> get() = _currentMark

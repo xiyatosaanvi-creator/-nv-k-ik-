@@ -212,7 +212,7 @@ private fun getNetworkStats(context: Context): List<AppNetworkStat> {
     } catch (_: Exception) { emptyList() }
 }
 
-private fun formatBytes(bytes: Long): String {
+internal fun formatBytes(bytes: Long): String {
     return when {
         bytes >= 1_073_741_824L -> String.format("%.1f GB", bytes / 1_073_741_824.0)
         bytes >= 1_048_576L -> String.format("%.1f MB", bytes / 1_048_576.0)

@@ -85,3 +85,27 @@ fun AppIconTile(
         }
     }
 }
+
+@Composable
+fun AppIconView(
+    app: InstalledApp,
+    size: Dp = 52.dp,
+    iconShape: String = "squircle",
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val cornerRadius = when (iconShape) {
+        "circle" -> size / 2
+        "rounded" -> 16.dp
+        "raw" -> 0.dp
+        else -> 14.dp
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+    ) {
+        RealAppIcon(drawable = app.icon, size = size, cornerRadius = cornerRadius)
+    }
+}

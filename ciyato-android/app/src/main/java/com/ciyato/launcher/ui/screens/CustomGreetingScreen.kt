@@ -23,7 +23,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
+import androidx.compose.ui.draw.clip
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import com.ciyato.launcher.viewmodel.customGreeting
+import com.ciyato.launcher.viewmodel.setCustomGreeting
 
 /**
  * CustomGreetingScreen — Suggestion #100

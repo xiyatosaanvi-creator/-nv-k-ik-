@@ -119,7 +119,7 @@ fun AppUsageStatsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.padding(20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Today's total", color = CiyatoMuted, fontSize = 13.sp)
                         Text(
                             formatDuration(totalMs),

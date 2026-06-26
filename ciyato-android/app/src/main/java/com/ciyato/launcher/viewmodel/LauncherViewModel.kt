@@ -118,6 +118,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setBedtimeMode(v: Boolean)        = viewModelScope.launch { settings.setBedtimeMode(v) }
     fun setBedtimeHour(v: Int)            = viewModelScope.launch { settings.setBedtimeHour(v) }
     fun setFocusDurationMin(v: Int)       = viewModelScope.launch { settings.setFocusDurationMin(v) }
+    fun setFocusBlockedCats(csv: String)  = viewModelScope.launch { settings.setFocusBlockedCats(csv) }
     fun setHapticFeedback(v: Boolean)     = viewModelScope.launch { settings.setHapticFeedback(v) }
     fun setPrivacyMode(v: Boolean)        = viewModelScope.launch { settings.setPrivacyMode(v) }
     fun setScreenshotBlocked(v: Boolean)  = viewModelScope.launch { settings.setScreenshotBlocked(v) }

@@ -96,9 +96,7 @@ fun FocusSessionScreen(
                         onToggle     = { cat ->
                             val mutable = blockedCats.toMutableList()
                             if (cat in mutable) mutable.remove(cat) else mutable.add(cat)
-                            viewModel.viewModelScope.let {
-                                // update focusBlockedCats pref
-                            }
+                            viewModel.setFocusBlockedCats(mutable.joinToString(","))
                         },
                         viewModel    = viewModel,
                     )
@@ -318,10 +316,4 @@ private fun FocusInfoCard() {
     }
 }
 
-// Extension for viewModelScope access from composable (safe)
-private val LauncherViewModel.viewModelScope get() =
-    (this as androidx.lifecycle.ViewModel).let {
-        androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current?.let { owner ->
-            androidx.lifecycle.viewModelScope
-        } ?: kotlinx.coroutines.GlobalScope
-    }
+

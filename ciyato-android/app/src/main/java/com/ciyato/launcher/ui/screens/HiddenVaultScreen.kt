@@ -44,7 +44,7 @@ fun HiddenVaultScreen(
 ) {
     val context = LocalContext.current
     val hiddenAppsStr by viewModel.hiddenApps.collectAsState()
-    val allApps by viewModel.allInstalledApps.collectAsState()
+    val allApps by viewModel.apps.collectAsState()
 
     var isUnlocked by remember { mutableStateOf(false) }
     var isBiometricUnavailable by remember { mutableStateOf(false) }
@@ -140,7 +140,7 @@ fun HiddenVaultScreen(
                         AppIconView(
                             app = app,
                             iconShape = viewModel.iconShape.collectAsState().value,
-                            onClick = { viewModel.launchApp(context, app.packageName) },
+                            onClick = { viewModel.launchApp(app) },
                         )
                     }
                 }

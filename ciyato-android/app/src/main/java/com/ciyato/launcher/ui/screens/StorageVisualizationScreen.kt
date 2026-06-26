@@ -2,7 +2,7 @@ package com.ciyato.launcher.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.canvas
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -168,7 +168,7 @@ private fun StorageDonut(
     modifier: Modifier = Modifier,
 ) {
     val strokeWidth = 22f
-    canvas(modifier = modifier) {
+    Canvas(modifier = modifier) {
         val diameter = minOf(size.width, size.height) - strokeWidth
         val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
         val arcSize = Size(diameter, diameter)

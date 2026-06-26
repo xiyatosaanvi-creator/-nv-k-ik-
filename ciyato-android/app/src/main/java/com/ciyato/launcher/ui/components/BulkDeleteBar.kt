@@ -102,8 +102,8 @@ fun rememberBulkDeleteState(itemKeys: List<String>): BulkDeleteState {
 }
 
 class BulkDeleteState(private val allKeys: List<String>) {
-    private val _selected = mutableStateSetOf<String>()
-    val selected: Set<String> get() = _selected
+    private val _selected = mutableStateListOf<String>()
+    val selected: Set<String> get() = _selected.toSet()
     val selectedCount get() = _selected.size
     val isAllSelected get() = _selected.size == allKeys.size
 

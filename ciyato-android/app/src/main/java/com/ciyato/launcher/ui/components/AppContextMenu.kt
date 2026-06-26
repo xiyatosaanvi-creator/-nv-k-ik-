@@ -29,6 +29,12 @@ import androidx.compose.ui.window.DialogProperties
 import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import com.ciyato.launcher.viewmodel.isPinned
+import com.ciyato.launcher.viewmodel.isHidden
+import com.ciyato.launcher.viewmodel.pinApp
+import com.ciyato.launcher.viewmodel.unpinApp
+import com.ciyato.launcher.viewmodel.hideApp
+import com.ciyato.launcher.viewmodel.unhideApp
 
 /**
  * AppContextMenu — Suggestion #16

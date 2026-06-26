@@ -47,6 +47,7 @@ fun Modifier.actionSemantics(
 /**
  * Marks a decorative element so TalkBack skips it.
  */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 fun Modifier.decorative(): Modifier = this.semantics { contentDescription = ""; this.invisibleToUser() }
 
 /**
