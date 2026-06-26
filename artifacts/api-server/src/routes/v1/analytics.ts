@@ -3,7 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, appUsageTable, insertAppUsageSchema } from "@workspace/db";
 import { requireAuth } from "../../middlewares/auth";
 import { AppError } from "../../middlewares/errorHandler";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const router = Router();
 
@@ -64,9 +64,9 @@ router.get("/usage/summary", requireAuth, async (req, res, next) => {
       .orderBy(desc(appUsageTable.launchCount))
       .limit(20);
 
-    const totalLaunches = usage.reduce((s: number, u) => s + u.launchCount, 0);
-    const totalUsageMs = usage.reduce((s: number, u) => s + u.totalUsageMs, 0);
-    const topApps = usage.slice(0, 5).map((u) => ({
+    const totalLaunches = usage.reduce((s: number, u: any) => s + u.launchCount, 0);
+    const totalUsageMs = usage.reduce((s: number, u: any) => s + u.totalUsageMs, 0);
+    const topApps = usage.slice(0, 5).map((u: any) => ({
       packageName: u.packageName,
       appLabel: u.appLabel,
       category: u.category,

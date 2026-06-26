@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { z } from "zod";
-import { authenticate } from "../../middleware/auth.js";
+import { z } from "zod/v4";
+import { requireAuth } from "../../middlewares/auth.js";
 
 const router = Router();
 
 const querySchema = z.object({
   prompt: z.string().min(1).max(2000),
   model: z.enum(["gemini-flash", "gpt-4o-mini"]).optional().default("gemini-flash"),
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -15,11 +15,11 @@ const querySchema = z.object({
  * Proxy to Gemini / OpenAI with rate-limiting and JWT auth.
  * Uses GEMINI_API_KEY or OPENAI_API_KEY environment variables.
  */
-router.post("/query", authenticate, async (req, res) => {
+router.post("/query", requireAuth, async (req, res) => {
   const result = querySchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: result.error.errors[0]?.message ?? "Invalid input" }
+      error: { code: "VALIDATION_ERROR", message: result.error.issues[0]?.message ?? "Invalid input" }
     });
     return;
   }

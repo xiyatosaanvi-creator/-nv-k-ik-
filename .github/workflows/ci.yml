@@ -36,7 +36,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @ciyato/api-server run build
+      - run: pnpm --filter @workspace/api-server run build
       - uses: actions/upload-artifact@v4
         with:
           name: api-server-dist
@@ -55,7 +55,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @ciyato/mobile run export --if-present
+      - run: pnpm --filter @workspace/ciyato-mobile run export --if-present
 
   android-build:
     name: Android Debug Build

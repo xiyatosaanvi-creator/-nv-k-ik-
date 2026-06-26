@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { usersTable } from "./users";
 
 export const devicesTable = pgTable("devices", {

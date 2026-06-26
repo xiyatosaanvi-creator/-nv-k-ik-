@@ -39,7 +39,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
 router.patch("/:deviceId", requireAuth, async (req, res, next) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params["deviceId"] as string;
     const parsed = insertDeviceSchema.omit({ userId: true }).partial().safeParse(req.body);
     if (!parsed.success) {
       throw new AppError(400, "VALIDATION_ERROR", "Invalid device data", parsed.error.flatten());
@@ -68,7 +68,7 @@ router.patch("/:deviceId", requireAuth, async (req, res, next) => {
 
 router.delete("/:deviceId", requireAuth, async (req, res, next) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params["deviceId"] as string;
 
     const [deleted] = await db
       .delete(devicesTable)
