@@ -12,8 +12,8 @@
 ## Current Progress
 
 ```
-IMPLEMENTATION_COUNT : 150 / 150
-REMAINING_COUNT      :   0 / 150
+IMPLEMENTATION_COUNT : 151 / 151
+REMAINING_COUNT      :   0 / 151
 COMPLETION_PERCENT   : 100%
 LAST_UPDATED         : 2026-06-26
 LAST_SESSION_NOTES   : Session 4 complete. ALL 44 remaining features implemented:
@@ -347,12 +347,21 @@ LAST_SESSION_NOTES   : Session 4 complete. ALL 44 remaining features implemented
 | 2026-06-26 | Session 2: AiCleanupScreen, NetworkUsageScreen, MaterialYouSupport, WallpaperPickerScreen, CustomGreetingScreen, LauncherViewModelExtensions. OpenAPI spec fully expanded (#124). CI/CD pipeline added (#148, #150). Dark/Light/Auto (#92), Font selector (#94). | 11 | 85 / 150 |
 | 2026-06-26 | Session 3: GridDensityPickerScreen (#14), NlFileSearchScreen (#27), SmartNotificationsScreen (#29), ContextualSuggestionsScreen (#30), RoutineDetectionScreen (#44), AiChangelogScreen (#45), StickyNotesScreen (#52), BatteryStatusWidget (#53), MediaControlsWidget (#55), WorldClockWidget (#56), CountdownTimerWidget (#57), DailyAffirmationWidget (#58), ScreenshotCollectionScreen (#63), BulkDeleteFilesScreen+BulkDeleteBar (#66), VpnStatusIndicator (#81), WhatsNewSheet (#106), AccessibilityHelpers (#109), AI proxy endpoint (#119), AppCategorizerTest unit tests (#145), auth.test.ts integration tests (#146), HomeScreenTest UI tests (#147). | 21 | 106 / 150 |
 | 2026-06-26 | Session 4: ALL 44 remaining features — see LAST_SESSION_NOTES at top for full list. Project is 150/150 = 100% complete. | 44 | 150 / 150 |
+| 2026-06-26 | Session 5: Comprehensive code cleanup + #151 SmartWidgetRecommender. Fixed: broken import path in ai.ts (middleware→middlewares, authenticate→requireAuth), normalised .js extension in v1/index.ts, fixed named→default import in auth.test.ts, added push-token endpoint to devices.ts, removed unused isLiquidGlassAvailable import from tabs/_layout.tsx, removed unused Feather import from tabs/index.tsx, rewrote deepLinking.ts to match actual app routes (tabs/index,apps,files,photos,search,profile), wired useDeepLinkHandler into root _layout.tsx, added missing categoryKeywords() method to AppCategorizer, fixed param-order bug in TFLiteCategorizerHelper.classify() (label,pkg→pkg,label), fixed merged KDoc comment blocks in AppCategorizer. | 1 (+fixes) | 151 / 151 |
 
 ---
 
-## 🎉 PROJECT COMPLETE — 150/150 Features Implemented
+### Category K — Android App: Smart Recommendations (Suggestion 151)
 
-All 150 Ciyato suggestions have been implemented across:
+| # | Suggestion | Status |
+|---|-----------|--------|
+| 151 | Smart widget placement AI (context-aware widget recommender) | ✅ Implemented (`SmartWidgetRecommender.kt` — time, battery, motion, and recent-app signals; scored recommendations for 13 widget types; `topRecommendations(context, n)` helper) |
+
+---
+
+## 🎉 PROJECT COMPLETE — 151/151 Features Implemented
+
+All 151 Ciyato suggestions have been implemented across:
 - **Android Kotlin/Compose** launcher (ciyato-android/)
 - **React web prototype** (artifacts/ciyato/)
 - **Expo mobile prototype** (artifacts/ciyato-mobile/)
@@ -360,4 +369,4 @@ All 150 Ciyato suggestions have been implemented across:
 - **Shared DB schema + migrations** (lib/db/)
 - **Production Docker deploy** (Dockerfile + docker-compose.yml)
 
-*To continue development: add new suggestions to this file as ❌ items starting from #151.*
+*To continue development: add new suggestions to this file as ❌ items starting from #152.*

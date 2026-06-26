@@ -3,9 +3,9 @@
  * Run with: pnpm --filter @ciyato/api-server test
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import request from "supertest";
-import { app } from "../app.js";
+import app from "../app";
 
 describe("Auth API", () => {
   const testEmail = `test-${Date.now()}@ciyato.test`;

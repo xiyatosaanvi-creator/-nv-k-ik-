@@ -3,24 +3,24 @@
  * Deep linking configuration for Ciyato Mobile using Expo Linking.
  * Handles in-app navigation from external URLs and push notification taps.
  *
- * URL scheme: ciyato://
+ * URL scheme : ciyato://
  * HTTPS domain: https://ciyato.app (Universal Links / App Links)
  *
- * Supported routes:
- *   ciyato://home              → Home tab
- *   ciyato://apps              → App grid
- *   ciyato://category/{id}     → Specific category
- *   ciyato://focus             → Focus session
- *   ciyato://vault             → Secure vault (triggers biometric)
- *   ciyato://settings          → Settings screen
- *   ciyato://ai/agenda         → AI daily agenda
- *   ciyato://privacy           → Privacy dashboard
+ * Supported routes (matching actual app/(tabs) structure):
+ *   ciyato://              → Home tab  (tabs/index)
+ *   ciyato://apps          → Apps tab
+ *   ciyato://files         → Files tab
+ *   ciyato://photos        → Photos tab
+ *   ciyato://search        → Search tab
+ *   ciyato://profile       → Profile screen (modal)
  */
 
 import * as Linking from "expo-linking";
+import { useEffect } from "react";
+import { useRouter } from "expo-router";
 import { Href } from "expo-router";
 
-/** Expo Router linking configuration — add to <Stack> in _layout.tsx. */
+/** Expo Router linking configuration — pass to <Stack> linking prop in _layout.tsx. */
 export const LINKING_CONFIG = {
   prefixes: [
     Linking.createURL("/"),
@@ -32,31 +32,23 @@ export const LINKING_CONFIG = {
     screens: {
       "(tabs)": {
         screens: {
-          index:     "",
-          apps:      "apps",
-          insights:  "insights",
-          settings:  "settings",
-          profile:   "profile",
+          index:   "",
+          apps:    "apps",
+          files:   "files",
+          photos:  "photos",
+          search:  "search",
         },
       },
-      "category/[id]":    "category/:id",
-      "focus":            "focus",
-      "vault":            "vault",
-      "ai/agenda":        "ai/agenda",
-      "privacy":          "privacy",
-      "backup":           "backup",
-      "duplicate-photos": "duplicate-photos",
-      "voice":            "voice",
+      profile: "profile",
     },
   },
 };
 
-/** Create a deep link URL for a given route. */
+/** Create a ciyato:// deep link URL for a given route. */
 export function createDeepLink(route: string, params?: Record<string, string>): string {
   const base = Linking.createURL(route);
   if (!params || Object.keys(params).length === 0) return base;
-  const query = new URLSearchParams(params).toString();
-  return `${base}?${query}`;
+  return `${base}?${new URLSearchParams(params).toString()}`;
 }
 
 /** Parse an incoming URL and extract route + params. */
@@ -68,39 +60,42 @@ export function parseDeepLink(url: string): { route: string; params: Record<stri
   };
 }
 
-/** Handle an incoming deep link URL and return the Expo Router path. */
+/** Map a deep link URL to an Expo Router Href. Returns null for unknown routes. */
 export function deepLinkToHref(url: string): Href | null {
-  const { route, params } = parseDeepLink(url);
-  const query = Object.keys(params).length > 0
-    ? "?" + new URLSearchParams(params).toString()
-    : "";
+  const { route } = parseDeepLink(url);
 
-  switch (route) {
+  switch (route.replace(/^\//, "")) {
     case "":
-    case "home":        return `/(tabs)/` as Href;
-    case "apps":        return `/(tabs)/apps` as Href;
-    case "insights":    return `/(tabs)/insights` as Href;
-    case "settings":    return `/(tabs)/settings` as Href;
-    case "focus":       return `/focus` as Href;
-    case "vault":       return `/vault` as Href;
-    case "ai/agenda":   return `/ai/agenda` as Href;
-    case "privacy":     return `/privacy` as Href;
-    case "backup":      return `/backup` as Href;
-    case "voice":       return `/voice` as Href;
-    default:
-      if (route.startsWith("category/")) {
-        const id = route.split("/")[1];
-        return `/category/${id}` as Href;
-      }
-      return null;
+    case "home":    return "/(tabs)/" as Href;
+    case "apps":    return "/(tabs)/apps" as Href;
+    case "files":   return "/(tabs)/files" as Href;
+    case "photos":  return "/(tabs)/photos" as Href;
+    case "search":  return "/(tabs)/search" as Href;
+    case "profile": return "/profile" as Href;
+    default:        return null;
   }
 }
 
-/** Set up the Linking event listener (call in root _layout.tsx). */
-export function useLinkingHandler(onLink: (href: Href) => void) {
-  const subscription = Linking.addEventListener("url", ({ url }) => {
-    const href = deepLinkToHref(url);
-    if (href) onLink(href);
-  });
-  return () => subscription.remove();
+/**
+ * Hook: wire up deep link listener. Call inside a component mounted at the root layout.
+ * Navigates automatically when a ciyato:// URL is opened while the app is running.
+ */
+export function useDeepLinkHandler() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      const href = deepLinkToHref(url);
+      if (href) router.push(href);
+    });
+
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        const href = deepLinkToHref(url);
+        if (href) router.replace(href);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [router]);
 }

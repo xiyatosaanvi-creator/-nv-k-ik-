@@ -3,23 +3,22 @@ package com.ciyato.launcher.data
 /**
  * TFLiteCategorizerHelper — Suggestion #28
  * On-device ML categorization using TensorFlow Lite.
- * Falls back to rule-based AppCategorizer when TFLite model not bundled.
+ * Falls back to rule-based AppCategorizer when the TFLite model is not bundled.
  *
  * To enable full TFLite:
  *  1. Add `implementation("org.tensorflow:tensorflow-lite:2.14.0")` to build.gradle.
  *  2. Place `app_categorizer.tflite` in assets/ml/
- *  3. Uncomment the Interpreter block below.
+ *  3. Uncomment the Interpreter block in classify().
  *
- * The model input: float32[1, 64] (token embedding of app label + package name).
- * The model output: float32[1, N_CATEGORIES] (softmax probabilities).
+ * Model input:  float32[1, 64] — character n-gram embedding of label + package name.
+ * Model output: float32[1, N_CATEGORIES] — softmax probability per AppCategory.
  */
 object TFLiteCategorizerHelper {
 
     private val CATEGORY_LABELS = AppCategory.entries.map { it.name }
 
-    /** Feature-extract: simple character n-gram hash → fixed-size vector. */
     private fun textToEmbedding(text: String, size: Int = 64): FloatArray {
-        val result = FloatArray(size)
+        val result     = FloatArray(size)
         val normalized = text.lowercase().replace(Regex("[^a-z0-9]"), "")
         for (i in normalized.indices) {
             val idx = (normalized[i].code * 31 + i) % size
@@ -29,11 +28,14 @@ object TFLiteCategorizerHelper {
     }
 
     /**
-     * Classify an app using the TFLite model if available,
-     * otherwise delegate to rule-based AppCategorizer.
+     * Classify an app using TFLite when the model is available,
+     * otherwise delegate to the rule-based AppCategorizer.
+     *
+     * @param label       Human-readable app name (e.g. "Spotify").
+     * @param packageName Android package name (e.g. "com.spotify.music").
      */
     fun classify(label: String, packageName: String): AppCategory {
-        // TFLite path (uncomment when model is bundled):
+        // TFLite path — uncomment when model asset is bundled:
         // val embedding = textToEmbedding("$label $packageName")
         // val interpreter = Interpreter(loadModelFile(context, "ml/app_categorizer.tflite"))
         // val output = Array(1) { FloatArray(CATEGORY_LABELS.size) }
@@ -41,32 +43,29 @@ object TFLiteCategorizerHelper {
         // val bestIdx = output[0].indices.maxByOrNull { output[0][it] } ?: 0
         // return AppCategory.valueOf(CATEGORY_LABELS[bestIdx])
 
-        // Rule-based fallback (current):
-        return AppCategorizer.categorize(label, packageName)
+        // Rule-based fallback — note: AppCategorizer.categorize(packageName, label)
+        return AppCategorizer.categorize(packageName, label)
     }
 
     /**
-     * Batch classify a list of installed apps, returning a map of
-     * package name → predicted category.
+     * Batch-classify a list of installed apps.
+     * Returns a map of packageName → predicted AppCategory.
      */
-    fun classifyAll(apps: List<InstalledApp>): Map<String, AppCategory> {
-        return apps.associate { app ->
-            app.packageName to classify(app.label, app.packageName)
-        }
-    }
+    fun classifyAll(apps: List<InstalledApp>): Map<String, AppCategory> =
+        apps.associate { it.packageName to classify(it.label, it.packageName) }
 
     /**
-     * Confidence score for the current (rule-based) classifier.
-     * Returns 1.0 for exact keyword matches, 0.5 for partial matches, 0.1 for default.
+     * Returns a confidence score [0.1 – 1.0] for the current classifier's prediction.
+     * 1.0 = full keyword match, 0.5 = prefix match, 0.1 = default/unknown.
      */
     fun confidence(label: String, packageName: String): Float {
-        val category = classify(label, packageName)
-        val combined = "$label $packageName".lowercase()
-        val keywordsForCategory = AppCategorizer.categoryKeywords(category)
+        val category  = classify(label, packageName)
+        val combined  = "$label $packageName".lowercase()
+        val keywords  = AppCategorizer.categoryKeywords(category)
         return when {
-            keywordsForCategory.any { combined.contains(it) } -> 1.0f
-            keywordsForCategory.any { combined.contains(it.take(4)) } -> 0.5f
-            else -> 0.1f
+            keywords.any { combined.contains(it) }             -> 1.0f
+            keywords.any { combined.contains(it.take(4)) }     -> 0.5f
+            else                                               -> 0.1f
         }
     }
 }

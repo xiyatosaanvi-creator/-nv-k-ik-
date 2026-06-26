@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { authenticate } from "../../middleware/auth.js";
+import { requireAuth } from "../../middlewares/auth";
+import { AppError } from "../../middlewares/errorHandler";
 
 const router = Router();
 
@@ -13,30 +14,23 @@ const querySchema = z.object({
 /**
  * POST /api/v1/ai/query — Suggestion #119
  * Proxy to Gemini / OpenAI with rate-limiting and JWT auth.
- * Uses GEMINI_API_KEY or OPENAI_API_KEY environment variables.
+ * Requires GEMINI_API_KEY or OPENAI_API_KEY environment variables.
  */
-router.post("/query", authenticate, async (req, res) => {
+router.post("/query", requireAuth, async (req, res, next) => {
   const result = querySchema.safeParse(req.body);
   if (!result.success) {
-    res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: result.error.errors[0]?.message ?? "Invalid input" }
-    });
-    return;
+    return next(new AppError(400, "VALIDATION_ERROR", result.error.errors[0]?.message ?? "Invalid input"));
   }
 
   const { prompt, model, context } = result.data;
 
   try {
-    let answer: string;
-    if (model === "gemini-flash") {
-      answer = await callGemini(prompt, context);
-    } else {
-      answer = await callOpenAI(prompt, context);
-    }
+    const answer = model === "gemini-flash"
+      ? await callGemini(prompt, context)
+      : await callOpenAI(prompt, context);
     res.json({ answer, model });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "AI service unavailable";
-    res.status(502).json({ error: { code: "AI_UPSTREAM_ERROR", message } });
+    next(new AppError(502, "AI_UPSTREAM_ERROR", err instanceof Error ? err.message : "AI service unavailable"));
   }
 });
 
@@ -44,9 +38,7 @@ async function callGemini(prompt: string, context?: Record<string, unknown>): Pr
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
-  const systemParts = context
-    ? `Context: ${JSON.stringify(context)}\n\n`
-    : "";
+  const prefix = context ? `Context: ${JSON.stringify(context)}\n\n` : "";
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
@@ -54,16 +46,13 @@ async function callGemini(prompt: string, context?: Record<string, unknown>): Pr
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: systemParts + prompt }] }],
+        contents: [{ parts: [{ text: prefix + prompt }] }],
         generationConfig: { maxOutputTokens: 800, temperature: 0.4 },
       }),
-    }
+    },
   );
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Gemini error ${res.status}: ${body}`);
-  }
+  if (!res.ok) throw new Error(`Gemini error ${res.status}: ${await res.text()}`);
 
   const data = (await res.json()) as {
     candidates?: Array<{ content: { parts: Array<{ text: string }> } }>;
@@ -89,10 +78,7 @@ async function callOpenAI(prompt: string, context?: Record<string, unknown>): Pr
     body: JSON.stringify({ model: "gpt-4o-mini", messages, max_tokens: 800 }),
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${body}`);
-  }
+  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${await res.text()}`);
 
   const data = (await res.json()) as {
     choices?: Array<{ message: { content: string } }>;
