@@ -9,10 +9,14 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
-        Foreground location only — requested at runtime, ONLY when user opens Weather
-        and taps "Enable Local Weather". Never requested at onboarding. No background location.
+        Foreground location only — requested at runtime when user opens Weather
+        and taps "Enable Local Weather". Never requested at onboarding.
+        No ACCESS_BACKGROUND_LOCATION — no background location tracking.
     -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Vibration for haptic feedback (Suggestion 1) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".CiyatoApplication"
@@ -38,6 +42,15 @@
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
+            <!--
+                Android App Shortcuts (Suggestion 85).
+                Gives users quick access to Focus Mode and Permission Audit
+                from the long-press launcher menu (API 25+).
+            -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/app_shortcuts" />
         </activity>
 
         <!--

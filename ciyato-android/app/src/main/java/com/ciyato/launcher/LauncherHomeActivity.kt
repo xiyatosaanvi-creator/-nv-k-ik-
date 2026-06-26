@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.data.LocationHelper
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoBg
@@ -22,11 +23,8 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
 /**
  * LauncherHomeActivity — the REAL home screen.
  *
- * Has HOME + DEFAULT intent-filter categories so Android offers Ciyato
- * as a default Home app. singleTask prevents duplicate instances.
- *
- * Navigation uses a sealed class (not Jetpack Nav) for zero-latency
- * transitions without the overhead of a NavController.
+ * Uses sealed-class navigation for zero-latency screen transitions.
+ * Suggestions wired here: 75 (Focus), 139 (Permission Audit), 144 (Crash Reporter), 145 (Screenshot block).
  */
 class LauncherHomeActivity : ComponentActivity() {
 
@@ -35,19 +33,21 @@ class LauncherHomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Crash reporter install (Suggestion 144)
+        CrashReporter.install(this)
+
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            statusBarStyle     = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
 
-        // Suppress back press — standard launcher behaviour (pressing Home never closes it).
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = Unit
+            override fun handleOnBackPressed() = Unit  // Standard launcher: back does nothing on home
         })
 
         setContent {
             CiyatoTheme {
-                LauncherRoot(viewModel = viewModel)
+                LauncherRoot(viewModel = viewModel, activity = this@LauncherHomeActivity)
             }
         }
     }
@@ -56,28 +56,37 @@ class LauncherHomeActivity : ComponentActivity() {
 // ── Navigation sealed class ────────────────────────────────────────────────────
 
 private sealed class LauncherDest {
-    object Home              : LauncherDest()
-    object Drawer            : LauncherDest()
-    object Settings          : LauncherDest()
+    object Home               : LauncherDest()
+    object Drawer             : LauncherDest()
+    object Settings           : LauncherDest()
     data class CategoryDetail(val category: AppCategory) : LauncherDest()
-    object DuplicateShortcuts: LauncherDest()
-    object WeatherDetail     : LauncherDest()
-    object Agenda            : LauncherDest()
+    object DuplicateShortcuts : LauncherDest()
+    object WeatherDetail      : LauncherDest()
+    object Agenda             : LauncherDest()
+    object FocusSession       : LauncherDest()   // Suggestion 75
+    object PermissionAudit    : LauncherDest()   // Suggestion 139
 }
 
 // ── Root composable ───────────────────────────────────────────────────────────
 
 @Composable
-private fun LauncherRoot(viewModel: LauncherViewModel) {
+private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeActivity) {
     val context = LocalContext.current
     var dest by remember { mutableStateOf<LauncherDest>(LauncherDest.Home) }
 
-    // Auto-fetch weather on startup if location permission is already granted.
-    // This ensures the home screen WeatherCard shows live data immediately.
+    // Auto-fetch weather on startup if already permitted
     LaunchedEffect(Unit) {
         if (LocationHelper.hasPermission(context)) {
             viewModel.fetchWeather(context)
         }
+        // Apply screenshot block setting (Suggestion 145)
+        viewModel.applyScreenshotFlag(activity.window)
+    }
+
+    // Re-apply screenshot flag whenever the setting changes
+    val screenshotBlocked by viewModel.screenshotBlocked.collectAsState()
+    LaunchedEffect(screenshotBlocked) {
+        viewModel.applyScreenshotFlag(activity.window)
     }
 
     when (val d = dest) {
@@ -100,8 +109,10 @@ private fun LauncherRoot(viewModel: LauncherViewModel) {
         )
 
         is LauncherDest.Settings -> SettingsScreen(
-            viewModel = viewModel,
-            onBack    = { dest = LauncherDest.Home },
+            viewModel                  = viewModel,
+            onBack                     = { dest = LauncherDest.Home },
+            onNavigateToPermissionAudit= { dest = LauncherDest.PermissionAudit },
+            onNavigateToFocus          = { dest = LauncherDest.FocusSession },
         )
 
         is LauncherDest.CategoryDetail -> CategoryDetailScreen(
@@ -116,12 +127,22 @@ private fun LauncherRoot(viewModel: LauncherViewModel) {
         )
 
         is LauncherDest.WeatherDetail -> WeatherDetailScreen(
-            viewModel = viewModel,           // ← shares live state with HomeScreen WeatherCard
+            viewModel = viewModel,
             onBack    = { dest = LauncherDest.Home },
         )
 
         is LauncherDest.Agenda -> AgendaScreen(
             onBack = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.FocusSession -> FocusSessionScreen(  // Suggestion 75
+            viewModel = viewModel,
+            onBack    = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.PermissionAudit -> PermissionAuditScreen( // Suggestion 139
+            viewModel = viewModel,
+            onBack    = { dest = LauncherDest.Home },
         )
     }
 }

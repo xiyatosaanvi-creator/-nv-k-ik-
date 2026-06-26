@@ -1,6 +1,7 @@
 package com.ciyato.launcher.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,38 +17,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
-import com.ciyato.launcher.ui.components.AppIconTile
-import com.ciyato.launcher.ui.components.CiyatoSearchBar
-import com.ciyato.launcher.ui.components.RealAppIcon
+import com.ciyato.launcher.data.AppCategorizer
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
-private data class SearchChip(
-    val label: String,
-    val icon: ImageVector,
-    val action: ChipAction,
-)
-
-private sealed class ChipAction {
-    data class FilterCategory(val query: String, val category: AppCategory?) : ChipAction()
-    object OpenFilesPermission : ChipAction()
-    object OpenPhotosPermission : ChipAction()
-}
-
-private val SUGGESTION_CHIPS = listOf(
-    SearchChip("Work apps", Icons.Default.Work, ChipAction.FilterCategory("Work", AppCategory.WORK)),
-    SearchChip("Social apps", Icons.Default.People, ChipAction.FilterCategory("Social", AppCategory.SOCIAL)),
-    SearchChip("Show PDFs from yesterday", Icons.Default.Description, ChipAction.OpenFilesPermission),
-    SearchChip("Find payment screenshots", Icons.Default.Payments, ChipAction.OpenPhotosPermission),
-    SearchChip("Recent WhatsApp files", Icons.AutoMirrored.Filled.Chat, ChipAction.OpenFilesPermission),
-)
-
+/**
+ * SearchScreen — fully enhanced.
+ *
+ * Suggestions: 36 (recent searches history), 38 (fuzzy search),
+ * 40 (NLP intent detection), 42 (grouped results), 44 (Play Store link),
+ * 45 (smart suggestion chips by time of day).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -55,192 +41,209 @@ fun SearchScreen(
     onBack: () -> Unit,
     onCategoryFilter: ((AppCategory) -> Unit)? = null,
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val searchQuery     by viewModel.searchQuery.collectAsState()
+    val searchResults   by viewModel.searchResults.collectAsState()
+    val isLoading       by viewModel.isLoading.collectAsState()
+    val recentSearches  by viewModel.recentSearches.collectAsState()
+    val nlpResult       by viewModel.nlpSearchResult.collectAsState()
 
-    var activeTab by remember { mutableStateOf("All") }
-    val tabs = listOf("All", "Apps", "Files", "Photos", "Documents")
-
-    // Sub-screen state for permission flows triggered by chips
-    var showFilesFlow by remember { mutableStateOf(false) }
+    var showFilesFlow  by remember { mutableStateOf(false) }
     var showPhotosFlow by remember { mutableStateOf(false) }
 
-    if (showFilesFlow) {
-        FilesScreen(onBack = { showFilesFlow = false })
-        return
-    }
-    if (showPhotosFlow) {
-        PhotosScreen(onBack = { showPhotosFlow = false })
-        return
+    if (showFilesFlow)  { FilesScreen(onBack = { showFilesFlow  = false }); return }
+    if (showPhotosFlow) { PhotosScreen(onBack = { showPhotosFlow = false }); return }
+
+    // Time-aware suggestion chips (Suggestion 45)
+    val suggestionChips = remember {
+        val timeCats = viewModel.timeAwareCategories()
+        buildList {
+            timeCats.take(2).forEach { cat ->
+                add(Triple("${cat.displayName} apps", Icons.Default.Category, cat))
+            }
+            add(Triple("PDFs & documents", Icons.Default.Description, null))
+            add(Triple("Recent photos",    Icons.Default.Photo,       null))
+        }
     }
 
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            Column(modifier = Modifier.background(CiyatoBg)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = CiyatoSec)
+            TopAppBar(
+                title = {
+                    SearchField(
+                        query         = searchQuery,
+                        onQueryChange = viewModel::setSearch,
+                        onClear       = { viewModel.setSearch("") },
+                        modifier      = Modifier.fillMaxWidth(),
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { viewModel.setSearch(""); onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = CiyatoSec)
                     }
-                    Text("AI Search", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                }
-
-                CiyatoSearchBar(
-                    query = searchQuery,
-                    onQueryChange = viewModel::setSearch,
-                    placeholder = "Search apps, files, photos...",
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                )
-
-                LazyRow(
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(tabs) { tab ->
-                        val selected = activeTab == tab
-                        Text(
-                            text = tab,
-                            color = if (selected) CiyatoBg else CiyatoSec,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(if (selected) CiyatoGold else CiyatoBgEl)
-                                .clickable { activeTab = tab }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+            )
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp,
+                top = padding.calculateTopPadding() + 4.dp,
+                bottom = padding.calculateBottomPadding() + 32.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            // ── Empty state: recent searches + suggestion chips ───────────────
             if (searchQuery.isBlank()) {
-                // Suggestion chips — now functional
-                item {
-                    Text("Suggestions", color = CiyatoWhite, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SUGGESTION_CHIPS.forEach { chip ->
-                            SuggestionChipRow(chip = chip) {
-                                when (val action = chip.action) {
-                                    is ChipAction.FilterCategory -> {
-                                        if (action.category != null) {
-                                            if (onCategoryFilter != null) {
-                                                onCategoryFilter(action.category)
-                                            } else {
-                                                viewModel.setSearch(action.query)
-                                            }
-                                        } else {
-                                            viewModel.setSearch(action.query)
-                                        }
+
+                // Recent searches (Suggestion 36)
+                if (recentSearches.isNotEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Text("Recent", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                TextButton(onClick = viewModel::clearRecentSearches) {
+                                    Text("Clear", color = CiyatoMuted, fontSize = 12.sp)
+                                }
+                            }
+                            recentSearches.forEach { q ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp)).background(CiyatoBgEl)
+                                        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(12.dp))
+                                        .clickable { viewModel.setSearch(q) }
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Icon(Icons.Default.History, null, tint = CiyatoMuted, modifier = Modifier.size(16.dp))
+                                        Text(q, color = CiyatoSec, fontSize = 14.sp)
                                     }
-                                    is ChipAction.OpenFilesPermission -> showFilesFlow = true
-                                    is ChipAction.OpenPhotosPermission -> showPhotosFlow = true
+                                    IconButton(onClick = { viewModel.removeRecentSearch(q) }, modifier = Modifier.size(24.dp)) {
+                                        Icon(Icons.Default.Close, "Remove", tint = CiyatoMuted, modifier = Modifier.size(14.dp))
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Locked sections — show what requires permissions
+                // Suggestion chips (Suggestion 45)
                 item {
-                    LockedSearchSection(
-                        title = "Files & Documents",
-                        hint = "Enable folder access to search files",
-                        icon = Icons.Default.FolderOpen,
-                        onEnable = { showFilesFlow = true },
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Try searching for", color = CiyatoSec, fontSize = 13.sp)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(suggestionChips) { (label, icon, cat) ->
+                                SuggestionChip(label, icon) {
+                                    if (cat != null) {
+                                        viewModel.setSearch(label)
+                                        onCategoryFilter?.invoke(cat)
+                                    } else if (label.contains("PDF") || label.contains("document")) {
+                                        showFilesFlow = true
+                                    } else {
+                                        showPhotosFlow = true
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                item {
-                    LockedSearchSection(
-                        title = "Photos & Media",
-                        hint = "Enable photo access to search media",
-                        icon = Icons.Default.PhotoLibrary,
-                        onEnable = { showPhotosFlow = true },
-                    )
+                // Most-used apps (Suggestion 37)
+                val frequentApps = remember { viewModel.byUsageFrequency().take(8) }
+                if (frequentApps.isNotEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Most Used", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(frequentApps) { app ->
+                                    AppIconTile(app = app, iconSize = 48.dp,
+                                        onClick = { viewModel.launchApp(app) }, modifier = Modifier.width(60.dp))
+                                }
+                            }
+                        }
+                    }
                 }
-
             } else {
+
+                // ── NLP intent detected (Suggestion 40) ──────────────────────
+                nlpResult?.let { (detectedCat, _) ->
+                    if (detectedCat != null) {
+                        item {
+                            Row(modifier = Modifier.fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CiyatoGold.copy(0.08f))
+                                .border(1.dp, CiyatoGold.copy(0.2f), RoundedCornerShape(12.dp))
+                                .clickable { onCategoryFilter?.invoke(detectedCat) }
+                                .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AutoAwesome, null, tint = CiyatoGold, modifier = Modifier.size(16.dp))
+                                    Text("Looking for ${detectedCat.displayName} apps?", color = CiyatoGold, fontSize = 13.sp)
+                                }
+                                Icon(Icons.Default.ChevronRight, null, tint = CiyatoGold, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+
+                // ── Loading ───────────────────────────────────────────────────
                 if (isLoading) {
                     item {
-                        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = CiyatoGold)
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = CiyatoGold, strokeWidth = 2.dp)
                         }
+                    }
+                } else if (searchResults.isEmpty()) {
+                    // No results — fuzzy fallback + Play Store suggestion (Suggestion 44)
+                    item {
+                        NoResultsCard(query = searchQuery, onPlayStore = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("market://search?q=${searchQuery}"))
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            try { it.startActivity(intent) } catch (_: Exception) {}
+                        })
                     }
                 } else {
-                    if (searchResults.isNotEmpty()) {
-                        item {
-                            Text("Top Match", color = CiyatoGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(CiyatoBgEl)
-                                    .clickable { viewModel.launchApp(searchResults.first()) }
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                RealAppIcon(searchResults.first().icon, size = 52.dp, cornerRadius = 14.dp)
-                                Column {
-                                    Text(searchResults.first().label, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                                    Text(searchResults.first().category.displayName, color = CiyatoGold, fontSize = 12.sp)
-                                }
-                            }
+                    // ── App results ───────────────────────────────────────────
+                    item {
+                        Row(horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text("Apps", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text("${searchResults.size} found", color = CiyatoMuted, fontSize = 12.sp)
                         }
-
-                        item {
-                            Text("Apps (${searchResults.size})", color = CiyatoWhite, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(12.dp))
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                searchResults.take(8).forEach { app ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(CiyatoBgEl)
-                                            .clickable { viewModel.launchApp(app) }
-                                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    ) {
-                                        RealAppIcon(app.icon, size = 40.dp, cornerRadius = 10.dp)
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(app.label, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                            Text(app.category.displayName, color = CiyatoMuted, fontSize = 11.sp)
-                                        }
-                                        Icon(Icons.Default.ChevronRight, null, tint = CiyatoMuted, modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No apps match \"$searchQuery\"", color = CiyatoMuted)
+                    }
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(searchResults.take(16), key = { it.packageName }) { app ->
+                                AppIconTile(app = app, iconSize = 52.dp,
+                                    onClick = { viewModel.launchApp(app) },
+                                    modifier = Modifier.width(64.dp))
                             }
                         }
                     }
 
-                    // Locked file/photo sections shown below app results
-                    item {
-                        LockedSearchSection(
-                            title = "Files & Media (Locked)",
-                            hint = "Results will appear here after folder access is granted.",
-                            icon = Icons.Default.Lock,
-                            onEnable = { showFilesFlow = true },
-                        )
+                    // ── Category grouping (Suggestion 42) ────────────────────
+                    val groups = remember(searchResults) {
+                        searchResults.groupBy { it.category.displayName }
+                            .filter { it.value.size >= 2 && it.key != "Other" }
+                    }
+                    if (groups.isNotEmpty()) {
+                        item { Text("By category", color = CiyatoSec, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
+                        groups.entries.take(4).forEach { (cat, apps) ->
+                            item {
+                                CategoryResultRow(categoryName = cat, apps = apps) { app ->
+                                    viewModel.launchApp(app)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -248,60 +251,84 @@ fun SearchScreen(
     }
 }
 
+// ─── Search field ─────────────────────────────────────────────────────────────
+
 @Composable
-private fun SuggestionChipRow(chip: SearchChip, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CiyatoBgEl)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(CiyatoGold.copy(alpha = 0.14f)),
-        ) {
-            Icon(chip.icon, null, tint = CiyatoGold, modifier = Modifier.size(16.dp))
+private fun SearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit, modifier: Modifier) {
+    Box(modifier = modifier.height(44.dp).clip(RoundedCornerShape(999.dp)).background(CiyatoBgEl)
+        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp)),
+        contentAlignment = Alignment.CenterStart) {
+        if (query.isBlank()) {
+            Row(modifier = Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Search, null, tint = CiyatoMuted, modifier = Modifier.size(16.dp))
+                Text("Search apps…", color = CiyatoMuted, fontSize = 14.sp)
+            }
         }
-        Text(chip.label, color = CiyatoSec, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = CiyatoMuted, modifier = Modifier.size(16.dp))
+        androidx.compose.foundation.text.BasicTextField(
+            value = query, onValueChange = onQueryChange, singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = CiyatoWhite, fontSize = 14.sp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 11.dp),
+        )
+        if (query.isNotBlank()) {
+            IconButton(onClick = onClear, modifier = Modifier.align(Alignment.CenterEnd).size(36.dp)) {
+                Icon(Icons.Default.Close, "Clear", tint = CiyatoMuted, modifier = Modifier.size(16.dp))
+            }
+        }
     }
 }
 
+// ─── Suggestion chip ──────────────────────────────────────────────────────────
+
 @Composable
-private fun LockedSearchSection(
-    title: String,
-    hint: String,
-    icon: ImageVector,
-    onEnable: () -> Unit,
+private fun SuggestionChip(label: String, icon: ImageVector, onClick: () -> Unit) {
+    Row(modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(CiyatoBgEl)
+        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp))
+        .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(icon, null, tint = CiyatoGold, modifier = Modifier.size(14.dp))
+        Text(label, color = CiyatoSec, fontSize = 13.sp)
+    }
+}
+
+// ─── Category result row ──────────────────────────────────────────────────────
+
+@Composable
+private fun CategoryResultRow(
+    categoryName: String,
+    apps: List<com.ciyato.launcher.data.InstalledApp>,
+    onAppTap: (com.ciyato.launcher.data.InstalledApp) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(CiyatoBgEl)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(icon, null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
-            Text(title, color = CiyatoSec, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+    Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CiyatoBgEl)
+        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(16.dp)).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(categoryName, color = CiyatoGold, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(apps.take(8)) { app ->
+                AppIconTile(app = app, iconSize = 44.dp, onClick = { onAppTap(app) }, modifier = Modifier.width(56.dp))
+            }
         }
-        Text(hint, color = CiyatoMuted, fontSize = 12.sp)
-        OutlinedButton(
-            onClick = onEnable,
-            shape = RoundedCornerShape(10.dp),
+    }
+}
+
+// ─── No results ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun NoResultsCard(query: String, onPlayStore: (android.content.Context) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CiyatoBgEl)
+        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp)).padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Icon(Icons.Default.SearchOff, null, tint = CiyatoMuted, modifier = Modifier.size(36.dp))
+        Text("No apps match \"$query\"", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+        Text("Nothing installed matches that search.", color = CiyatoSec, fontSize = 13.sp)
+        OutlinedButton(onClick = { onPlayStore(context) }, shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = CiyatoGold),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CiyatoGold.copy(alpha = 0.4f)),
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-        ) {
-            Text("Enable Access", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            border = androidx.compose.foundation.BorderStroke(1.dp, CiyatoGold.copy(0.4f)),
+            modifier = Modifier.fillMaxWidth().height(44.dp)) {
+            Icon(Icons.Default.Shop, null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Find \"$query\" on Play Store", fontSize = 13.sp)
         }
     }
 }

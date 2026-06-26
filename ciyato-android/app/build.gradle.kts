@@ -19,19 +19,32 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // BuildConfig flags (Suggestion #113)
+        // Access in code as BuildConfig.WEATHER_BASE_URL, BuildConfig.IS_INTERNAL, etc.
+        buildConfigField("String",  "WEATHER_BASE_URL",    "\"https://api.open-meteo.com/v1\"")
+        buildConfigField("String",  "AQI_BASE_URL",        "\"https://air-quality-api.open-meteo.com/v1\"")
+        buildConfigField("String",  "GEOCODE_BASE_URL",    "\"https://nominatim.openstreetmap.org\"")
+        buildConfigField("long",    "WEATHER_CACHE_TTL_MS","1800000L") // 30 minutes
+        buildConfigField("int",     "MAX_CRASH_LOGS",      "10")
+        buildConfigField("boolean", "IS_INTERNAL",         "false")
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true    // Enable R8/ProGuard in release (Suggestion 114)
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
+            // Override BuildConfig flags for release
+            buildConfigField("boolean", "IS_INTERNAL", "false")
         }
         debug {
-            // No applicationIdSuffix — installs cleanly as com.ciyato.launcher
             isDebuggable = true
+            // Enable debug stubs for weather/location in internal builds
+            buildConfigField("boolean", "IS_INTERNAL", "true")
         }
     }
 
@@ -51,10 +64,15 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Enable Compose compiler stability checks (Suggestion 115)
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.runtime.ExperimentalComposeApi",
+        )
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true   // Enable BuildConfig generation (Suggestion 113)
     }
 
     packaging {

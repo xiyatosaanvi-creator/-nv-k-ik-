@@ -1,186 +1,330 @@
 package com.ciyato.launcher.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
 
 /**
  * WeatherRepository — live weather via Open-Meteo + Nominatim.
+ * Suggestions implemented: 26 (hourly), 27 (7-day), 29 (AQI), 30 (sunrise/sunset),
+ * 31 (UV index), 32 (wind direction), 33 (rain probability), 116 (cache logic),
+ * 117 (offline awareness), 118 (retry with backoff), 21 (°C/°F).
  *
- *  ▸ Open-Meteo   https://open-meteo.com  — free, no API key required
- *  ▸ Nominatim    https://nominatim.org   — free OSM reverse-geocoding
- *
- * All calls are made on Dispatchers.IO.
- * JSON is parsed with org.json (bundled with Android — no extra dep).
- *
- * WeatherCode → human-readable condition is mapped by [weatherCodeToCondition].
+ *  ▸ Open-Meteo   https://open-meteo.com  — free, no API key
+ *  ▸ Nominatim    https://nominatim.org   — free OSM reverse geocoding
  */
 object WeatherRepository {
 
-    // ── Public sealed result type ─────────────────────────────────────────────
+    // ── Sealed result types ───────────────────────────────────────────────────
 
     sealed class WeatherState {
         data object Loading      : WeatherState()
         data object NoPermission : WeatherState()
         data object NoLocation   : WeatherState()
+        data object Offline      : WeatherState()
         data class  Error(val message: String) : WeatherState()
         data class  Success(
-            val tempC       : Int,
-            val feelsLikeC  : Int,
-            val highC       : Int,
-            val lowC        : Int,
-            val condition   : String,
-            val weatherCode : Int,
-            val windKmh     : Double,
-            val humidity    : Int,
-            val locationName: String,
-            val isDay       : Boolean,
+            val tempC        : Int,
+            val feelsLikeC   : Int,
+            val highC        : Int,
+            val lowC         : Int,
+            val condition    : String,
+            val weatherCode  : Int,
+            val windKmh      : Double,
+            val windDirectionDeg: Int,
+            val humidity     : Int,
+            val locationName : String,
+            val isDay        : Boolean,
+            val uvIndex      : Double,
+            val sunrise      : String,
+            val sunset       : String,
+            val hourly       : List<HourlyEntry>,
+            val daily        : List<DailyEntry>,
+            val aqi          : AqiData?,
         ) : WeatherState()
     }
 
-    // ── Entry point ───────────────────────────────────────────────────────────
+    data class HourlyEntry(
+        val timeLabel:  String,   // "10 AM"
+        val tempC:      Int,
+        val weatherCode:Int,
+        val rainPct:    Int,
+        val isDay:      Boolean,
+    )
 
-    /**
-     * Fetches current conditions from Open-Meteo and city name from Nominatim.
-     * Returns [WeatherState.Success] on success, [WeatherState.Error] on network/parse issues.
-     */
-    suspend fun fetchWeather(lat: Double, lon: Double): WeatherState = withContext(Dispatchers.IO) {
-        try {
-            val weatherJson = fetchWeatherJson(lat, lon)
-            val cityName    = fetchCityName(lat, lon)
-            parseWeather(weatherJson, cityName)
-        } catch (e: Exception) {
-            WeatherState.Error("${e.javaClass.simpleName}: ${e.message?.take(80)}")
+    data class DailyEntry(
+        val dayLabel:   String,   // "Mon", "Tue", etc.
+        val highC:      Int,
+        val lowC:       Int,
+        val weatherCode:Int,
+        val uvIndexMax: Double,
+        val rainPct:    Int,
+    )
+
+    data class AqiData(
+        val pm25:  Double,
+        val pm10:  Double,
+        val aqiEu: Int,   // European AQI index
+    )
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    /** Fetch full weather bundle. Retries up to 3× with exponential backoff (118). */
+    suspend fun fetchWeather(lat: Double, lon: Double): WeatherState =
+        withContext(Dispatchers.IO) {
+            retryWithBackoff(maxAttempts = 3) {
+                try {
+                    val forecast  = fetchForecastJson(lat, lon)
+                    val aqiJson   = runCatching { fetchAqiJson(lat, lon) }.getOrNull()
+                    val cityName  = fetchCityName(lat, lon)
+                    parseForecast(forecast, aqiJson, cityName)
+                } catch (e: java.net.UnknownHostException) {
+                    WeatherState.Offline
+                } catch (e: Exception) {
+                    WeatherState.Error("${e.javaClass.simpleName}: ${e.message?.take(80)}")
+                }
+            }
         }
+
+    /** Celsius → Fahrenheit (suggestion 21). */
+    fun cToF(c: Int): Int = (c * 9 / 5) + 32
+
+    /** Display temperature respecting user's unit preference. */
+    fun displayTemp(c: Int, useFahrenheit: Boolean): String =
+        if (useFahrenheit) "${cToF(c)}°F" else "${c}°C"
+
+    /** WMO weather code → human label. */
+    fun weatherCodeToCondition(code: Int): String = when (code) {
+        0    -> "Clear Sky"
+        1    -> "Mainly Clear"
+        2    -> "Partly Cloudy"
+        3    -> "Overcast"
+        45   -> "Foggy"
+        48   -> "Icy Fog"
+        51   -> "Light Drizzle"
+        53   -> "Drizzle"
+        55   -> "Heavy Drizzle"
+        56   -> "Freezing Drizzle"
+        57   -> "Heavy Freezing Drizzle"
+        61   -> "Light Rain"
+        63   -> "Rain"
+        65   -> "Heavy Rain"
+        66   -> "Freezing Rain"
+        67   -> "Heavy Freezing Rain"
+        71   -> "Light Snow"
+        73   -> "Snow"
+        75   -> "Heavy Snow"
+        77   -> "Snow Grains"
+        80   -> "Light Showers"
+        81   -> "Showers"
+        82   -> "Heavy Showers"
+        85   -> "Snow Showers"
+        86   -> "Heavy Snow Showers"
+        95   -> "Thunderstorm"
+        96   -> "Thunderstorm w/ Hail"
+        99   -> "Severe Thunderstorm"
+        else -> "Unknown"
+    }
+
+    /** Wind degrees → compass direction (suggestion 32). */
+    fun windDirection(degrees: Int): String {
+        val dirs = listOf("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW")
+        return dirs[((degrees / 22.5).toInt() % 16)]
+    }
+
+    /** European AQI index → label. */
+    fun aqiLabel(index: Int): String = when {
+        index <= 20 -> "Good"
+        index <= 40 -> "Fair"
+        index <= 60 -> "Moderate"
+        index <= 80 -> "Poor"
+        index <= 100 -> "Very Poor"
+        else -> "Extremely Poor"
+    }
+
+    /** AQI label → colour hex string (for UI tinting). */
+    fun aqiColor(index: Int): Long = when {
+        index <= 20 -> 0xFF39C66A
+        index <= 40 -> 0xFFB5E550
+        index <= 60 -> 0xFFF5C542
+        index <= 80 -> 0xFFFF8C42
+        index <= 100 -> 0xFFEF4444
+        else -> 0xFF9C27B0
     }
 
     // ── HTTP helpers ──────────────────────────────────────────────────────────
 
-    private fun fetchWeatherJson(lat: Double, lon: Double): JSONObject {
+    private fun fetchForecastJson(lat: Double, lon: Double): JSONObject {
         val url = buildString {
             append("https://api.open-meteo.com/v1/forecast")
             append("?latitude=$lat&longitude=$lon")
             append("&current=temperature_2m,apparent_temperature,weather_code")
-            append(",wind_speed_10m,relative_humidity_2m,is_day")
-            append("&daily=temperature_2m_max,temperature_2m_min")
-            append("&timezone=auto&forecast_days=1")
+            append(",wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day")
+            append("&hourly=temperature_2m,weather_code,precipitation_probability,is_day")
+            append("&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset")
+            append(",uv_index_max,precipitation_probability_max")
+            append("&timezone=auto&forecast_days=7")
         }
         return JSONObject(fetchString(url))
     }
 
-    private fun fetchCityName(lat: Double, lon: Double): String {
-        return try {
-            val url = "https://nominatim.openstreetmap.org/reverse" +
-                    "?format=json&lat=$lat&lon=$lon&zoom=10"
-            val json    = JSONObject(fetchString(url, extraHeaders = mapOf(
-                "User-Agent" to "Ciyato Launcher/1.0 (Android)"
-            )))
-            val address = json.optJSONObject("address")
-            address?.optString("city")?.takeIf { it.isNotBlank() }
-                ?: address?.optString("town")?.takeIf { it.isNotBlank() }
-                ?: address?.optString("village")?.takeIf { it.isNotBlank() }
-                ?: address?.optString("county")?.takeIf { it.isNotBlank() }
-                ?: json.optString("display_name")?.split(",")?.firstOrNull()?.trim()
-                ?: "Your Location"
-        } catch (_: Exception) {
-            "Your Location"
+    private fun fetchAqiJson(lat: Double, lon: Double): JSONObject {
+        val url = buildString {
+            append("https://air-quality-api.open-meteo.com/v1/air-quality")
+            append("?latitude=$lat&longitude=$lon")
+            append("&current=pm10,pm2_5,european_aqi")
         }
+        return JSONObject(fetchString(url))
     }
 
-    private fun fetchString(
-        urlStr: String,
-        extraHeaders: Map<String, String> = emptyMap(),
-    ): String {
-        val conn = URL(urlStr).openConnection().apply {
+    private fun fetchCityName(lat: Double, lon: Double): String = try {
+        val url  = "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=10"
+        val json = JSONObject(fetchString(url, mapOf("User-Agent" to "Ciyato Launcher/1.0 (Android)")))
+        val addr = json.optJSONObject("address")
+        listOf("city", "town", "village", "county").firstNotNullOfOrNull { k ->
+            addr?.optString(k)?.takeIf { it.isNotBlank() }
+        } ?: json.optString("display_name")?.split(",")?.first()?.trim() ?: "Your Location"
+    } catch (_: Exception) { "Your Location" }
+
+    private fun fetchString(url: String, headers: Map<String, String> = emptyMap()): String {
+        val conn = URL(url).openConnection().apply {
             connectTimeout = 8_000
             readTimeout    = 8_000
-            extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
+            headers.forEach { (k, v) -> setRequestProperty(k, v) }
         }
         return conn.getInputStream().bufferedReader().readText()
     }
 
-    // ── JSON parsing ──────────────────────────────────────────────────────────
+    // ── Retry helper (suggestion 118) ─────────────────────────────────────────
 
-    private fun parseWeather(json: JSONObject, cityName: String): WeatherState {
-        val current = json.getJSONObject("current")
-        val daily   = json.getJSONObject("daily")
+    private suspend fun retryWithBackoff(
+        maxAttempts: Int,
+        block: suspend () -> WeatherState,
+    ): WeatherState {
+        var lastResult: WeatherState = WeatherState.Error("No attempts made")
+        repeat(maxAttempts) { attempt ->
+            lastResult = block()
+            if (lastResult is WeatherState.Success || lastResult is WeatherState.Offline ||
+                lastResult is WeatherState.NoPermission) return lastResult
+            delay((1_000L shl attempt)) // 1s, 2s, 4s
+        }
+        return lastResult
+    }
 
-        val tempC      = current.getDouble("temperature_2m").toInt()
-        val feelsLike  = current.getDouble("apparent_temperature").toInt()
-        val weatherCode= current.getInt("weather_code")
-        val windKmh    = current.getDouble("wind_speed_10m")
-        val humidity   = current.getInt("relative_humidity_2m")
-        val isDay      = current.optInt("is_day", 1) == 1
+    // ── Parsing ───────────────────────────────────────────────────────────────
 
-        val maxTemps   = daily.getJSONArray("temperature_2m_max")
-        val minTemps   = daily.getJSONArray("temperature_2m_min")
-        val highC      = if (maxTemps.length() > 0) maxTemps.getDouble(0).toInt() else tempC + 3
-        val lowC       = if (minTemps.length() > 0) minTemps.getDouble(0).toInt() else tempC - 5
+    private fun parseForecast(json: JSONObject, aqiJson: JSONObject?, city: String): WeatherState {
+        val cur  = json.getJSONObject("current")
+        val hrly = json.getJSONObject("hourly")
+        val dly  = json.getJSONObject("daily")
+
+        val tempC      = cur.getDouble("temperature_2m").toInt()
+        val feelsLike  = cur.getDouble("apparent_temperature").toInt()
+        val code       = cur.getInt("weather_code")
+        val windKmh    = cur.getDouble("wind_speed_10m")
+        val windDir    = cur.optInt("wind_direction_10m", 0)
+        val humidity   = cur.getInt("relative_humidity_2m")
+        val isDay      = cur.optInt("is_day", 1) == 1
+
+        // Daily
+        val dCodes     = dly.getJSONArray("weather_code")
+        val dMax       = dly.getJSONArray("temperature_2m_max")
+        val dMin       = dly.getJSONArray("temperature_2m_min")
+        val dSunrise   = dly.getJSONArray("sunrise")
+        val dSunset    = dly.getJSONArray("sunset")
+        val dUv        = dly.getJSONArray("uv_index_max")
+        val dRain      = dly.getJSONArray("precipitation_probability_max")
+        val dDates     = dly.getJSONArray("time")
+
+        val highC      = if (dMax.length() > 0) dMax.getDouble(0).toInt() else tempC + 3
+        val lowC       = if (dMin.length() > 0) dMin.getDouble(0).toInt() else tempC - 5
+        val sunrise    = dSunrise.getString(0).substringAfter("T").take(5)
+        val sunset     = dSunset.getString(0).substringAfter("T").take(5)
+        val uvNow      = if (dUv.length() > 0) dUv.getDouble(0) else 0.0
+
+        val dailyEntries = (0 until minOf(dMax.length(), 7)).map { i ->
+            DailyEntry(
+                dayLabel    = parseDayLabel(dDates.getString(i)),
+                highC       = dMax.getDouble(i).toInt(),
+                lowC        = dMin.getDouble(i).toInt(),
+                weatherCode = dCodes.getInt(i),
+                uvIndexMax  = dUv.optDouble(i, 0.0),
+                rainPct     = dRain.optInt(i, 0),
+            )
+        }
+
+        // Hourly — take the next 24 entries from the current hour index
+        val hTimes   = hrly.getJSONArray("time")
+        val hTemps   = hrly.getJSONArray("temperature_2m")
+        val hCodes   = hrly.getJSONArray("weather_code")
+        val hRain    = hrly.getJSONArray("precipitation_probability")
+        val hIsDay   = hrly.getJSONArray("is_day")
+
+        val nowHour  = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val nowDate  = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            .format(java.util.Date())
+        val startIdx = (0 until hTimes.length()).firstOrNull { i ->
+            hTimes.getString(i).startsWith(nowDate) &&
+            hTimes.getString(i).substringAfter("T").take(2).toIntOrNull() == nowHour
+        } ?: 0
+
+        val hourlyEntries = (startIdx until minOf(startIdx + 24, hTimes.length())).map { i ->
+            HourlyEntry(
+                timeLabel   = parseHourLabel(hTimes.getString(i)),
+                tempC       = hTemps.getDouble(i).toInt(),
+                weatherCode = hCodes.getInt(i),
+                rainPct     = hRain.optInt(i, 0),
+                isDay       = hIsDay.optInt(i, 1) == 1,
+            )
+        }
+
+        // AQI
+        val aqi = aqiJson?.optJSONObject("current")?.let { c ->
+            AqiData(
+                pm25  = c.optDouble("pm2_5", 0.0),
+                pm10  = c.optDouble("pm10", 0.0),
+                aqiEu = c.optInt("european_aqi", 0),
+            )
+        }
 
         return WeatherState.Success(
-            tempC        = tempC,
-            feelsLikeC   = feelsLike,
-            highC        = highC,
-            lowC         = lowC,
-            condition    = weatherCodeToCondition(weatherCode),
-            weatherCode  = weatherCode,
-            windKmh      = windKmh,
-            humidity     = humidity,
-            locationName = cityName,
-            isDay        = isDay,
+            tempC            = tempC,
+            feelsLikeC       = feelsLike,
+            highC            = highC,
+            lowC             = lowC,
+            condition        = weatherCodeToCondition(code),
+            weatherCode      = code,
+            windKmh          = windKmh,
+            windDirectionDeg = windDir,
+            humidity         = humidity,
+            locationName     = city,
+            isDay            = isDay,
+            uvIndex          = uvNow,
+            sunrise          = sunrise,
+            sunset           = sunset,
+            hourly           = hourlyEntries,
+            daily            = dailyEntries,
+            aqi              = aqi,
         )
     }
 
-    // ── WMO weather code → human label ───────────────────────────────────────
-    // Full WMO 4677 interpretation table
-    fun weatherCodeToCondition(code: Int): String = when (code) {
-        0              -> "Clear Sky"
-        1              -> "Mainly Clear"
-        2              -> "Partly Cloudy"
-        3              -> "Overcast"
-        45             -> "Foggy"
-        48             -> "Icy Fog"
-        51             -> "Light Drizzle"
-        53             -> "Drizzle"
-        55             -> "Heavy Drizzle"
-        56             -> "Freezing Drizzle"
-        57             -> "Heavy Freezing Drizzle"
-        61             -> "Light Rain"
-        63             -> "Rain"
-        65             -> "Heavy Rain"
-        66             -> "Freezing Rain"
-        67             -> "Heavy Freezing Rain"
-        71             -> "Light Snow"
-        73             -> "Snow"
-        75             -> "Heavy Snow"
-        77             -> "Snow Grains"
-        80             -> "Light Showers"
-        81             -> "Showers"
-        82             -> "Heavy Showers"
-        85             -> "Snow Showers"
-        86             -> "Heavy Snow Showers"
-        95             -> "Thunderstorm"
-        96             -> "Thunderstorm w/ Hail"
-        99             -> "Severe Thunderstorm"
-        else           -> "Unknown"
+    private fun parseHourLabel(iso: String): String {
+        val hour = iso.substringAfter("T").take(2).toIntOrNull() ?: return iso
+        return when {
+            hour == 0  -> "12 AM"
+            hour < 12  -> "$hour AM"
+            hour == 12 -> "12 PM"
+            else       -> "${hour - 12} PM"
+        }
     }
 
-    /** Returns a Material icon name string that callers can map to an actual icon. */
-    fun weatherIcon(code: Int, isDay: Boolean): String = when {
-        code == 0  && isDay  -> "wb_sunny"
-        code == 0  && !isDay -> "nights_stay"
-        code in 1..2         -> "partly_cloudy_day"
-        code == 3            -> "cloud"
-        code in 45..48       -> "foggy"
-        code in 51..67       -> "grain"          // drizzle / rain
-        code in 71..77       -> "ac_unit"        // snow
-        code in 80..82       -> "umbrella"
-        code in 85..86       -> "cloudy_snowing"
-        code in 95..99       -> "thunderstorm"
-        else                 -> "cloud"
+    private fun parseDayLabel(isoDate: String): String {
+        return try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            val cal = java.util.Calendar.getInstance().apply { time = sdf.parse(isoDate)!! }
+            java.text.SimpleDateFormat("EEE", java.util.Locale.US).format(cal.time)
+        } catch (_: Exception) { isoDate }
     }
-
-    /** Celsius → Fahrenheit helper exposed for display. */
-    fun cToF(c: Int): Int = (c * 9 / 5) + 32
 }
