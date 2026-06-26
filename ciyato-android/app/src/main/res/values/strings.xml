@@ -10,4 +10,15 @@
     <string name="could_not_open">Could not open app</string>
     <string name="privacy_statement">Your data stays on your device. Ciyato organizes locally. Nothing is uploaded.</string>
     <string name="photos_beta_notice">Photos feature: real media permission requested only when you enable it.</string>
+
+    <!-- App Shortcuts -->
+    <string name="shortcut_focus_short">Focus Mode</string>
+    <string name="shortcut_focus_long">Start a Focus Session</string>
+    <string name="shortcut_focus_disabled">Focus Mode is currently disabled</string>
+    <string name="shortcut_perms_short">Permissions</string>
+    <string name="shortcut_perms_long">Audit app permissions</string>
+    <string name="shortcut_perms_disabled">Permission Audit is currently disabled</string>
+    <string name="shortcut_drawer_short">App Drawer</string>
+    <string name="shortcut_drawer_long">Open App Drawer</string>
+    <string name="shortcut_drawer_disabled">App Drawer is currently disabled</string>
 </resources>
