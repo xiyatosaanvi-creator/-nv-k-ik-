@@ -267,7 +267,7 @@ object AppCategorizer {
             q.contains(Regex("social|friend|post|story|feed|instagram|twitter|tiktok"))     -> AppCategory.SOCIAL
             q.contains(Regex("travel|map|ride|hotel|flight|navigate|direction|uber|lyft"))  -> AppCategory.TRAVEL
             q.contains(Regex("shop|buy|order|store|amazon|product|cart|deal|price"))        -> AppCategory.SHOPPING
-            q.contains(Regex("photo|camera|picture|edit|creative|design|art|draw|video"))   -> AppCategory.CREATIVITY,
+            q.contains(Regex("photo|camera|picture|edit|creative|design|art|draw|video"))   -> AppCategory.CREATIVITY
             q.contains(Regex("fitness|health|gym|run|workout|meditation|sleep|yoga"))       -> AppCategory.DAILY
             q.contains(Regex("game|play|gaming|arcade|puzzle|battle|quiz"))                 -> AppCategory.GAMES
             q.contains(Regex("tool|utility|setting|calculator|alarm|file|system|manager")) -> AppCategory.UTILITIES
