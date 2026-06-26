@@ -76,8 +76,7 @@ router.post("/push-token", requireAuth, async (req, res, next) => {
       .insert(devicesTable)
       .values({
         userId: req.user!.userId,
-        name: `${platform}-device`,
-        platform,
+        deviceName: `${platform}-device`,
         pushToken: token,
       })
       .returning({ id: devicesTable.id, pushToken: devicesTable.pushToken });
@@ -90,7 +89,7 @@ router.post("/push-token", requireAuth, async (req, res, next) => {
 
 router.patch("/:deviceId", requireAuth, async (req, res, next) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = String(req.params["deviceId"] ?? "");
     const parsed = insertDeviceSchema.omit({ userId: true }).partial().safeParse(req.body);
     if (!parsed.success) {
       throw new AppError(400, "VALIDATION_ERROR", "Invalid device data", parsed.error.flatten());
@@ -119,7 +118,7 @@ router.patch("/:deviceId", requireAuth, async (req, res, next) => {
 
 router.delete("/:deviceId", requireAuth, async (req, res, next) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = String(req.params["deviceId"] ?? "");
 
     const [deleted] = await db
       .delete(devicesTable)

@@ -1,0 +1,3 @@
+- [drizzle-zod type inference](drizzle-zod-type-inference.md) — drizzle-zod@0.8.x schemas are not compatible with z.infer; use $inferInsert/$inferSelect instead.
+- [Expo Notifications handler shape](expo-notifications-handler.md) — expo-notifications@0.31+ uses shouldShowBanner/shouldShowList instead of shouldSetBadge.
+- [Weather tile refresh consumer](weather-tile-wiring.md) — CiyatoWeatherTileService flag must be consumed in LauncherHomeActivity.onResume via forceRefreshWeather.

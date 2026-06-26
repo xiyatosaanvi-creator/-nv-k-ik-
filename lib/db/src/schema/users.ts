@@ -32,6 +32,7 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+/** Full DB insert shape (all non-default columns required). */
+export type InsertUser = Omit<typeof usersTable.$inferInsert, "id" | "createdAt" | "updatedAt">;
 export type User = typeof usersTable.$inferSelect;
 export type PublicUser = Omit<User, "passwordHash">;

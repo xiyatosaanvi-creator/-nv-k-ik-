@@ -26,5 +26,5 @@ export const insertDeviceSchema = createInsertSchema(devicesTable).omit({
 
 export const selectDeviceSchema = createSelectSchema(devicesTable);
 
-export type InsertDevice = z.infer<typeof insertDeviceSchema>;
+export type InsertDevice = Omit<typeof devicesTable.$inferInsert, "id" | "createdAt" | "lastSeenAt">;
 export type Device = typeof devicesTable.$inferSelect;

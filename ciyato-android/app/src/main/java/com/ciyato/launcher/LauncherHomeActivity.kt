@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.data.LocationHelper
+import com.ciyato.launcher.services.CiyatoWeatherTileService
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoBg
 import com.ciyato.launcher.ui.theme.CiyatoTheme
@@ -48,6 +49,23 @@ class LauncherHomeActivity : ComponentActivity() {
         setContent {
             CiyatoTheme {
                 LauncherRoot(viewModel = viewModel, activity = this@LauncherHomeActivity)
+            }
+        }
+    }
+
+    /**
+     * Check the weather-tile refresh signal on every resume.
+     * [CiyatoWeatherTileService] writes a timestamp to SharedPreferences when the user taps
+     * the Quick Settings tile; we consume (and clear) it here so weather re-fetches once.
+     */
+    override fun onResume() {
+        super.onResume()
+        val prefs = getSharedPreferences(CiyatoWeatherTileService.PREFS_NAME, MODE_PRIVATE)
+        val requestedAt = prefs.getLong(CiyatoWeatherTileService.KEY_REFRESH_REQUESTED_AT, 0L)
+        if (requestedAt > 0L) {
+            prefs.edit().putLong(CiyatoWeatherTileService.KEY_REFRESH_REQUESTED_AT, 0L).apply()
+            if (LocationHelper.hasPermission(this)) {
+                viewModel.forceRefreshWeather(this)
             }
         }
     }
