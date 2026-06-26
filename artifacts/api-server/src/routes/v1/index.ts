@@ -3,7 +3,7 @@ import authRouter from "./auth";
 import settingsRouter from "./settings";
 import devicesRouter from "./devices";
 import analyticsRouter from "./analytics";
-import { aiRouter } from "./ai.js";
+import { aiRouter } from "./ai";
 
 const router = Router();
 

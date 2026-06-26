@@ -37,6 +37,6 @@ export const updateUserSettingsSchema = createInsertSchema(userSettingsTable).om
 
 export const selectUserSettingsSchema = createSelectSchema(userSettingsTable);
 
-export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
-export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
+export type InsertUserSettings = Omit<typeof userSettingsTable.$inferInsert, "id" | "updatedAt">;
+export type UpdateUserSettings = Partial<Omit<typeof userSettingsTable.$inferInsert, "id" | "userId" | "updatedAt">>;
 export type UserSettings = typeof userSettingsTable.$inferSelect;

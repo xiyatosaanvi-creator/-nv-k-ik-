@@ -27,5 +27,5 @@ export const insertAppUsageSchema = createInsertSchema(appUsageTable).omit({
   recordedAt: true,
 });
 
-export type InsertAppUsage = z.infer<typeof insertAppUsageSchema>;
+export type InsertAppUsage = Omit<typeof appUsageTable.$inferInsert, "id" | "recordedAt">;
 export type AppUsage = typeof appUsageTable.$inferSelect;

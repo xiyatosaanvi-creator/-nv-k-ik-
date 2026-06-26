@@ -64,7 +64,7 @@ export const ThemeStudio = () => {
               <div style={{ background: T.card, height: 40, borderRadius: 8 }} />
               <div style={{ background: T.card, height: 40, borderRadius: 8 }} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-around", background: "rgba(0,0,0,0.5)", padding: 6, borderRadius: 12, marginTop: 40 }}>
+            <div style={{ marginTop: 40, display: "flex", justifyContent: "space-around", background: "rgba(0,0,0,0.5)", padding: 6, borderRadius: 12 }}>
               {[1, 2, 3, 4].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: 4, background: T.cardStr }} />)}
             </div>
           </div>

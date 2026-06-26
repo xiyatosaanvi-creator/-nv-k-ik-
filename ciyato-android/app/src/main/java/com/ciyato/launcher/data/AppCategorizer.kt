@@ -250,12 +250,33 @@ object AppCategorizer {
     }
 
     /**
+     * Returns a flat list of keyword strings associated with a category.
+     * Used by TFLiteCategorizerHelper.confidence() to score rule-based matches.
+     */
+    fun categoryKeywords(category: AppCategory): List<String> = when (category) {
+        AppCategory.FINANCE       -> listOf("bank", "wallet", "pay", "finance", "invest", "stock", "crypto", "cash", "money", "budget", "coin", "trading", "transfer")
+        AppCategory.SOCIAL        -> listOf("social", "friend", "network", "connect", "community", "dating", "instagram", "facebook", "twitter", "snap", "threads")
+        AppCategory.COMMUNICATION -> listOf("chat", "message", "talk", "call", "voice", "meet", "video", "sms", "text", "whats", "telegr", "signal", "wire")
+        AppCategory.WORK          -> listOf("work", "office", "mail", "email", "calendar", "task", "todo", "note", "doc", "sheet", "drive", "cloud", "meeting", "project", "slack", "zoom", "teams")
+        AppCategory.ENTERTAINMENT -> listOf("music", "radio", "podcast", "audio", "sound", "stream", "listen", "spotify", "youtube", "video", "watch", "movie", "show", "netflix", "hulu", "disney")
+        AppCategory.GAMES         -> listOf("game", "gaming", "play", "puzzle", "quest", "battle", "word", "chess", "arena", "clash", "royale", "arcade")
+        AppCategory.TRAVEL        -> listOf("travel", "map", "ride", "hotel", "flight", "trip", "nav", "uber", "lyft", "airbnb", "booking", "transit", "navigate")
+        AppCategory.SHOPPING      -> listOf("shop", "store", "buy", "market", "amazon", "ebay", "order", "cart", "checkout", "retail", "product", "deal")
+        AppCategory.CREATIVITY    -> listOf("photo", "camera", "gallery", "album", "picture", "image", "film", "snap", "lightroom", "vsco", "edit", "creative", "design", "art", "draw", "sketch", "illustrat", "canvas", "animate")
+        AppCategory.UTILITIES     -> listOf("settings", "tools", "utility", "cleaner", "manager", "calculator", "clock", "alarm", "file", "storage", "system", "backup", "browser", "chrome", "firefox")
+        AppCategory.DAILY         -> listOf("fitness", "health", "gym", "run", "workout", "diet", "meditat", "sleep", "yoga", "steps", "calorie", "weight", "dialer", "phone", "contacts")
+        AppCategory.PRODUCTIVITY  -> listOf("notion", "todo", "task", "evernote", "obsidian", "news", "read", "book", "learn", "edu", "course", "study", "language", "duolingo", "kindle", "trello")
+        else                      -> emptyList()
+    }
+
+    /**
      * NLP-style query intent detection (Suggestion #40).
      * Returns the best AppCategory match for a free-text query, or null if unrecognized.
      *
-     * E.g.: "open a music app" → ENTERTAINMENT
-     *       "show me finance" → FINANCE
-     *       "productivity tools" → PRODUCTIVITY
+     * Examples:
+     *   "open a music app"    → ENTERTAINMENT
+     *   "show me finance"     → FINANCE
+     *   "productivity tools"  → PRODUCTIVITY
      */
     fun detectQueryIntent(query: String): AppCategory? {
         if (query.isBlank()) return null

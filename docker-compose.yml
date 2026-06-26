@@ -1,0 +1,62 @@
+# docker-compose.yml — Suggestion #149
+# Production deployment with PostgreSQL and the Ciyato API server.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f api
+#
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ciyato
+      POSTGRES_USER: ciyato
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ciyato"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: ciyato:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ciyato:${DB_PASSWORD:-changeme}@db:5432/ciyato
+    command: ["pnpm", "--filter", "@workspace/db", "run", "push"]
+    restart: "no"
+
+  api:
+    image: ciyato:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://ciyato:${DB_PASSWORD:-changeme}@db:5432/ciyato
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  pgdata:
+    driver: local

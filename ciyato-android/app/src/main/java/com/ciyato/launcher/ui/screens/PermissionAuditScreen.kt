@@ -125,6 +125,7 @@ fun PermissionAuditScreen(
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
+private enum class RiskLevel { HIGH, MEDIUM, LOW }
 
 private data class AuditedApp(
     val app: InstalledApp,

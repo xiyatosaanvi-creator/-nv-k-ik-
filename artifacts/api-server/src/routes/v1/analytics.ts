@@ -7,12 +7,20 @@ import { z } from "zod/v4";
 
 const router = Router();
 
+/** Event schema for a single app-usage entry (userId + deviceId added server-side). */
+const usageEventSchema = z.object({
+  packageName:  z.string().min(1),
+  appLabel:     z.string().min(1),
+  category:     z.string().default("UNCATEGORIZED"),
+  launchCount:  z.number().int().nonnegative().default(0),
+  totalUsageMs: z.number().int().nonnegative().default(0),
+  lastLaunchedAt: z.string().datetime({ offset: true }).optional().nullable(),
+  dailyStats:   z.record(z.number()).optional(),
+});
+
 const batchUsageSchema = z.object({
   deviceId: z.string().uuid(),
-  events: z
-    .array(insertAppUsageSchema.omit({ userId: true, deviceId: true }))
-    .min(1)
-    .max(500),
+  events:   z.array(usageEventSchema).min(1).max(500),
 });
 
 router.post("/usage", requireAuth, async (req, res, next) => {
@@ -26,8 +34,9 @@ router.post("/usage", requireAuth, async (req, res, next) => {
 
     const rows = events.map((e) => ({
       ...e,
-      userId: req.user!.userId,
+      userId:         req.user!.userId,
       deviceId,
+      lastLaunchedAt: e.lastLaunchedAt ? new Date(e.lastLaunchedAt) : null,
     }));
 
     await db.insert(appUsageTable).values(rows);
