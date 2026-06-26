@@ -1,22 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Required to read the list of installed apps for categorization -->
+    <!-- ── App listing & launching ─────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
-    <!-- Required for Open-Meteo weather API and Nominatim reverse-geocoding calls -->
+    <!-- ── Network (weather, geocoding, OTA checker) ──────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!--
-        Foreground location only — requested at runtime when user opens Weather
-        and taps "Enable Local Weather". Never requested at onboarding.
-        No ACCESS_BACKGROUND_LOCATION — no background location tracking.
-    -->
+    <!-- ── Location — runtime only when user taps Weather (#4 wiring) ──────── -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- No ACCESS_FINE_LOCATION / ACCESS_BACKGROUND_LOCATION for beta -->
 
-    <!-- Vibration for haptic feedback (Suggestion 1) -->
+    <!-- ── Haptic feedback (#1) ─────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- ── Calendar — runtime only when user enables Agenda (#46) ───────────── -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
+    <!-- ── Photos — runtime via Photo Picker (#63, #64) ───────────────────── -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+    <!-- ── Usage stats — system settings required (#71) ────────────────────── -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions"
+        xmlns:tools="http://schemas.android.com/tools" />
+
+    <!-- ── Notifications ────────────────────────────────────────────────────── -->
+    <!-- BIND_NOTIFICATION_LISTENER_SERVICE is implicitly granted via service declaration -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />  <!-- API 33+ -->
+
+    <!-- ── WorkManager / foreground service (#20, #34) ──────────────────────── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- ── Biometric (#136) ─────────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
     <application
         android:name=".CiyatoApplication"
@@ -27,11 +51,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Ciyato">
 
-        <!--
-            LauncherHomeActivity — the REAL launcher/home screen.
-            Must have HOME + DEFAULT category so Android offers it as a Home app.
-            singleTask ensures only one instance exists when Home is pressed.
-        -->
+        <!-- ── LauncherHomeActivity — the actual HOME screen ─────────────────── -->
         <activity
             android:name=".LauncherHomeActivity"
             android:exported="true"
@@ -42,21 +62,13 @@
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
-            <!--
-                Android App Shortcuts (Suggestion 85).
-                Gives users quick access to Focus Mode and Permission Audit
-                from the long-press launcher menu (API 25+).
-            -->
+            <!-- App Shortcuts (#85) -->
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/app_shortcuts" />
         </activity>
 
-        <!--
-            MainActivity — opens when user taps the Ciyato icon from another launcher.
-            Shows onboarding (first launch) or the internal dashboard.
-        -->
+        <!-- ── MainActivity — opens from another launcher / icon ─────────────── -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -66,6 +78,54 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ── Notification Listener Service (#81) ───────────────────────────── -->
+        <!--
+            Reads notification counts for icon badges.
+            User must grant access in Settings → Notification access.
+        -->
+        <service
+            android:name=".services.CiyatoNotificationListenerService"
+            android:exported="true"
+            android:label="Ciyato Notification Access"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tiles (#82) ────────────────────────────────────── -->
+        <service
+            android:name=".services.CiyatoFocusTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_foreground"
+            android:label="Focus Mode"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".services.CiyatoWeatherTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_foreground"
+            android:label="Weather Refresh"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── WorkManager broadcast receiver for boot (#20) ─────────────────── -->
+        <receiver
+            android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"
+            android:exported="false"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

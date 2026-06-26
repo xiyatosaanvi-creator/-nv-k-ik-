@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)                // KSP for Room (#111)
 }
 
 android {
@@ -16,39 +17,37 @@ android {
         versionName = "1.0.0-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        vectorDrawables { useSupportLibrary = true }
 
-        // BuildConfig flags (Suggestion #113)
-        // Access in code as BuildConfig.WEATHER_BASE_URL, BuildConfig.IS_INTERNAL, etc.
+        // BuildConfig flags (#113)
         buildConfigField("String",  "WEATHER_BASE_URL",    "\"https://api.open-meteo.com/v1\"")
         buildConfigField("String",  "AQI_BASE_URL",        "\"https://air-quality-api.open-meteo.com/v1\"")
         buildConfigField("String",  "GEOCODE_BASE_URL",    "\"https://nominatim.openstreetmap.org\"")
-        buildConfigField("long",    "WEATHER_CACHE_TTL_MS","1800000L") // 30 minutes
+        buildConfigField("String",  "GITHUB_RELEASES_URL", "\"https://api.github.com/repos/ciyato/launcher/releases/latest\"")
+        buildConfigField("long",    "WEATHER_CACHE_TTL_MS","1800000L")   // 30 min
         buildConfigField("int",     "MAX_CRASH_LOGS",      "10")
         buildConfigField("boolean", "IS_INTERNAL",         "false")
+        buildConfigField("boolean", "ENABLE_CERT_PINNING", "true")       // #143
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true    // Enable R8/ProGuard in release (Suggestion 114)
+            isMinifyEnabled   = true     // R8 (#114)
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Override BuildConfig flags for release
-            buildConfigField("boolean", "IS_INTERNAL", "false")
+            buildConfigField("boolean", "IS_INTERNAL",         "false")
+            buildConfigField("boolean", "ENABLE_CERT_PINNING", "true")
         }
         debug {
             isDebuggable = true
-            // Enable debug stubs for weather/location in internal builds
-            buildConfigField("boolean", "IS_INTERNAL", "true")
+            buildConfigField("boolean", "IS_INTERNAL",         "true")
+            buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")  // easier dev
         }
     }
 
-    // ── Output APK naming ─────────────────────────────────────────────────────
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
@@ -64,29 +63,31 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // Enable Compose compiler stability checks (Suggestion 115)
         freeCompilerArgs += listOf(
             "-opt-in=androidx.compose.runtime.ExperimentalComposeApi",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
         )
     }
 
     buildFeatures {
-        compose = true
-        buildConfig = true   // Enable BuildConfig generation (Suggestion 113)
+        compose    = true
+        buildConfig = true
     }
 
     packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
+        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     }
 }
 
 dependencies {
+    // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -94,12 +95,43 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.android)
-    // DocumentFile — used by FileCollectionDetailScreen to read SAF folder contents
-    implementation("androidx.documentfile:documentfile:1.0.1")
 
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+
+    // DocumentFile (SAF)
+    implementation(libs.androidx.documentfile)
+
+    // Room (#106)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
+    ksp(libs.androidx.room.compiler)
+
+    // WorkManager (#20, #34, #54, #125)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // OkHttp (#143 cert pinning, #142 network log)
+    implementation(platform(libs.okhttp.bom))
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+
+    // Biometric (#136, #137)
+    implementation(libs.androidx.biometric)
+
+    // Paging 3 (#105)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
+
+    // Coil (#64 thumbnails)
+    implementation(libs.coil.compose)
+
+    // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -108,17 +140,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-// ── After build: copy APK to project root for easy access ─────────────────────
 tasks.whenTaskAdded {
     if (name == "assembleDebug") {
         doLast {
-            val buildOutputDir = layout.buildDirectory.get().asFile
-            val apkSrc = file("${buildOutputDir}/outputs/apk/debug/Ciyato.apk")
+            val apkSrc = file("${layout.buildDirectory.get().asFile}/outputs/apk/debug/Ciyato.apk")
             val apkDst = file("${rootDir}/Ciyato.apk")
-            if (apkSrc.exists()) {
-                apkSrc.copyTo(apkDst, overwrite = true)
-                println("✅ APK ready at: ${apkDst.absolutePath}")
-            }
+            if (apkSrc.exists()) { apkSrc.copyTo(apkDst, overwrite = true); println("✅ APK ready: ${apkDst.absolutePath}") }
         }
     }
 }
