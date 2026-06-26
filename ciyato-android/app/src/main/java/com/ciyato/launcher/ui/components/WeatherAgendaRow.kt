@@ -2,18 +2,20 @@ package com.ciyato.launcher.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,13 +24,11 @@ import com.ciyato.launcher.ui.theme.*
 /**
  * PASS 1-2-3 — Weather + Agenda widget row.
  *
- * Reference: left card is weather (shorter, narrower).
- *            Right card is Today/Agenda (taller, wider — ratio ~1:1.3).
- * Corner radius: 22dp — premium.
- * Cards use CiyatoBgEl with CiyatoSubtleBorder.
- * Weather card: sun icon (gold-soft), big temperature, subtitle, location.
- * Agenda card: "Today" header + "+" button, gold left-bar accent per event,
- *              "View all" in blue at bottom.
+ * Both cards are now clickable:
+ *   onWeatherTap → opens WeatherDetailScreen (with permission flow)
+ *   onAgendaTap  → opens AgendaScreen
+ *
+ * Visual design is unchanged from the reference.
  */
 
 private val agendaItems = listOf(
@@ -40,20 +40,34 @@ private val agendaItems = listOf(
 @Composable
 fun WeatherAgendaRow(
     isDense: Boolean = true,
-    modifier: Modifier = Modifier
+    onWeatherTap: () -> Unit = {},
+    onAgendaTap: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val height = if (isDense) 160.dp else 190.dp
     Row(
         modifier = modifier.height(height),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        WeatherCard(isDense = isDense, modifier = Modifier.weight(1f).fillMaxHeight())
-        AgendaCard(isDense = isDense, modifier  = Modifier.weight(1.35f).fillMaxHeight())
+        WeatherCard(
+            isDense      = isDense,
+            onTap        = onWeatherTap,
+            modifier     = Modifier.weight(1f).fillMaxHeight(),
+        )
+        AgendaCard(
+            isDense  = isDense,
+            onTap    = onAgendaTap,
+            modifier = Modifier.weight(1.35f).fillMaxHeight(),
+        )
     }
 }
 
 @Composable
-fun WeatherCard(isDense: Boolean, modifier: Modifier = Modifier) {
+fun WeatherCard(
+    isDense: Boolean,
+    onTap: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val padding = if (isDense) 16.dp else 20.dp
     val tempSize = if (isDense) 30.sp else 36.sp
     val iconSize = if (isDense) 30.dp else 36.dp
@@ -63,6 +77,8 @@ fun WeatherCard(isDense: Boolean, modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
+            .clickable(onClick = onTap)
+            .semantics { contentDescription = "Weather — tap to view details and enable live weather" }
             .padding(padding),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -73,7 +89,7 @@ fun WeatherCard(isDense: Boolean, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 Icons.Outlined.WbSunny,
-                contentDescription = "Weather",
+                contentDescription = null,
                 tint = CiyatoGoldSoft,
                 modifier = Modifier.size(iconSize).padding(top = 2.dp),
             )
@@ -104,7 +120,11 @@ fun WeatherCard(isDense: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AgendaCard(isDense: Boolean, modifier: Modifier = Modifier) {
+fun AgendaCard(
+    isDense: Boolean,
+    onTap: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val paddingH = if (isDense) 14.dp else 18.dp
     val paddingV = if (isDense) 12.dp else 16.dp
 
@@ -113,6 +133,8 @@ fun AgendaCard(isDense: Boolean, modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoBgEl)
             .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(22.dp))
+            .clickable(onClick = onTap)
+            .semantics { contentDescription = "Today's agenda — tap to view full agenda" }
             .padding(horizontal = paddingH, vertical = paddingV),
     ) {
         // Header row

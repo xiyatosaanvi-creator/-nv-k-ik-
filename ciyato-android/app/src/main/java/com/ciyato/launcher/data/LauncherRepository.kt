@@ -108,6 +108,13 @@ class LauncherRepository(private val context: Context) {
     fun multiCategoryApps(): List<InstalledApp> =
         _apps.value.filter { it.secondaryCategories.isNotEmpty() }
 
+    /** All categories (primary + secondary) for a specific app. */
+    fun categoriesForApp(app: InstalledApp): List<AppCategory> {
+        val all = mutableListOf(app.category)
+        all.addAll(app.secondaryCategories)
+        return all.distinct()
+    }
+
     /** Search by label or package name. */
     fun search(query: String): List<InstalledApp> {
         if (query.isBlank()) return _apps.value

@@ -47,46 +47,23 @@ private val HOME_CATEGORIES = listOf(
 
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  CIYATO HOME LAUNCHER — 3-Pass Visual Parity Implementation
- *  Target: the uploaded premium Ciyato Home Launcher reference images.
+ *  CIYATO HOME LAUNCHER — Functional Wiring Phase
+ *  All cards now carry real onClick callbacks:
+ *    - Category cards  → onCategoryTap(category)
+ *    - Weather card    → onWeatherTap()
+ *    - Agenda card     → onAgendaTap()
+ *    - Duplicate strip → onDuplicatesTap()
  * ═══════════════════════════════════════════════════════════════════
- *
- * PASS 1 — Structure:
- *   Top bar (greeting + date + action buttons)
- *   Search bar (full-width pill)
- *   Weather + Agenda cards (side by side)
- *   "Smart categories" header + Edit link
- *   2-column (spacious) or 3-column (dense) category grid
- *   Duplicate smart shortcuts strip (gold tinted)
- *   Bottom dock (real app icons, pill shape)
- *   Dock overlays the scroll content — position: absolute at bottom
- *
- * PASS 2 — Styling:
- *   Background: vertical gradient CiyatoBgEl2 → CiyatoBg (top dark-teal fade)
- *   All cards: CiyatoBgEl (#12171B), radius 20–22dp, CiyatoSubtleBorder
- *   Greeting: 26sp Bold white
- *   Date: 13sp CiyatoSec
- *   Action buttons: 42dp circle, CiyatoBgEl bg
- *   Search: pill (999dp), CiyatoBgEl, muted placeholder, search icon left
- *   Category card: 20dp radius, 14sp title, 11sp count, 3 icons + overflow
- *   Dense card height: 114dp | Spacious: 134dp
- *   Dupe strip: gold-tinted (0.08 alpha), gold border (0.22), 22dp radius
- *   Dock: 28dp radius, CiyatoBgEl2 @ 0.88, subtle border, 54dp icons
- *
- * PASS 3 — Polish:
- *   Dock is fixed at bottom via Box overlay (not in LazyColumn)
- *   LazyColumn bottom padding accounts for dock height (~100dp + insets)
- *   Search results inline, no navigation break
- *   Category grid uses non-scrollable nested grid with exact pre-computed height
- *   Greeting uses real calendar time for "Good morning/afternoon/evening"
- *   Notification badge dot on bell icon (red, 8dp)
- *   Section divider line between greeting and search (subtle, matches reference)
  */
 @Composable
 fun HomeScreen(
     viewModel: LauncherViewModel,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCategoryTap: (AppCategory) -> Unit = {},
+    onWeatherTap: () -> Unit = {},
+    onAgendaTap: () -> Unit = {},
+    onDuplicatesTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val apps         by viewModel.apps.collectAsState()
@@ -231,7 +208,7 @@ fun HomeScreen(
                     }
                 }
 
-                // Divider line between greeting and search (Pass 3 requirement)
+                // Divider line between greeting and search
                 item {
                     Box(
                         modifier = Modifier
@@ -291,7 +268,12 @@ fun HomeScreen(
 
                 // ── 4. Widget area ─────────────────────────────────────────────
                 item {
-                    WeatherAgendaRow(isDense = denseLayout, modifier = Modifier.fillMaxWidth())
+                    WeatherAgendaRow(
+                        isDense      = denseLayout,
+                        onWeatherTap = onWeatherTap,
+                        onAgendaTap  = onAgendaTap,
+                        modifier     = Modifier.fillMaxWidth(),
+                    )
                 }
 
                 // ── 5. Smart categories area ───────────────────────────────────
@@ -352,6 +334,7 @@ fun HomeScreen(
                                 iconSize      = categoryIconSize,
                                 cardHeight    = categoryCardH,
                                 gridHeight    = gridH,
+                                onCategoryTap = onCategoryTap,
                             )
                         }
                     }
@@ -361,10 +344,11 @@ fun HomeScreen(
                 if (showDupes && dupeApps.isNotEmpty()) {
                     item {
                         DuplicateShortcutStrip(
-                            apps     = dupeApps,
-                            onAppTap = viewModel::launchApp,
-                            onManage = onOpenSettings,
-                            modifier = Modifier.fillMaxWidth(),
+                            apps        = dupeApps,
+                            onAppTap    = viewModel::launchApp,
+                            onManage    = onDuplicatesTap,
+                            onStripTap  = onDuplicatesTap,
+                            modifier    = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -429,6 +413,7 @@ private fun CategoryGrid(
     iconSize: Dp,
     cardHeight: Dp,
     gridHeight: Dp,
+    onCategoryTap: (AppCategory) -> Unit,
 ) {
     // Manual grid: rows of 'columns' items — avoids nested LazyVerticalGrid issues
     val rows = categories.chunked(columns)
@@ -445,7 +430,7 @@ private fun CategoryGrid(
                     SmartCategoryCard(
                         category  = cat,
                         apps      = viewModel.byCategory(cat),
-                        onTap     = {},
+                        onTap     = { onCategoryTap(cat) },
                         onAppTap  = viewModel::launchApp,
                         iconSize  = iconSize,
                         modifier  = Modifier
@@ -535,30 +520,11 @@ private fun LauncherNavBar(
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(CiyatoBgEl.copy(alpha = 0.72f))
+                .background(CiyatoBgEl)
                 .border(1.dp, CiyatoSubtleBorder, CircleShape)
                 .clickable(onClick = onOpenDrawer),
         ) {
-            Icon(Icons.Default.Apps, "App Drawer",
-                tint = CiyatoWhite, modifier = Modifier.size(24.dp))
-        }
-
-        // Favorites placeholder
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(CiyatoBgEl.copy(alpha = 0.72f))
-                .border(1.dp, CiyatoSubtleBorder, CircleShape)
-                .clickable {},
-        ) {
-            Icon(
-                Icons.Default.Star,
-                "Favorites",
-                tint = CiyatoMuted,
-                modifier = Modifier.size(24.dp),
-            )
+            Icon(Icons.Default.Apps, contentDescription = "App Drawer", tint = CiyatoSec, modifier = Modifier.size(24.dp))
         }
 
         // Settings
@@ -567,16 +533,11 @@ private fun LauncherNavBar(
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(CiyatoBgEl.copy(alpha = 0.72f))
+                .background(CiyatoBgEl)
                 .border(1.dp, CiyatoSubtleBorder, CircleShape)
                 .clickable(onClick = onOpenSettings),
         ) {
-            Icon(
-                Icons.Default.Settings,
-                "Settings",
-                tint = CiyatoMuted,
-                modifier = Modifier.size(24.dp),
-            )
+            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = CiyatoSec, modifier = Modifier.size(24.dp))
         }
     }
 }

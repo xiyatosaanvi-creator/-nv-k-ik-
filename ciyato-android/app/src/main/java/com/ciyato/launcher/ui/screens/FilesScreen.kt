@@ -1,5 +1,9 @@
 package com.ciyato.launcher.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,15 +24,58 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
 
+private data class FileCategory(
+    val name: String,
+    val icon: ImageVector,
+    val color: Color,
+    val description: String = "",
+)
+
+private val fileCategories = listOf(
+    FileCategory("Screenshots", Icons.Default.Screenshot, Color(0xFF7DB7FF), "Screen captures"),
+    FileCategory("Documents", Icons.Default.Description, Color(0xFF39C66A), "PDFs, Word, text"),
+    FileCategory("Downloads", Icons.Default.Download, Color(0xFFC6A15B), "Downloaded files"),
+    FileCategory("WhatsApp", Icons.AutoMirrored.Filled.Chat, Color(0xFF25D366), "Media & docs"),
+    FileCategory("Videos", Icons.Default.VideoFile, Color(0xFFFF6B8C), "MP4, MKV, etc"),
+    FileCategory("APKs", Icons.Default.Android, Color(0xFF9C6AFF), "Installer files"),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilesScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<FileCategory?>(null) }
+    var selectedFolderUri by remember { mutableStateOf<Uri?>(null) }
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            selectedFolderUri = uri
+            hasPermission = true
+        }
+    }
+
+    // Navigate to collection detail
+    if (selectedCategory != null) {
+        FileCollectionDetailScreen(
+            collectionTitle = selectedCategory!!.name,
+            collectionIcon  = selectedCategory!!.icon,
+            collectionColor = selectedCategory!!.color,
+            onBack          = { selectedCategory = null },
+        )
+        return
+    }
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -56,25 +103,44 @@ fun FilesScreen(onBack: () -> Unit) {
 
             if (!hasPermission) {
                 item {
-                    PermissionCard(onEnable = { hasPermission = true })
+                    PermissionCard(onEnable = { folderPickerLauncher.launch(null) })
                 }
             }
 
-            // Categories
+            // Categories header
             item {
-                Text("Categories", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Categories", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    if (hasPermission) {
+                        Text("Folder access active", color = CiyatoGold, fontSize = 12.sp)
+                    }
+                }
             }
 
             item {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    modifier = Modifier.height(300.dp),
+                    modifier = Modifier.height(360.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     userScrollEnabled = false
                 ) {
                     items(fileCategories) { cat ->
-                        FileCategoryCard(cat)
+                        FileCategoryCard(
+                            cat = cat,
+                            hasPermission = hasPermission,
+                            onTap = {
+                                if (hasPermission) {
+                                    selectedCategory = cat
+                                } else {
+                                    folderPickerLauncher.launch(null)
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -128,40 +194,71 @@ private fun PermissionCard(onEnable: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text("Organize Your Files", color = CiyatoWhite, fontWeight = FontWeight.Bold)
-        Text("Ciyato can help you find large files, duplicates, and WhatsApp media locally.", color = CiyatoSec, fontSize = 12.sp)
+        Text("Enable File Organization", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Text(
+            "Choose the folders or files you want Ciyato to organize. Ciyato will only access what you select — no broad storage access.",
+            color = CiyatoSec,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+        )
         Button(
             onClick = onEnable,
             colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Enable File Access", color = CiyatoBg, fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Choose Folder", color = CiyatoBg, fontWeight = FontWeight.Bold)
         }
+        Text("Uses Android Storage Access Framework", color = CiyatoMuted, fontSize = 11.sp)
     }
 }
 
-private data class FileCategory(val name: String, val icon: ImageVector, val color: Color)
-private val fileCategories = listOf(
-    FileCategory("Screenshots", Icons.Default.Screenshot, Color(0xFF7DB7FF)),
-    FileCategory("Documents", Icons.Default.Description, Color(0xFF39C66A)),
-    FileCategory("Downloads", Icons.Default.Download, Color(0xFFC6A15B)),
-    FileCategory("WhatsApp", Icons.AutoMirrored.Filled.Chat, Color(0xFF25D366))
-)
-
 @Composable
-private fun FileCategoryCard(cat: FileCategory) {
+private fun FileCategoryCard(
+    cat: FileCategory,
+    hasPermission: Boolean,
+    onTap: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(CiyatoBgEl)
+            .border(
+                1.dp,
+                if (hasPermission) cat.color.copy(alpha = 0.20f) else CiyatoSubtleBorder,
+                RoundedCornerShape(16.dp),
+            )
+            .clickable(onClick = onTap)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(cat.icon, null, tint = cat.color, modifier = Modifier.size(24.dp))
-        Text(cat.name, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(cat.color.copy(alpha = 0.15f)),
+        ) {
+            Icon(cat.icon, null, tint = cat.color, modifier = Modifier.size(20.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(cat.name, color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            if (!hasPermission) {
+                Text("Tap to enable", color = CiyatoMuted, fontSize = 10.sp)
+            } else {
+                Text(cat.description, color = CiyatoMuted, fontSize = 10.sp)
+            }
+        }
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = if (hasPermission) cat.color.copy(alpha = 0.7f) else CiyatoMuted,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 

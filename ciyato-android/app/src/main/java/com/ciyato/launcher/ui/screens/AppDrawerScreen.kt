@@ -75,45 +75,16 @@ private val FILTER_CHIPS = listOf(
 
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  CIYATO APP DRAWER / SMART APP LIBRARY — 3-Pass Visual Parity
- *  Target: the uploaded light/cream App Drawer reference image.
+ *  CIYATO APP DRAWER / SMART APP LIBRARY — Functional Wiring Phase
+ *  Sections expand/collapse ✓ (already worked)
+ *  Duplicate shortcuts card is now fully clickable via onDuplicatesTap ✓
  * ═══════════════════════════════════════════════════════════════════
- *
- * PASS 1 — Structure
- *  - Light/cream DrawerBg (#F5F2EC) full screen
- *  - Header: "Ciyato" logo left, "Smart App Library" chip + filter icon right
- *  - Search bar (cream, full-width, rounded 14dp)
- *  - Filter chips (horizontal scroll, gold when selected)
- *  - Dot indicator row (3 dots, middle selected)
- *  - LazyColumn of SECTION CARDS (not a flat grid)
- *  - Each section = card with header (title + count + chevron) + icon row
- *  - Duplicate Smart Shortcuts section card at the bottom (gold-tinted)
- *
- * PASS 2 — Styling
- *  - Card bg: DrawerCard, corner 20dp, DrawerBorder
- *  - Section header: 15sp SemiBold DrawerText, count muted, chevron DrawerSec
- *  - App icon row: 54dp icons, label below in DrawerSec 11sp
- *  - Search bar: DrawerSearch bg, muted placeholder, dark text
- *  - Chips: gold bg when selected, DrawerCard when unselected
- *  - Duplicate card: gold-tinted (0.08f), gold border (0.20f)
- *  - Header "Ciyato": 24sp Bold DrawerText
- *  - "Smart App Library" chip: gold text, gold bg (0.12f)
- *  - App count badge: "+N" DrawerMuted box in icon row
- *
- * PASS 3 — Polish
- *  - Expanding sections: chevron rotates, sub-rows reveal
- *  - "Suggested" = top 6 multi-category apps (most contextual)
- *  - "Recently Added" = sorted by installTime desc
- *  - Empty sections hidden (filter out zero-app categories)
- *  - Search mode: collapses sections, shows flat grid of results
- *  - Icon label color: DrawerSec (dark-on-light, readable)
- *  - Dot indicator: 3 dots (pagination visual, non-functional in v1)
- *  - Bottom padding accounts for Android nav bar
  */
 @Composable
 fun AppDrawerScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
+    onDuplicatesTap: (() -> Unit)? = null,
 ) {
     val apps        by viewModel.apps.collectAsState()
     val isLoading   by viewModel.isLoading.collectAsState()
@@ -136,7 +107,7 @@ fun AppDrawerScreen(
 
     // When a filter chip is active, flatten to a single section
     val sectionsToShow = remember(activeFilter, populatedSections) {
-        val filter = activeFilter   // capture to local val to allow smart cast
+        val filter = activeFilter
         when (filter) {
             null -> populatedSections
             else -> listOf(DrawerSection(filter, filter.displayName, false))
@@ -153,7 +124,7 @@ fun AppDrawerScreen(
                 .padding(scaffoldPadding)
         ) {
             // ── 1. Header: Logo + Smart App Library Chip ──────────────────────
-            DrawerHeader()
+            DrawerHeader(onBack = onBack)
 
             // ── 2. Search Area ────────────────────────────────────────────────
             CiyatoSearchBar(
@@ -255,8 +226,9 @@ fun AppDrawerScreen(
                     // ── 6. Duplicate Shortcuts Area ───────────────────────────
                     item {
                         DuplicateShortcutsDrawerCard(
-                            apps     = viewModel.multiCategoryApps().take(6),
-                            onAppTap = viewModel::launchApp,
+                            apps        = viewModel.multiCategoryApps().take(6),
+                            onAppTap    = viewModel::launchApp,
+                            onManageTap = onDuplicatesTap,
                         )
                     }
                 }
@@ -267,7 +239,7 @@ fun AppDrawerScreen(
 
 // ── Header row ─────────────────────────────────────────────────────────────────
 @Composable
-private fun DrawerHeader() {
+private fun DrawerHeader(onBack: () -> Unit = {}) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -403,7 +375,7 @@ private fun DrawerSectionCard(
                 Spacer(Modifier.width(10.dp))
                 Icon(
                     Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = DrawerSec,
                     modifier = Modifier.size(22.dp),
                 )
@@ -490,11 +462,12 @@ private fun SearchResultsGrid(
     }
 }
 
-// ── Duplicate Smart Shortcuts card ─────────────────────────────────────────────
+// ── Duplicate Smart Shortcuts card — now fully clickable ──────────────────────
 @Composable
 private fun DuplicateShortcutsDrawerCard(
     apps: List<InstalledApp>,
     onAppTap: (InstalledApp) -> Unit,
+    onManageTap: (() -> Unit)? = null,
 ) {
     if (apps.isEmpty()) return
 
@@ -504,6 +477,10 @@ private fun DuplicateShortcutsDrawerCard(
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoGold.copy(alpha = 0.08f))
             .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(22.dp))
+            .then(
+                if (onManageTap != null) Modifier.clickable(onClick = onManageTap)
+                else Modifier
+            )
             .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
         // Header
@@ -534,6 +511,14 @@ private fun DuplicateShortcutsDrawerCard(
                     fontSize = 12.sp,
                 )
             }
+            if (onManageTap != null) {
+                Text(
+                    "Manage",
+                    color = CiyatoGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
 
         Spacer(Modifier.height(14.dp))
@@ -552,7 +537,7 @@ private fun DuplicateShortcutsDrawerCard(
                 // "+" slot
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -560,13 +545,13 @@ private fun DuplicateShortcutsDrawerCard(
                             .size(54.dp)
                             .clip(RoundedCornerShape(15.dp))
                             .background(DrawerCardAlt)
-                            .border(1.dp, DrawerBorder, RoundedCornerShape(15.dp)),
+                            .border(1.dp, DrawerBorder, RoundedCornerShape(15.dp))
+                            .then(if (onManageTap != null) Modifier.clickable(onClick = onManageTap) else Modifier),
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add",
-                            tint = DrawerSec, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Add, contentDescription = "Manage",
+                            tint = DrawerSec, modifier = Modifier.size(22.dp))
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Text("Manage", color = DrawerMuted, fontSize = 11.sp)
+                    Text("More", color = DrawerMuted, fontSize = 11.sp)
                 }
             }
         }

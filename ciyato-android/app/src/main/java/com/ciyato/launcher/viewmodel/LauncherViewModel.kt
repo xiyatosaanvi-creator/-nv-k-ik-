@@ -39,6 +39,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun byCategory(cat: AppCategory) = repo.byCategory(cat)
     fun multiCategoryApps() = repo.multiCategoryApps()
     fun recentlyAdded() = repo.recentlyAdded()
+    fun categoriesForApp(app: InstalledApp) = repo.categoriesForApp(app)
 
     fun launchApp(app: InstalledApp) {
         val launched = repo.launchApp(getApplication(), app)

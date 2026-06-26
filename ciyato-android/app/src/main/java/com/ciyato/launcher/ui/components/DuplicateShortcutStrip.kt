@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,18 +28,16 @@ import com.ciyato.launcher.ui.theme.*
 /**
  * PASS 1-2-3 — Duplicate Smart Shortcuts strip.
  *
- * Reference: the generated Ciyato Home screen — gold sparkle icon + title
- * "Duplicate smart shortcuts", subtitle "One app, multiple places. Always in context."
- * Then a horizontal row of real app icons with a small "+" badge on each.
- * Card background: CiyatoGold tinted (~0.08f alpha) — matches the warm gold card
- * in the reference image. Border: CiyatoGold at ~0.20f.
- * "Learn more" link in gold at the bottom right.
+ * The whole card is now clickable via onStripTap → opens DuplicateShortcutsScreen.
+ * Individual app icons still launch the app via onAppTap.
+ * Visual design preserved from reference.
  */
 @Composable
 fun DuplicateShortcutStrip(
     apps: List<InstalledApp>,
     onAppTap: (InstalledApp) -> Unit,
     onManage: () -> Unit,
+    onStripTap: () -> Unit = onManage,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -45,6 +45,8 @@ fun DuplicateShortcutStrip(
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoGold.copy(alpha = 0.08f))
             .border(1.dp, CiyatoGold.copy(alpha = 0.22f), RoundedCornerShape(22.dp))
+            .clickable(onClick = onStripTap)
+            .semantics { contentDescription = "Duplicate smart shortcuts — tap to manage" }
             .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
         // Header row: sparkle icon + titles
@@ -97,7 +99,7 @@ fun DuplicateShortcutStrip(
                     RealAppIcon(
                         drawable = app.icon,
                         size = 48.dp,
-                        modifier = Modifier.clickable { onAppTap(app) },
+                        modifier = Modifier.clickable(onClick = { onAppTap(app) }),
                     )
                     // Small gold "+" badge top-right
                     Box(
@@ -128,9 +130,9 @@ fun DuplicateShortcutStrip(
                         .clip(RoundedCornerShape(14.dp))
                         .background(CiyatoBgEl2)
                         .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(14.dp))
-                        .clickable(onClick = onManage),
+                        .clickable(onClick = onStripTap),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add",
+                    Icon(Icons.Default.Add, contentDescription = "Manage shortcuts",
                         tint = CiyatoSec, modifier = Modifier.size(20.dp))
                 }
             }
@@ -138,13 +140,13 @@ fun DuplicateShortcutStrip(
 
         Spacer(Modifier.height(12.dp))
 
-        // "Learn more" / Manage link
+        // "Manage" link
         Text(
-            "Learn more",
+            "Manage shortcuts",
             color = CiyatoGold,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.align(Alignment.End)
+            modifier = Modifier.align(Alignment.End),
         )
     }
 }

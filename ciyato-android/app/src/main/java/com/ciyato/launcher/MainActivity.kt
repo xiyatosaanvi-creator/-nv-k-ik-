@@ -7,9 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.*
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -19,13 +22,17 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
  * Launched when the user taps the Ciyato icon from another launcher.
  *
  * Routes:
- *   onboarding  →  first launch
- *   dashboard   →  main control center
- *   files       →  Ciyato Files
- *   photos      →  Ciyato Photos
- *   search      →  AI Search
- *   theme       →  Theme Studio
- *   settings    →  Settings
+ *   onboarding              →  first launch
+ *   dashboard               →  main control center
+ *   files                   →  Ciyato Files (SAF-based, permission-aware)
+ *   photos                  →  Ciyato Photos (Photo Picker, permission-aware)
+ *   search                  →  AI Search (real apps, locked file/photo sections)
+ *   theme                   →  Theme Studio
+ *   settings                →  Settings
+ *   category_detail/{name}  →  Category detail screen (all apps in category)
+ *   duplicate_shortcuts     →  Duplicate shortcuts management screen
+ *   weather_detail          →  Weather + location permission screen
+ *   agenda                  →  Agenda/Today screen (mock for beta)
  */
 class MainActivity : ComponentActivity() {
 
@@ -82,6 +89,9 @@ class MainActivity : ComponentActivity() {
                         SearchScreen(
                             viewModel = viewModel,
                             onBack    = { navController.popBackStack() },
+                            onCategoryFilter = { cat ->
+                                navController.navigate("category_detail/${cat.name}")
+                            },
                         )
                     }
 
@@ -96,6 +106,43 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             viewModel = viewModel,
                             onBack    = { navController.popBackStack() },
+                        )
+                    }
+
+                    // ── Functional wiring: new screens ─────────────────────────
+                    composable(
+                        route = "category_detail/{categoryName}",
+                        arguments = listOf(navArgument("categoryName") { type = NavType.StringType }),
+                    ) { backStack ->
+                        val categoryName = backStack.arguments?.getString("categoryName") ?: ""
+                        val category = runCatching { AppCategory.valueOf(categoryName) }.getOrNull()
+                        if (category != null) {
+                            CategoryDetailScreen(
+                                category  = category,
+                                viewModel = viewModel,
+                                onBack    = { navController.popBackStack() },
+                            )
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
+
+                    composable("duplicate_shortcuts") {
+                        DuplicateShortcutsScreen(
+                            viewModel = viewModel,
+                            onBack    = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable("weather_detail") {
+                        WeatherDetailScreen(
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable("agenda") {
+                        AgendaScreen(
+                            onBack = { navController.popBackStack() },
                         )
                     }
                 }

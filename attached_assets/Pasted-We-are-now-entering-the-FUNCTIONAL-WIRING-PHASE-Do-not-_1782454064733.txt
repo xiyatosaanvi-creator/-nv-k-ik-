@@ -1,0 +1,472 @@
+We are now entering the FUNCTIONAL WIRING PHASE.
+
+Do not redesign the app.
+Do not change the visual direction.
+Do not remove the Home Launcher or App Drawer visual parity work.
+Do not make new mock screens.
+Do not add random features.
+Do not request all permissions at startup.
+
+The problem now is that many UI surfaces are static. The app looks good, but only installed app icons are truly clickable and functional. Category boxes, weather, file manager sections, photo sections, and organizer cards must become interactive and connected to real device behavior where safe.
+
+Your task is to wire the existing Ciyato UI into real functionality while preserving the current visual design.
+
+Current working foundation to preserve:
+
+* native Kotlin + Jetpack Compose Android launcher
+* real installed app loading
+* real installed app icons
+* real app launching
+* Home launcher visual parity
+* App Drawer visual parity
+* smart categories
+* duplicate shortcuts
+* onboarding
+* switch-back/off safety
+* Theme Studio base
+* Files/Photos/AI Search screens
+
+Do not break these.
+
+# PHASE GOAL
+
+Make Ciyato feel like a real usable launcher and organizer, not just a visual shell.
+
+Required functional upgrades:
+
+1. Category cards must open category detail views.
+2. App Drawer category sections must be expandable/collapsible.
+3. Duplicate shortcuts card must open a management/detail screen.
+4. Weather card must be clickable and connected to location/weather flow.
+5. Today/Agenda card must open agenda/detail view.
+6. Files dashboard cards must open real permission flow and live file views where possible.
+7. Photos dashboard cards must open safe photo permission flow and live photo views where possible.
+8. AI Search must search real installed apps and, after permissions, files/photos.
+9. Settings toggles must actually change app state.
+10. All interactions must preserve visual style and not become generic Android UI.
+
+# STRICT PERMISSION RULE
+
+Do not request every permission at onboarding.
+
+Permissions must be requested only when the user enters that feature and accepts a clear explanation.
+
+Examples:
+
+* Weather location permission only when user taps Weather or enables live weather.
+* Photos permission only when user opens Photos and chooses to enable real photos.
+* Files access only when user opens Files and chooses a folder or document access.
+* Calendar permission only when Agenda becomes real.
+* No microphone permission unless voice search is implemented.
+* No background location for beta.
+* No all-files access for beta unless absolutely necessary and separately approved.
+
+# 1. CATEGORY CARD FUNCTIONALITY
+
+Currently category boxes show apps, but the boxes themselves are not usable.
+
+Make every SmartCategoryCard clickable.
+
+When user taps a category card:
+
+* open a CategoryDetailScreen
+* show category name
+* show all apps in that category
+* use real installed app icons
+* show real app labels
+* tap app launches real app
+* include search/filter inside category
+* include optional “Manage category” button
+* include back navigation
+
+Example:
+Tap Work card → open Work screen with Gmail, Drive, Calendar, Notion, Slack, LinkedIn if installed.
+
+Tap Social card → open Social screen with WhatsApp, Instagram, Telegram, etc.
+
+Tap Utilities card → open Settings, Files, Calculator, Clock, etc.
+
+The category card itself must be clickable, not only the app icons.
+
+Add clear visual feedback:
+
+* press ripple or subtle scale
+* clickable cursor/state where relevant
+* accessibility content description
+
+# 2. APP DRAWER SECTION FUNCTIONALITY
+
+App Drawer sections should not just display static groups.
+
+Each section should support:
+
+* expand/collapse
+* show all apps in that category
+* tap section header to expand/collapse
+* tap app to launch
+* long press app for details/manage category if possible later
+
+Default:
+
+* Suggested and Recently Added expanded
+* Work/Social/Utilities/etc. can be expanded or collapsed depending on visual reference
+
+Preserve the light/cream App Drawer design.
+
+# 3. DUPLICATE SHORTCUTS FUNCTIONALITY
+
+Duplicate smart shortcuts must open a detail/management screen.
+
+When user taps Duplicate Smart Shortcuts card/strip:
+
+* open DuplicateShortcutsScreen
+* explain: “One app can appear in multiple places without being duplicated.”
+* show apps that appear in multiple categories
+* show each app’s contexts/categories
+* tap app launches real app
+* optional manage button for future category editing
+
+Do not create duplicate APKs.
+Do not clone apps.
+This remains visual multi-placement only.
+
+# 4. WEATHER FUNCTIONALITY
+
+Weather card must be clickable.
+
+When user taps Weather card:
+
+* if location permission is not granted, show a premium Ciyato permission explanation screen/modal
+* explain why location is needed:
+  “Ciyato uses your location only to show local weather on your home screen.”
+* buttons:
+  Enable Local Weather
+  Not now
+
+If user taps Enable:
+
+* request foreground location permission only
+* use approximate location if that is enough
+* do not request background location
+* do not request location at onboarding
+
+After permission:
+
+* get current location
+* fetch weather from a weather provider if API exists
+* if no API key exists, create WeatherRepository with a placeholder provider interface and show “Live weather not configured”
+* do not fake live data as if it is real
+
+Weather card click should open WeatherDetailScreen:
+
+* current temperature
+* location name
+* condition
+* high/low
+* hourly placeholder or real if API exists
+* refresh button
+* permission status
+
+If no permission:
+
+* show permission CTA
+
+If API missing:
+
+* show clear state:
+  “Weather API not configured yet.”
+
+Do not crash.
+
+# 5. AGENDA / TODAY FUNCTIONALITY
+
+Today/Agenda card must be clickable.
+
+When tapped:
+
+* open AgendaScreen
+* for beta, show mock agenda unless calendar permission is implemented
+* if adding real calendar later, request calendar permission only when user enables it
+* do not request calendar permission at onboarding
+
+Agenda screen should include:
+
+* Today
+* Upcoming
+* Add manual item placeholder
+* Calendar permission CTA if real calendar is not enabled
+
+# 6. FILES FUNCTIONALITY
+
+Files screen currently looks like UI but must become permission-aware and partly live.
+
+Do not request broad storage access on onboarding.
+
+When user opens Files:
+
+* show Ciyato Files dashboard
+* show permission state
+* show CTA:
+  “Enable file organization”
+* explain:
+  “Choose the folders or files you want Ciyato to organize. Ciyato will only access what you select.”
+
+Use Android Storage Access Framework first:
+
+* ACTION_OPEN_DOCUMENT for specific files
+* ACTION_OPEN_DOCUMENT_TREE for user-selected folders
+* persist URI permissions if needed
+* do not request all-files access in beta
+
+Files dashboard cards must be clickable:
+
+* Screenshots
+* Documents
+* Downloads
+* Photos
+* Videos
+* APKs
+* WhatsApp
+* Recent Files
+* Duplicates
+* Large Files
+
+Before permission:
+
+* tapping a tile opens explanation + enable access CTA
+
+After user grants folder/file access:
+
+* show live file list from selected directory
+* classify files by extension/MIME/date where possible
+* show actual file names
+* show size/date
+* open file with ACTION_VIEW if tapped
+* do not delete or move files automatically
+
+Cleanup:
+
+* no destructive cleanup
+* show suggestions only
+* require explicit confirmation for any delete action
+* if delete not safely implemented, keep it disabled
+
+# 7. PHOTOS FUNCTIONALITY
+
+Photos must be permission-aware.
+
+Do not request photo access on onboarding.
+
+When user opens Photos:
+
+* show premium Photos screen
+* show CTA:
+  “Enable photo organization”
+* explain:
+  “Choose photos/videos Ciyato can organize. Your media stays on your device.”
+
+Use Android Photo Picker first:
+
+* allow selected image/video access
+* use PickVisualMedia / PickMultipleVisualMedia
+* do not demand whole library in beta
+
+If selected media is available:
+
+* show selected thumbnails
+* group by basic categories:
+  Recent
+  Selected
+  Screenshots if detectable
+  Videos
+  Favorites placeholder
+* do not upload media
+* do not analyze with cloud AI unless explicitly added later and user agrees
+
+Photos cards must be clickable:
+
+* open collection detail
+* show thumbnails
+* tap thumbnail opens preview
+* back navigation works
+
+If full gallery access is later added:
+
+* ask with clear explanation
+* use modern Android media permissions
+* keep user control
+
+# 8. AI SEARCH FUNCTIONALITY
+
+AI Search must be real for installed apps immediately.
+
+Search should:
+
+* search installed app labels
+* search package names
+* search categories
+* display real icons
+* launch app on tap
+
+After Files permission:
+
+* include file names from selected directories
+* tap file opens file
+
+After Photos selection:
+
+* include selected media names/thumbnails if available
+
+Until files/photos permission is granted:
+
+* show locked/permission-needed result sections
+* do not show fake live data
+
+Prompt chips should work:
+
+* “Work apps” filters Work category
+* “Recent WhatsApp files” opens Files permission flow if files not enabled
+* “Find payment screenshots” opens Photos/Files permission flow if not enabled
+* “Show PDFs from yesterday” opens Files permission flow if not enabled
+
+# 9. SETTINGS FUNCTIONALITY
+
+Settings toggles must actually work.
+
+Required:
+
+* Dense / Spacious changes Home layout
+* Dark / Light / Auto changes Ciyato theme
+* Gold accent on/off changes UI accents
+* Smart categories on/off changes category display
+* Duplicate shortcuts on/off hides/shows duplicate shortcut strip
+* Real icons / Rounded Ciyato frame / Minimal changes app icon rendering
+* Reset layout resets local preferences
+* Switch back opens Home app settings
+* Open App Info opens Android app info
+* Permissions page shows current permission state
+
+Persist settings locally using DataStore or existing settings repository.
+
+# 10. NAVIGATION AND GESTURES
+
+Add proper navigation.
+
+Home:
+
+* tap category card → CategoryDetailScreen
+* tap weather → WeatherDetailScreen
+* tap agenda → AgendaScreen
+* tap duplicate strip → DuplicateShortcutsScreen
+* tap search → AI Search or App Search
+* tap app drawer button → AppDrawerScreen
+* tap settings button → SettingsScreen
+
+App Drawer:
+
+* back returns Home
+* section header expands/collapses
+* app tap launches app
+
+Files:
+
+* tile tap opens detail or permission flow
+* back works
+
+Photos:
+
+* collection tap opens detail
+* back works
+
+Do not rely only on app icons being clickable.
+
+# 11. VISUAL PRESERVATION
+
+All new screens and interaction states must preserve the Ciyato visual system:
+
+* dark premium background
+* glass cards
+* gold accents
+* soft rounded cards
+* clean typography
+* real app icons
+* no generic Android template
+* no cheap cleaner app design
+
+Do not make permission screens look like system default boxes only. The Android permission prompt is system-controlled, but before it appears, show a premium Ciyato explanation screen.
+
+# 12. FILES TO EXPECT / CREATE
+
+Create or update:
+
+* CategoryDetailScreen.kt
+* DuplicateShortcutsScreen.kt
+* WeatherDetailScreen.kt
+* WeatherPermissionScreen.kt or modal
+* WeatherRepository.kt
+* LocationRepository.kt
+* AgendaScreen.kt
+* FilesPermissionScreen.kt
+* FileRepository.kt
+* FileCollectionDetailScreen.kt
+* PhotosPermissionScreen.kt
+* PhotosRepository.kt
+* PhotoCollectionDetailScreen.kt
+* SearchRepository.kt
+* SettingsRepository.kt
+* PermissionsRepository.kt
+* Navigation routes / NavHost updates
+* AndroidManifest.xml permissions only where needed
+* TESTING.md update
+* SECURITY.md update
+
+Do not add unnecessary permissions.
+
+# 13. SECURITY / PRIVACY
+
+Update SECURITY.md to explain:
+
+* location is only used for weather after user enables it
+* files are accessed only through user-selected files/folders
+* photos are accessed only through Photo Picker or explicit media permission
+* app list stays local
+* no cloud upload
+* no automatic deletion
+* no background location
+* no all-files access in beta
+
+# 14. TESTING
+
+After implementation, report:
+
+1. Which cards are now clickable
+2. Which screens were added
+3. Which features use real device data
+4. Which features remain mocked
+5. Which permissions were added
+6. When each permission is requested
+7. Whether real app launching still works
+8. Whether launcher still works
+9. Whether switch-back still works
+10. Whether APK builds
+11. Exact command:
+    ./gradlew assembleDebug
+12. Exact APK path:
+    app/build/outputs/apk/debug/app-debug.apk
+
+# FINAL INSTRUCTION
+
+The app must stop feeling like a static UI.
+
+Make Ciyato usable:
+
+* boxes open
+* cards open
+* weather opens
+* files request access and show live selected files
+* photos request access and show selected media
+* search works
+* settings persist
+* launcher remains functional
+
+Do this without breaking the current visual quality or the real Android launcher foundation.

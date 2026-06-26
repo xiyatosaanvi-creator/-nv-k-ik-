@@ -11,10 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.ciyato.launcher.ui.screens.AppDrawerScreen
-import com.ciyato.launcher.ui.screens.HomeScreen
-import com.ciyato.launcher.ui.screens.SearchScreen
-import com.ciyato.launcher.ui.screens.SettingsScreen
+import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoBg
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -25,13 +23,8 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
  * This activity has HOME + DEFAULT intent-filter categories in AndroidManifest.xml.
  * Android will offer Ciyato as a Home app because of this.
  *
- * When the user presses the physical Home button, Android launches this activity
- * (once Ciyato is set as the default Home app).
- *
- * Navigation is internal (no Jetpack Nav needed for the launcher shell):
- *   HOME  →  APP_DRAWER  →  (back to HOME)
- *         →  SEARCH
- *         →  SETTINGS
+ * Navigation uses a sealed class so screens can carry parameters (e.g. which category).
+ * Zero-latency switching — no Jetpack Nav overhead for the launcher shell.
  */
 class LauncherHomeActivity : ComponentActivity() {
 
@@ -46,10 +39,9 @@ class LauncherHomeActivity : ComponentActivity() {
         )
 
         // Suppress back-press on the launcher home screen (standard launcher behaviour).
-        // Uses the modern OnBackPressedCallback instead of deprecated onBackPressed().
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Do nothing — prevents launcher from closing when back is pressed on home.
+                // Do nothing — prevents launcher from closing on Home.
             }
         })
 
@@ -61,34 +53,68 @@ class LauncherHomeActivity : ComponentActivity() {
     }
 }
 
-/** Top-level navigation state for the launcher shell. */
-private enum class LauncherDest { HOME, DRAWER, SEARCH, SETTINGS }
+/** Top-level navigation sealed class — carries parameters where needed. */
+private sealed class LauncherDest {
+    object Home : LauncherDest()
+    object Drawer : LauncherDest()
+    object Search : LauncherDest()
+    object Settings : LauncherDest()
+    data class CategoryDetail(val category: AppCategory) : LauncherDest()
+    object DuplicateShortcuts : LauncherDest()
+    object WeatherDetail : LauncherDest()
+    object Agenda : LauncherDest()
+}
 
 @Composable
 private fun LauncherRoot(viewModel: LauncherViewModel) {
-    var dest by remember { mutableStateOf(LauncherDest.HOME) }
+    var dest by remember { mutableStateOf<LauncherDest>(LauncherDest.Home) }
 
-    when (dest) {
-        LauncherDest.HOME -> HomeScreen(
-            viewModel = viewModel,
-            onOpenDrawer   = { dest = LauncherDest.DRAWER },
-            onOpenSettings = { dest = LauncherDest.SETTINGS },
-            modifier = Modifier.fillMaxSize().background(CiyatoBg),
+    when (val d = dest) {
+        is LauncherDest.Home -> HomeScreen(
+            viewModel       = viewModel,
+            onOpenDrawer    = { dest = LauncherDest.Drawer },
+            onOpenSettings  = { dest = LauncherDest.Settings },
+            onCategoryTap   = { cat -> dest = LauncherDest.CategoryDetail(cat) },
+            onWeatherTap    = { dest = LauncherDest.WeatherDetail },
+            onAgendaTap     = { dest = LauncherDest.Agenda },
+            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
+            modifier        = Modifier.fillMaxSize().background(CiyatoBg),
         )
 
-        LauncherDest.DRAWER -> AppDrawerScreen(
-            viewModel = viewModel,
-            onBack    = { dest = LauncherDest.HOME },
+        is LauncherDest.Drawer -> AppDrawerScreen(
+            viewModel       = viewModel,
+            onBack          = { dest = LauncherDest.Home },
+            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
         )
 
-        LauncherDest.SEARCH -> SearchScreen(
+        is LauncherDest.Search -> SearchScreen(
             viewModel = viewModel,
-            onBack    = { dest = LauncherDest.HOME },
+            onBack    = { dest = LauncherDest.Home },
+            onCategoryFilter = { cat -> dest = LauncherDest.CategoryDetail(cat) },
         )
 
-        LauncherDest.SETTINGS -> SettingsScreen(
+        is LauncherDest.Settings -> SettingsScreen(
             viewModel = viewModel,
-            onBack    = { dest = LauncherDest.HOME },
+            onBack    = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.CategoryDetail -> CategoryDetailScreen(
+            category  = d.category,
+            viewModel = viewModel,
+            onBack    = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.DuplicateShortcuts -> DuplicateShortcutsScreen(
+            viewModel = viewModel,
+            onBack    = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.WeatherDetail -> WeatherDetailScreen(
+            onBack = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.Agenda -> AgendaScreen(
+            onBack = { dest = LauncherDest.Home },
         )
     }
 }
