@@ -60,9 +60,9 @@ fun PermissionAuditScreen(
 
     val filtered = remember(auditedApps, filterLevel) {
         when (filterLevel) {
-            "High Risk" -> auditedApps.filter { it.riskLevel == RiskLevel.HIGH }
-            "Medium"    -> auditedApps.filter { it.riskLevel == RiskLevel.MEDIUM }
-            "Low"       -> auditedApps.filter { it.riskLevel == RiskLevel.LOW }
+            "High Risk" -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.HIGH }
+            "Medium"    -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.MEDIUM }
+            "Low"       -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.LOW }
             else        -> auditedApps
         }
     }
@@ -125,7 +125,7 @@ fun PermissionAuditScreen(
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
-private enum class RiskLevel { HIGH, MEDIUM, LOW }
+private enum class PermissionRiskLevel { HIGH, MEDIUM, LOW }
 
 private data class AuditedApp(
     val app: InstalledApp,
@@ -136,10 +136,10 @@ private data class AuditedApp(
 
     val riskScore: Int get() = highRisk.size * 10 + medRisk.size * 3 + (permissions.size - highRisk.size - medRisk.size)
 
-    val riskLevel: RiskLevel get() = when {
-        highRisk.isNotEmpty() -> RiskLevel.HIGH
-        medRisk.isNotEmpty()  -> RiskLevel.MEDIUM
-        else                  -> RiskLevel.LOW
+    val riskLevel: PermissionRiskLevel get() = when {
+        highRisk.isNotEmpty() -> PermissionRiskLevel.HIGH
+        medRisk.isNotEmpty()  -> PermissionRiskLevel.MEDIUM
+        else                  -> PermissionRiskLevel.LOW
     }
 }
 
@@ -189,8 +189,8 @@ private fun getAppPermissions(context: android.content.Context, pkg: String): Li
 
 @Composable
 private fun PermissionSummaryBanner(audited: List<AuditedApp>) {
-    val highCount = audited.count { it.riskLevel == RiskLevel.HIGH }
-    val medCount  = audited.count { it.riskLevel == RiskLevel.MEDIUM }
+    val highCount = audited.count { it.riskLevel == PermissionRiskLevel.HIGH }
+    val medCount  = audited.count { it.riskLevel == PermissionRiskLevel.MEDIUM }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -219,14 +219,14 @@ private fun SummaryPill(text: String, color: Color, modifier: Modifier = Modifie
 @Composable
 private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
     val riskColor = when (audited.riskLevel) {
-        RiskLevel.HIGH   -> Color(0xFFEF4444)
-        RiskLevel.MEDIUM -> Color(0xFFF5C542)
-        RiskLevel.LOW    -> Color(0xFF39C66A)
+        PermissionRiskLevel.HIGH   -> Color(0xFFEF4444)
+        PermissionRiskLevel.MEDIUM -> Color(0xFFF5C542)
+        PermissionRiskLevel.LOW    -> Color(0xFF39C66A)
     }
     val riskLabel = when (audited.riskLevel) {
-        RiskLevel.HIGH   -> "High Risk"
-        RiskLevel.MEDIUM -> "Medium"
-        RiskLevel.LOW    -> "Low"
+        PermissionRiskLevel.HIGH   -> "High Risk"
+        PermissionRiskLevel.MEDIUM -> "Medium"
+        PermissionRiskLevel.LOW    -> "Low"
     }
 
     var expanded by remember { mutableStateOf(false) }
@@ -236,7 +236,7 @@ private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(CiyatoBgEl)
-            .border(1.dp, if (audited.riskLevel == RiskLevel.HIGH) riskColor.copy(0.3f) else CiyatoSubtleBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, if (audited.riskLevel == PermissionRiskLevel.HIGH) riskColor.copy(0.3f) else CiyatoSubtleBorder, RoundedCornerShape(16.dp))
             .clickable { expanded = !expanded }
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

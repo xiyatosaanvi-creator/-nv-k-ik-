@@ -3,7 +3,7 @@ package com.ciyato.launcher.data
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.ciyato.launcher.data.LauncherSettingsRepository.Companion.dataStore
+import com.ciyato.launcher.data.dataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONObject
@@ -28,14 +28,9 @@ object CategoryColorManager {
         AppCategory.ENTERTAINMENT to 0xFFB71C1C.toInt(),  // Dark Red
         AppCategory.PRODUCTIVITY  to 0xFF0277BD.toInt(),  // Light Blue
         AppCategory.GAMES         to 0xFF4A148C.toInt(),  // Deep Purple
-        AppCategory.HEALTH        to 0xFF2E7D32.toInt(),  // Green
         AppCategory.TRAVEL        to 0xFF00695C.toInt(),  // Teal
         AppCategory.COMMUNICATION to 0xFF283593.toInt(),  // Indigo
-        AppCategory.EDUCATION     to 0xFF4E342E.toInt(),  // Brown
-        AppCategory.FOOD          to 0xFFBF360C.toInt(),  // Deep Orange
         AppCategory.SHOPPING      to 0xFF880E4F.toInt(),  // Pink
-        AppCategory.ADULT         to 0xFF212121.toInt(),  // Very Dark
-        AppCategory.SYSTEM        to 0xFF424242.toInt(),  // Gray
         AppCategory.OTHER         to 0xFF455A64.toInt(),  // Blue Gray
     )
 

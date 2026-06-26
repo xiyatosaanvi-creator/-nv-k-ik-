@@ -26,6 +26,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,10 +45,12 @@ fun DocumentScannerScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var scannedPages by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var isExporting by remember { mutableStateOf(false) }
     var exportedPdfPath by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf("") }
+    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -63,13 +66,11 @@ fun DocumentScannerScreen(
         }
     }
 
-    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-
     fun exportToPdf() {
         if (scannedPages.isEmpty()) return
         isExporting = true
 
-        kotlinx.coroutines.GlobalScope.kotlinx.coroutines.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             try {
                 val df = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.getDefault())
                 val pdfName = "Scan_${df.format(Date())}.pdf"

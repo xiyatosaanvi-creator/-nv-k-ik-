@@ -20,6 +20,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -86,10 +87,11 @@ fun SafeBrowsingScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     var urlInput by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<SafeBrowsingHelper.SafetyResult?>(null) }
     var isChecking by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -135,7 +137,7 @@ fun SafeBrowsingScreen(
                 onClick = {
                     isChecking = true
                     result = null
-                    kotlinx.coroutines.GlobalScope.kotlinx.coroutines.launch {
+                    scope.launch {
                         result = SafeBrowsingHelper.checkUrl(urlInput)
                         isChecking = false
                     }

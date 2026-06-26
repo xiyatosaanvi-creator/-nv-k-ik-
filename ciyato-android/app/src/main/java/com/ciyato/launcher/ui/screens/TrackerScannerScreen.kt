@@ -37,7 +37,7 @@ data class AppTrackerResult(
     val riskLevel: RiskLevel,
 )
 
-enum class RiskLevel { LOW, MEDIUM, HIGH }
+
 
 private val KNOWN_TRACKER_SIGNATURES = mapOf(
     "com.google.android.gms.ads"      to "Google Ads",

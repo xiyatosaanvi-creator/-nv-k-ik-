@@ -22,6 +22,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -35,22 +36,23 @@ import java.security.MessageDigest
  * Zero privacy risk — the full hash never leaves the device.
  */
 
+sealed class BreachResult {
+    data class Found(val count: Int) : BreachResult()
+    object NotFound : BreachResult()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataBreachCheckerScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var isChecking by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<BreachResult?>(null) }
     var error by remember { mutableStateOf("") }
-
-    sealed class BreachResult {
-        data class Found(val count: Int) : BreachResult()
-        object NotFound : BreachResult()
-    }
 
     suspend fun checkPassword(pw: String): BreachResult? {
         if (pw.isBlank()) return null
@@ -142,7 +144,7 @@ fun DataBreachCheckerScreen(
                     isChecking = true
                     result = null
                     error = ""
-                    kotlinx.coroutines.GlobalScope.kotlinx.coroutines.launch {
+                    scope.launch {
                         val r = checkPassword(password)
                         result = r
                         if (r == null) error = "Could not reach server. Check your connection."
@@ -164,30 +166,30 @@ fun DataBreachCheckerScreen(
                 }
             }
 
-            result?.let { r ->
-                val (bg, icon, title, msg) = when (r) {
-                    is BreachResult.Found -> listOf(
-                        Color(0xFFF44336).copy(alpha = 0.15f),
-                        Icons.Default.Warning,
-                        "⚠️ Password Compromised",
-                        "This password appeared in ${r.count.toIntFormatted()} known breaches. Change it immediately.",
-                    )
-                    BreachResult.NotFound -> listOf(
-                        Color(0xFF4CAF50).copy(alpha = 0.15f),
-                        Icons.Default.CheckCircle,
-                        "✅ Password Safe",
-                        "Not found in any known breach database.",
-                    )
+            val currentResult = result
+            if (currentResult != null) {
+                val bg = if (currentResult is BreachResult.Found) Color(0xFFF44336).copy(alpha = 0.15f) else Color(0xFF4CAF50).copy(alpha = 0.15f)
+                val icon = if (currentResult is BreachResult.Found) Icons.Default.Warning else Icons.Default.CheckCircle
+                val title = if (currentResult is BreachResult.Found) "⚠️ Password Compromised" else "✅ Password Safe"
+                val msg = if (currentResult is BreachResult.Found) {
+                    "This password appeared in ${currentResult.count.toIntFormatted()} known breaches. Change it immediately."
+                } else {
+                    "Not found in any known breach database."
                 }
-                Card(colors = CardDefaults.cardColors(containerColor = bg as Color),
-                    shape = RoundedCornerShape(14.dp)) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = bg),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
-                        Icon(icon as androidx.compose.ui.graphics.vector.ImageVector, null,
-                            tint = if (r is BreachResult.Found) Color(0xFFF44336) else Color(0xFF4CAF50))
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (currentResult is BreachResult.Found) Color(0xFFF44336) else Color(0xFF4CAF50)
+                        )
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text(title as String, color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
-                            Text(msg as String, color = CiyatoMuted, fontSize = 13.sp)
+                            Text(title, color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                            Text(msg, color = CiyatoMuted, fontSize = 13.sp)
                         }
                     }
                 }

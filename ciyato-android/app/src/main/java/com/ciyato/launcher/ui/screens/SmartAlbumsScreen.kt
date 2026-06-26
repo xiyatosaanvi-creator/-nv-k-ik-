@@ -11,6 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -149,12 +152,12 @@ private fun AlbumDetailView(album: SmartAlbum, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
             contentPadding = PaddingValues(4.dp),
             modifier = Modifier.padding(padding),
         ) {
-            androidx.compose.foundation.lazy.grid.items(album.photoUris) { uri ->
+            items(album.photoUris) { uri ->
                 AsyncImage(
                     model = uri,
                     contentDescription = null,

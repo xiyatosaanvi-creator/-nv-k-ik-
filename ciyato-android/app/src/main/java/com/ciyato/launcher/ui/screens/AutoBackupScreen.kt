@@ -25,6 +25,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,6 +43,7 @@ fun AutoBackupScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var backupFolderUri by remember { mutableStateOf<Uri?>(null) }
     var isBackingUp by remember { mutableStateOf(false) }
     var backupProgress by remember { mutableStateOf(0f) }
@@ -68,7 +70,7 @@ fun AutoBackupScreen(
         backupProgress = 0f
         statusMessage = ""
 
-        kotlinx.coroutines.GlobalScope.kotlinx.coroutines.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             try {
                 val df = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.getDefault())
                 val subfolderName = "Ciyato_Backup_${df.format(Date())}"

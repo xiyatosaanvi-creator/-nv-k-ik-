@@ -7,7 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("ciyato_settings")
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore("ciyato_settings")
 
 /**
  * Persists ALL user preferences locally via DataStore.

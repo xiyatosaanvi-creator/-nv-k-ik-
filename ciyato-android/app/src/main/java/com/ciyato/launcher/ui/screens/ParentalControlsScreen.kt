@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 /**
  * ParentalControlsScreen — Suggestion #86
@@ -115,7 +116,6 @@ fun ParentalControlsScreen(
                         AppCategory.SOCIAL to Icons.Default.People,
                         AppCategory.ENTERTAINMENT to Icons.Default.Movie,
                         AppCategory.GAMES to Icons.Default.SportsEsports,
-                        AppCategory.ADULT to Icons.Default.Block,
                         AppCategory.SHOPPING to Icons.Default.ShoppingCart,
                     )
 
