@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.view.WindowManager
+import androidx.compose.ui.platform.LocalView
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.FocusSessionManager
 import com.ciyato.launcher.data.InstalledApp
@@ -80,9 +82,24 @@ fun HomeScreen(
     val hapticEnabled     by viewModel.hapticFeedback.collectAsState()
     val showRecentLaunched by viewModel.showRecentlyLaunched.collectAsState()
     val privacyMode       by viewModel.privacyMode.collectAsState()
+    val screenshotBlocked by viewModel.screenshotBlocked.collectAsState()
     val focusSession      by FocusSessionManager.activeSession.collectAsState()
 
     val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+
+    // ── Anti-screenshot (Suggestion #79) ─────────────────────────────────────
+    DisposableEffect(screenshotBlocked) {
+        val window = (view.context as? android.app.Activity)?.window
+        if (screenshotBlocked) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
 
     // ── Live clock (Suggestion 4) ─────────────────────────────────────────────
     var liveClock by remember { mutableStateOf(currentTimeString()) }
