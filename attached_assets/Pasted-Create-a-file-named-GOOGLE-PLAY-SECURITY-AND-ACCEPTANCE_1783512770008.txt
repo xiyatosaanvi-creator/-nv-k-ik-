@@ -1,0 +1,139 @@
+Create a file named GOOGLE_PLAY_SECURITY_AND_ACCEPTANCE_PLAN.md.
+
+This file must be a comprehensive, implementation-aware internal document for Ciyato.
+
+Its purpose:
+Make Ciyato safer, more transparent, and more likely to satisfy Google Play review expectations.
+
+The file must explain:
+
+1. What Ciyato is
+- Android launcher + organizer
+- app library organization
+- smart categories
+- file/photo/search companion features
+- optional personalization
+- user-controlled experience
+
+2. Core trust principle
+- privacy first
+- minimum permissions
+- transparent behavior
+- no misleading claims
+- no silent uploads
+- no deceptive device-control language
+- user can switch back
+- user can disable features
+- no harmful behavior
+
+3. Permission strategy
+For every permission, document:
+- why it is needed
+- when it is requested
+- whether it is optional
+- how it is explained to the user
+- what happens if denied
+
+Include examples like:
+- launcher/home role
+- installed app visibility / query permissions
+- photo access
+- file access
+- notification access if ever used
+- location only if truly required for weather
+- accessibility permissions only if ever needed and only if policy-compliant
+
+4. Permissions we must avoid unless absolutely necessary
+Explain risky permissions and why they should not be used casually.
+
+5. Google Play compliance mindset
+Document principles such as:
+- least privilege
+- user benefit must be clear
+- permission use must match core functionality
+- permission rationale must be contextual
+- app must not appear deceptive
+- privacy policy must match actual behavior
+- data safety declarations must be accurate
+- onboarding must not overclaim
+- no vague “AI needs everything” logic
+
+6. Security architecture expectations
+Document:
+- no hardcoded secrets
+- secure local storage where needed
+- encrypted sensitive preferences where needed
+- account/session safety if login is added
+- no exporting private user data without consent
+- safe logging practices
+- debug logs removed/reduced in release builds
+- crash handling without leaking sensitive information
+
+7. Privacy architecture expectations
+Document:
+- on-device-first approach
+- file/photo scanning performed locally where possible
+- if cloud AI is added later, it must be opt-in and transparent
+- user data categories
+- what is stored locally
+- what is not collected
+- deletion and reset controls
+
+8. UX for trust
+Document:
+- onboarding must explain permissions clearly
+- setup flow must reassure the user
+- settings must show what features are active
+- users must be able to switch back from Ciyato launcher
+- users must be able to reset preferences
+- users must understand what “hidden apps” and “removed from display” mean
+- nothing should imply uninstalling when it only hides
+
+9. Risk register
+Create a section listing major review and product risks, for example:
+- over-requesting permissions
+- misleading permission wording
+- using dangerous permissions too early
+- claiming AI features that are not real
+- not providing switch-back safety
+- not making file/photo access optional
+- confusing users about app hiding vs uninstalling
+- unclear data handling
+- accessibility abuse risk
+- background monitoring risk
+For each risk include mitigation.
+
+10. Developer checklist
+Create a concrete checklist before release:
+- verify every permission usage
+- verify privacy policy matches app behavior
+- verify Data Safety form accuracy
+- verify onboarding language
+- verify switch-back path
+- verify no dead buttons
+- verify no mocked feature is mislabeled as real
+- verify all permission denial states work
+- verify no crashes on denied permissions
+- verify logs do not expose data
+- verify settings explain active features
+
+11. Recommended release policy
+Define staged release priorities:
+- Phase 1: launcher only
+- Phase 2: contextual file/photo features
+- Phase 3: smarter AI assistant
+- Phase 4: optional cloud-enhanced features
+Explain that this reduces review risk and improves product quality.
+
+12. Final section
+Add a section named:
+“WHAT CIYATO MUST DO TO FEEL SAFE TO GOOGLE AND SAFE TO USERS”
+with a final summary of:
+- transparent permission usage
+- beautiful but honest onboarding
+- strong security
+- clear user control
+- no fake claims
+- policy-friendly architecture
+
+The file should be practical, comprehensive, and written as an internal operating document for the Ciyato team.

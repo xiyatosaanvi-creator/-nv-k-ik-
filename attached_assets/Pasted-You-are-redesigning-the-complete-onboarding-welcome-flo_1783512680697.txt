@@ -1,0 +1,436 @@
+You are redesigning the complete onboarding / welcome flow of the Ciyato Android app.
+
+The current onboarding is not acceptable.
+
+Current problems:
+- visually weak
+- poor aesthetics
+- poor hierarchy
+- poor color balance
+- too empty
+- not premium enough
+- too little explanation
+- weak trust-building
+- weak UX
+- feels like a prototype instead of a polished consumer product
+- not emotionally compelling
+- does not feel like a premium launcher / AI phone organizer
+- not aligned with the luxury-quality reference images we are using for the rest of the app
+
+Your job is to completely redesign the onboarding flow so it feels:
+- premium
+- beautiful
+- cinematic but minimal
+- highly polished
+- informative
+- trustworthy
+- smooth
+- modern
+- safe
+- premium enough to feel like a product built by a world-class design team
+
+IMPORTANT:
+Do not redesign Ciyato away from its established identity.
+Preserve the Ciyato brand direction:
+- black / deep charcoal / midnight blue premium base
+- soft warm gold accent
+- elegant cream / soft white typography
+- refined premium minimalism
+- subtle glass / soft elevated card look
+- clean iconography
+- luxury Android aesthetic
+- no cheap gradients
+- no childish illustrations
+- no generic material template look
+- no ugly onboarding stock layouts
+- no overly bright colors
+
+====================================
+GOAL OF THE ONBOARDING
+====================================
+
+The onboarding must do all of the following:
+
+1. Explain what Ciyato is.
+2. Show why Ciyato is useful.
+3. Show how it organizes apps and files.
+4. Show that it is private and safe.
+5. Show that it does not uninstall or alter real apps without user control.
+6. Make the user excited to use it.
+7. Make the user trust it enough to grant launcher/home permissions later.
+8. Make the user understand that Ciyato changes the way the phone is organized and displayed.
+9. Make the user feel that this is a premium AI-powered organizer and launcher, not a risky tool.
+10. Make the setup flow feel smooth and elegant.
+
+====================================
+REDESIGN THE ONBOARDING COMPLETELY
+====================================
+
+Create a new onboarding flow with a premium structure.
+
+Recommended structure:
+- 4 to 6 onboarding screens maximum
+- each screen with a clear purpose
+- smooth page indicators
+- clean animation transitions
+- premium illustrations / UI preview cards / miniature launcher previews
+- subtle motion
+- one strong CTA per screen
+- clear final permission/setup step
+
+Suggested onboarding screens:
+
+SCREEN 1 — Brand Introduction / Premium Welcome
+Purpose:
+Introduce Ciyato as a premium AI Phone Organizer for Android.
+
+Screen content should communicate:
+- Ciyato logo prominently
+- refined title
+- one-line positioning
+- short emotional value proposition
+- premium product preview
+
+Suggested message direction:
+“Your phone, organized beautifully.”
+“Ciyato brings clarity, structure, and calm to your Android.”
+“One place for everything. Smarter categories. Faster access.”
+
+This screen should feel like a luxury product reveal.
+
+SCREEN 2 — Smart App Library / Launcher Power
+Purpose:
+Explain that Ciyato intelligently organizes installed apps into smart categories.
+
+Communicate:
+- apps are grouped automatically
+- categories are easier to use than a cluttered grid
+- duplicate shortcuts help access apps faster
+- users remain in control
+- Ciyato changes presentation and organization, not ownership of the apps
+
+Suggested message direction:
+“Your apps, organized automatically.”
+“Work, Social, Finance, Creativity, Utilities, and more — intelligently grouped for faster access.”
+“Find what you need instantly without hunting through clutter.”
+
+This screen should visually show miniature premium category cards, not just plain text.
+
+SCREEN 3 — Files / Photos / Search
+Purpose:
+Explain that Ciyato is more than a launcher.
+It also helps organize files, photos, and discovery.
+
+Communicate:
+- smart file collections
+- cleaner storage overview
+- AI-powered search across apps/files/photos
+- easier access to daily content
+- all presented beautifully
+
+Suggested message direction:
+“More than a launcher.”
+“Organize apps, files, photos, and everyday content in one elegant system.”
+“Search smarter. Access faster. Stay organized.”
+
+Include premium UI previews of:
+- files dashboard
+- AI search
+- photo collections
+
+SCREEN 4 — Privacy / Safety / On-Device Trust
+Purpose:
+Build trust and reduce fear.
+This screen is critical.
+
+Communicate:
+- privacy-first
+- transparent permission handling
+- no unnecessary data collection
+- on-device where possible
+- no surprise uploads
+- user remains in control
+- can switch back anytime
+- Ciyato does not uninstall apps
+- Ciyato only reorganizes how things appear and are accessed
+
+Suggested message direction:
+“Private by design.”
+“Your data stays yours.”
+“Ciyato only uses the permissions needed to organize your experience.”
+“No hidden tracking. No forced cloud upload. No ads-first behavior.”
+“Switch back anytime.”
+
+This screen must feel reassuring and professional.
+
+SCREEN 5 — Personalization / Theme / Control
+Purpose:
+Show that the app is customizable and beautiful.
+
+Communicate:
+- adjustable layout density
+- icon style
+- wallpapers
+- color accents
+- theme studio
+- hidden apps / removed from display
+- user-controlled layout changes
+
+Suggested message direction:
+“Make it yours.”
+“Customize the look, spacing, colors, layout, and app visibility.”
+“Beautiful by default. Flexible by design.”
+
+SCREEN 6 — Final Setup / Set as Home App
+Purpose:
+Ask user to proceed.
+Must be elegant, not abrupt.
+
+Communicate:
+- one final summary of benefits
+- explanation of what happens next
+- clear primary action
+- safe skip / not now option
+- clear reassurance
+
+Suggested message direction:
+“Ready to activate Ciyato?”
+“Set Ciyato as your home app to experience your new organized launcher.”
+“You can switch back at any time from Settings.”
+
+Primary CTA:
+“Set Ciyato as Home App”
+
+Secondary:
+“Explore first”
+or
+“Skip for now”
+
+====================================
+VISUAL DESIGN REQUIREMENTS
+====================================
+
+Redesign the onboarding visuals with these requirements:
+
+1. BACKGROUND
+- replace flat dark background with a richer premium surface
+- use very subtle layered gradient
+- preferred palette:
+  - deep black-blue / midnight charcoal base
+  - faint graphite and navy blending
+  - very subtle gold glow accents
+- no loud gradients
+- no flat dead black
+- no cheap neon
+
+Suggested color direction:
+- primary background: #0A0D14 / #0B0F12 / #10141C blend
+- elevated surfaces: #141A24 / #171E29 / #1A212D
+- gold accent: muted warm gold, sophisticated not yellow
+- cream/white text: warm white, not harsh pure white
+- secondary text: calm gray-beige or cool muted gray
+
+2. BRAND ACCENT
+Use the chosen Ciyato icon and brand mark.
+Logo area should feel refined and premium.
+Increase spacing and visual breathing room.
+
+3. TYPOGRAPHY
+- elegant, premium, clean
+- strong visual hierarchy
+- title large and beautifully spaced
+- subtitle refined
+- body text readable and informative
+- avoid too much text per screen
+- keep copy luxurious, direct, confident
+
+4. ILLUSTRATIONS / VISUALS
+Do not use generic illustration art.
+Instead use:
+- premium UI mock preview cards
+- mini previews of launcher categories
+- mini previews of files / search / photos
+- subtle icon circles / premium feature symbols
+- lightweight animated UI elements
+
+5. BUTTONS
+- CTA buttons must feel premium
+- larger radius
+- better shadow/elevation
+- gold-filled main CTA or rich dark-gold pill
+- strong contrast
+- smooth pressed state
+- secondary text buttons elegant and understated
+
+6. PAGE INDICATORS
+- current dots look cheap
+- redesign into subtle premium pills or dots
+- active state should glow softly or elongate
+- elegant animation
+
+7. ICONOGRAPHY
+- use refined premium line icons or filled icons matching the brand
+- consistent size and stroke
+- no random mismatched icons
+
+8. SPACING
+- current screens are too empty in the wrong places and too weak compositionally
+- improve vertical rhythm
+- improve content balance
+- more intentional whitespace
+- premium layout grid
+
+====================================
+MOTION / ANIMATION REQUIREMENTS
+====================================
+
+Add subtle premium motion:
+- logo fade/scale reveal on first screen
+- screen preview card parallax or soft slide
+- CTA fade/slide
+- page transitions smooth and elegant
+- no excessive bouncy or playful motion
+- animations should feel premium and restrained
+
+Examples of motion style:
+- fade + upward motion
+- slight scale-in
+- glow shift
+- page crossfade or horizontal slide with easing
+- micro-animation on icon or preview card
+
+Animation must never feel cheap.
+
+====================================
+COPY / CONTENT REQUIREMENTS
+====================================
+
+Rewrite all onboarding copy.
+Current copy is too weak and generic.
+
+New copy should be:
+- clearer
+- more premium
+- more helpful
+- more trust-building
+- more product-specific
+- more concise where needed
+- more informative where needed
+
+Do not use robotic wording.
+Do not use marketing fluff only.
+The copy must balance:
+- beauty
+- clarity
+- usefulness
+- trust
+
+For each onboarding screen, create:
+- headline
+- subheadline
+- short body copy
+- CTA label
+- optional secondary CTA label
+
+The copy should explain:
+- what Ciyato does
+- how it helps
+- what permissions are for
+- that user control remains intact
+- that it is safe
+- that switching back is possible
+
+====================================
+UX REQUIREMENTS
+====================================
+
+The onboarding must be much better in user experience.
+
+Implement:
+- Back / Next flow where appropriate
+- swipe support if appropriate
+- skip option where appropriate
+- progress indicator
+- easy exit
+- no forced confusion
+- no overwhelming text walls
+- helpful but elegant explanations
+
+The onboarding should also prepare later permission requests.
+
+For example:
+Before a sensitive permission screen later in the app, the user should already understand:
+- why app access is needed
+- why photo access might be needed
+- why file access might be needed
+- that the app only requests permissions when needed
+- that permission requests will be contextual
+
+====================================
+GOOGLE / TRUST / SAFETY POSITIONING
+====================================
+
+This onboarding must be designed in a way that helps the app appear safe, transparent, and review-friendly.
+
+Do not make misleading claims.
+Do not hide permission rationale.
+Do not imply invasive control.
+Do not say “full control over your phone.”
+Do not say anything that sounds dangerous or suspicious.
+
+Instead use transparent wording:
+- “Ciyato organizes your launcher and content view”
+- “You stay in control”
+- “You can switch back anytime”
+- “Permissions are requested only when needed”
+- “Your data stays yours”
+- “Nothing is uploaded without your action”
+- “Ciyato does not uninstall your apps”
+- “Ciyato changes how content is organized and displayed”
+
+====================================
+TECHNICAL IMPLEMENTATION REQUIREMENTS
+====================================
+
+Implement the redesign in real app code.
+Do not only make a mock.
+Do not only change text strings.
+Actually redesign the onboarding components.
+
+Tasks:
+1. Audit current onboarding files and identify where current screens are defined.
+2. Redesign the onboarding composables completely.
+3. Introduce better design tokens if needed:
+   - colors
+   - typography
+   - spacing
+   - card styles
+   - button styles
+4. Add new premium onboarding preview components.
+5. Replace current page content with richer feature-specific layouts.
+6. Ensure responsiveness across phone sizes.
+7. Ensure accessibility:
+   - text contrast
+   - touch target sizes
+   - screen reader labels if relevant
+8. Keep implementation clean and maintainable.
+
+====================================
+DELIVERABLES REQUIRED
+====================================
+
+After redesigning, provide:
+1. summary of what changed
+2. files changed
+3. color palette used
+4. final onboarding copy for each screen
+5. animation decisions
+6. screenshots or preview summary if possible
+7. what still needs improvement
+8. whether build succeeds
+9. whether onboarding flow is fully wired
+10. whether “Set as Home App” and “Skip for now” are correctly handled
+
+IMPORTANT FINAL INSTRUCTION:
+This onboarding must feel like a premium app built by a top-tier design team, not a starter template.
+Aim for the same level of sophistication and polish as the strongest Ciyato reference images.

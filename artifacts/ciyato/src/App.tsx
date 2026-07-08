@@ -13,12 +13,14 @@ import { CiyatoPhotos } from "./screens/CiyatoPhotos";
 import { AISearch } from "./screens/AISearch";
 import { BeforeAfter } from "./screens/BeforeAfter";
 import { Showcase } from "./screens/Showcase";
+import { Onboarding } from "./screens/Onboarding";
 
 export default function App() {
-  const [activeScreen, setActiveScreen] = useState("Home Dense");
+  const [activeScreen, setActiveScreen] = useState("Onboarding");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const screens = [
+    { id: "Onboarding", component: <Onboarding /> },
     { id: "Home Dense", component: <HomeDense /> },
     { id: "Home Spacious", component: <HomeSpacious /> },
     { id: "App Drawer", component: <AppDrawer /> },
