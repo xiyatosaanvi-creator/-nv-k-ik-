@@ -1,0 +1,177 @@
+Please review the attached screenshots and apply the following corrections very strictly.
+
+First, the onboarding screen is now good. Do not redesign it again. Keep the onboarding style, layout, black premium background, white/gold typography, and overall aesthetic direction. The only text change I want in onboarding is this line:
+
+“Your phone will be organized beautifully.”
+
+Also, the app name must always be spelled correctly as “Ciyato”, not “Ciyoto”. Fix this everywhere: onboarding, launcher, files, photos, theme studio, app label, strings, and any hardcoded UI text.
+
+Use the final app icon I provided. Do not use the temporary preview logo or random icons. The final selected icon must be used for the APK icon, onboarding logo, launcher branding, and internal app branding.
+
+The biggest issue right now is that the current screens are mixing up the launcher, app drawer, home screen, and internal app. These must be separated properly.
+
+Ciyato has two layers:
+
+1. LAUNCHER LAYER
+This is what the user sees when Ciyato is set as the Android Home app. It includes:
+- Home screen
+- App drawer / Smart App Library
+- category cards
+- dock
+- widgets/cards
+- search
+- hidden/removed apps
+- layout modes
+
+2. INTERNAL APP LAYER
+This is what opens when the user taps the Ciyato app icon. It includes:
+- Files
+- Photos
+- Search
+- Theme Studio
+- Settings
+- Tools
+- permissions
+- account/backup later
+
+Do not put the app drawer inside the internal app as if it is just a normal app screen. The app drawer is part of the launcher experience. It should appear when the user opens the app drawer from the launcher, swipes up, taps Apps, or uses the drawer button.
+
+The current “Home Dense” and “Home Spacious” previews should not be treated as separate lock screens or strange internal pages. These should become layout modes for the launcher/app drawer experience. The user should be able to choose between:
+- Dense launcher layout
+- Spacious launcher layout
+- Smart App Library style
+- possibly other layout modes later
+
+These should be selectable from Theme Studio or Launcher Settings.
+
+For the app drawer/category system:
+- Use real installed app icons, not fake preview letters/icons.
+- Do not use random placeholder icons like G, N, W, etc. unless those are actually the real app icons from the phone.
+- Load real Android app icons from PackageManager.
+- Every app icon must launch the real app.
+- Every category card must be clickable.
+- Every category must expand/open.
+- Every category must be editable.
+- Every category can be renamed.
+- Every category can be removed from visible layout.
+- Every category can be restored.
+- Apps can be moved between categories.
+- Apps can appear in multiple categories as duplicate smart shortcuts.
+- User can remove an app from the display without uninstalling it.
+- User can hide an app without uninstalling it.
+- Even system apps that cannot be uninstalled should be removable from the Ciyato display.
+- Hidden apps and removed apps must be stored in separate management areas.
+
+For app category previews:
+- Do not show “+2”, “+3”, etc. randomly.
+- Only show a “+N” tile if the category has more apps than can fit in the visible preview.
+- Example: if the category preview supports 6 items, show 5 app icons plus “+N” as the sixth tile only when there are more than 5 apps.
+- If there are only 3 apps, show only 3 apps. Do not show fake plus icons.
+- Tapping “+N” or the category card should expand the category.
+
+The current Files screen is conceptually wrong. The dashboard-like file overview that shows storage, recent files, categories, cleanup, etc. should belong more to the Home/Dashboard experience, not the actual Files browser.
+
+The actual Files tab should work like a real file manager:
+- show internal storage at the top
+- show folders
+- show real phone files
+- show real directories
+- let user tap folders and browse inside
+- show file type, size, date, and location where possible
+- allow opening files with proper Android intents
+- use proper Android storage/file access permission flow
+- do not fake files unless clearly marked as demo data
+- do not delete or clean anything without confirmation
+
+The Files dashboard/overview can still exist, but it should be a separate “Files Home” or “Smart Overview” screen. The actual file browser must be real and simple.
+
+For Smart Collections:
+- Apply the same premium aesthetic style as the onboarding.
+- Make it feel elegant, dark, gold-accented, and professional.
+- Smart collections should open when clicked.
+- They should not be static cards.
+- Use real data where permission allows.
+- If permission is not granted, show a beautiful permission explanation screen.
+
+For Photos:
+- Apply the onboarding aesthetic to the whole Photos section.
+- Current Photos preview uses very simple emoji-like icons and colored boxes. This does not feel premium enough.
+- Photos should feel like a premium gallery/collection experience.
+- Use real images where permission is granted.
+- If there is no permission, show a premium permission explanation screen.
+- Collections should open.
+- Search should work.
+- Bottom navigation should work.
+- Do not use cheap placeholder visuals unless only for empty/demo states.
+
+For Theme Studio:
+- Theme Studio direction is okay.
+- Keep it clean and premium.
+- Make sure every control actually works.
+- If a control says Icon Style, Color Accents, Dark Mode, Layout Density, Dock Style, etc., it must change the real launcher UI.
+- Do not add fake toggles.
+- Add layout mode controls for Dense, Spacious, and Smart App Library style.
+- Add reset options for current screen, launcher layout, and theme.
+
+For Home screen:
+There is currently a missing proper home concept. The user should have a real Ciyato Home launcher screen, not only app drawer layouts.
+
+The Home screen should include:
+- greeting
+- search
+- weather card
+- agenda/today card
+- smart categories
+- duplicate shortcuts
+- dock
+- edit button
+- settings/assistant button
+- optional file/storage overview card
+- optional smart suggestions
+
+The Files overview UI can be used as a Home/Dashboard-style card system, but the Files tab itself must become a real file browser.
+
+For overall visual style:
+Apply the onboarding aesthetic across the whole app:
+- premium black/dark background
+- soft gold accent
+- clean white/cream text
+- better spacing
+- stronger hierarchy
+- refined cards
+- no cheap placeholder icons
+- no random colors unless they are purposeful
+- no basic prototype look
+- no inconsistent UI styles between screens
+
+The app should look like one single premium product, not multiple disconnected prototypes.
+
+Every screen must be functional:
+- buttons must work
+- cards must open
+- menus must open
+- search must search
+- categories must expand
+- files must browse
+- photos must open
+- settings must persist
+- theme controls must affect UI
+- hidden/removed apps must persist
+- onboarding must not repeat after completion unless reset
+
+Final acceptance criteria:
+1. Onboarding stays mostly as-is, only text line updated.
+2. App name fixed to Ciyato everywhere.
+3. Final icon used everywhere.
+4. Real installed app icons are used.
+5. Dense/Spacious become layout modes, not separate fake home screens.
+6. App drawer is launcher UI, not just an internal app page.
+7. Categories expand and are editable/removable.
+8. Apps can be hidden/removed from display without uninstalling.
+9. Files tab becomes a real file browser.
+10. Files overview/dashboard is separated from actual file browsing.
+11. Smart Collections and Photos use the same premium onboarding aesthetic.
+12. All visible UI elements must either work, open something, be editable, or be removable.
+13. Theme Studio controls must actually affect the app.
+14. No fake icons, fake plus counts, or dead cards.
+15. Build the APK and confirm it runs.
