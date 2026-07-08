@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import type { ReactNode } from "react";
 
 // ─── Palette: pure black + white only ─────────────────────────────────────────
@@ -39,121 +39,119 @@ if (typeof document !== "undefined" && !document.getElementById("ob3-css")) {
   document.head.appendChild(s);
 }
 
-// ─── Faithful Ciyato Logo ──────────────────────────────────────────────────────
-// Reconstructed from the uploaded brand image:
-//   • Thick cream/ivory serif C with distinctive terminal flicks
-//   • Inner golden concentric arc
-//   • Central 4-pointed needle star with radial gold gradient
-const CiyatoMark = ({ size = 110 }: { size?: number }) => {
-  const cx = 100, cy = 100;   // center in 200×200 viewBox
-  const R  = 68;               // C arc radius
-  // Opening of the C faces right; arc spans ≈ 290° (from ~35° to ~325°)
-  const startAngle = 35  * Math.PI / 180;
-  const endAngle   = 325 * Math.PI / 180;
-  const x1 = cx + R * Math.cos(startAngle);
-  const y1 = cy - R * Math.sin(startAngle);
-  const x2 = cx + R * Math.cos(endAngle);
-  const y2 = cy - R * Math.sin(endAngle);
+// ─── Ciyato Brand Mark — faithful recreation of the uploaded logo ──────────────
+//
+//  Anatomy (from the image):
+//  1. Outer C — thick cream/ivory arc, ±34° opening on the right, butt-capped
+//     main arc + tapered spur arms with butt ends (sharp wedge, not rounded).
+//  2. Inner golden crescent — filled annular path (not a stroked line) so both
+//     ends taper naturally to points, matching the reference brand image.
+//  3. 4-pointed sparkle star — strongly concave curved sides via cubic Bézier
+//     with BOTH control points at centre; radial gradient cream-gold → amber.
+//
+//  All SVG definition IDs are scoped with useId() to prevent collisions when
+//  the component is mounted more than once in the same document.
+//
+const CiyatoMark = ({ size = 120 }: { size?: number }) => {
+  const uid = useId().replace(/:/g, "_");
+  const cx = 100, cy = 100;
 
-  // Terminal serif extension directions
-  const tx1 = cx + (R + 22) * Math.cos(startAngle - 0.35);
-  const ty1 = cy - (R + 22) * Math.sin(startAngle - 0.35);
-  const tx2 = cx + (R + 22) * Math.cos(endAngle   + 0.35);
-  const ty2 = cy - (R + 22) * Math.sin(endAngle   + 0.35);
+  // ── Outer C ──────────────────────────────────────────────────────────────────
+  const R   = 85;
+  const sw  = 22;
+  const ang = 34 * Math.PI / 180;
 
-  // Star — very elongated needle points
-  const SR = 29, sr = 5.5;
-  const star = [0, 90, 180, 270].flatMap((deg, i) => {
-    const a  = (deg  - 90) * Math.PI / 180;
-    const b1 = ((deg + 45) - 90) * Math.PI / 180;
-    const b2 = ((deg - 45) - 90) * Math.PI / 180;
-    const tip = `${cx + SR * Math.cos(a)},${cy + SR * Math.sin(a)}`;
-    if (i === 0) return ["M", tip, "L", `${cx + sr * Math.cos(b1)},${cy + sr * Math.sin(b1)}`];
-    const inner = `${cx + sr * Math.cos(b2)},${cy + sr * Math.sin(b2)}`;
-    return ["L", inner, "L", tip, "L", `${cx + sr * Math.cos(b1)},${cy + sr * Math.sin(b1)}`];
-  });
-  star.push("Z");
-  const starPath = star.join(" ").replace(/L ,/g, "L").replace(/M ,/g, "M ");
+  const tx  = cx + R * Math.cos(ang);
+  const ty1 = cy - R * Math.sin(ang);
+  const ty2 = cy + R * Math.sin(ang);
+
+  // Spur: radial extension from each terminal, then inward hook.
+  // butt strokeLinecap = sharp wedge end (no rounded blobs).
+  const sL = 22, hL = 11;
+  const sX  = tx  + sL * Math.cos(ang);
+  const sY1 = ty1 - sL * Math.sin(ang);
+  const sY2 = ty2 + sL * Math.sin(ang);
+  const hX1 = sX  - hL * Math.sin(ang);
+  const hY1 = sY1 - hL * Math.cos(ang);
+  const hX2 = sX  - hL * Math.sin(ang);
+  const hY2 = sY2 + hL * Math.cos(ang);
+
+  // ── Inner golden crescent (filled annular path — tapers to sharp points) ─────
+  // Outer and inner arcs share the same angular range; the endpoints of each arc
+  // pair land at the same angular position so the shape closes to a sharp point.
+  const Ro = 63.5, Ri = 59.5;
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const oSx = cx + Ro * ca, oSy = cy - Ro * sa;
+  const oEx = cx + Ro * ca, oEy = cy + Ro * sa;
+  const iSx = cx + Ri * ca, iSy = cy - Ri * sa;
+  const iEx = cx + Ri * ca, iEy = cy + Ri * sa;
+  // Outer arc goes long way CCW (left-side route); inner arc reverses (CW).
+  const crescentD = [
+    `M ${oSx} ${oSy}`,
+    `A ${Ro} ${Ro} 0 1 0 ${oEx} ${oEy}`,
+    `L ${iEx} ${iEy}`,
+    `A ${Ri} ${Ri} 0 1 1 ${iSx} ${iSy}`,
+    `Z`,
+  ].join(" ");
+
+  // ── 4-pointed sparkle star ───────────────────────────────────────────────────
+  const OR = 48;
+  const starD = [
+    `M ${cx}      ${cy - OR}`,
+    `C ${cx} ${cy} ${cx} ${cy} ${cx + OR} ${cy}`,
+    `C ${cx} ${cy} ${cx} ${cy} ${cx}      ${cy + OR}`,
+    `C ${cx} ${cy} ${cx} ${cy} ${cx - OR} ${cy}`,
+    `C ${cx} ${cy} ${cx} ${cy} ${cx}      ${cy - OR}`,
+    "Z",
+  ].join(" ");
+
+  const gStar = `${uid}st`;
+  const gArc  = `${uid}ar`;
+  const fGlow = `${uid}gl`;
 
   return (
-    <svg
-      width={size} height={size}
-      viewBox="0 0 200 200"
-      fill="none"
-      style={{ display: "block" }}
-    >
+    <svg width={size} height={size} viewBox="0 0 200 200" fill="none" style={{ display:"block" }}>
       <defs>
-        <radialGradient id="ob3-star" cx="50%" cy="38%" r="62%">
-          <stop offset="0%"  stopColor="#FFF8D0" />
-          <stop offset="38%" stopColor={C.lGold} />
-          <stop offset="100%" stopColor={C.lGoldDim} />
+        <radialGradient id={gStar} cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#FFFAE0" />
+          <stop offset="18%"  stopColor="#F2D060" />
+          <stop offset="55%"  stopColor="#C8A030" />
+          <stop offset="100%" stopColor="#6A3E08" />
         </radialGradient>
-        <radialGradient id="ob3-ring" cx="40%" cy="38%" r="70%">
-          <stop offset="0%"  stopColor={C.lGold}    stopOpacity="0.9"/>
-          <stop offset="60%" stopColor={C.lGold}    stopOpacity="0.4"/>
-          <stop offset="100%" stopColor={C.lGoldDim} stopOpacity="0.2"/>
-        </radialGradient>
-        <filter id="ob3-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="3" result="b"/>
-          <feComposite in="SourceGraphic" in2="b" operator="over"/>
-        </filter>
-        <filter id="ob3-sglow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4" result="b"/>
-          <feComposite in="SourceGraphic" in2="b" operator="over"/>
+        <linearGradient id={gArc} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stopColor="#D4A830" stopOpacity="0.95"/>
+          <stop offset="45%"  stopColor="#B88C18" stopOpacity="0.72"/>
+          <stop offset="100%" stopColor="#7A5010" stopOpacity="0.28"/>
+        </linearGradient>
+        <filter id={fGlow} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
         </filter>
       </defs>
 
-      {/* Outer decorative ring — hair-thin */}
-      <circle cx={cx} cy={cy} r="94" stroke="rgba(255,255,255,0.04)" strokeWidth="0.75" />
-      <circle cx={cx} cy={cy} r="82" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"  />
-
-      {/* ── The C letterform ── */}
-      {/* Main arc — thick, cream */}
+      {/* ── 1. Outer C ── */}
       <path
-        d={`M ${x1} ${y1} A ${R} ${R} 0 1 0 ${x2} ${y2}`}
-        stroke={C.lCream}
-        strokeWidth="17"
-        strokeLinecap="butt"
+        d={`M ${tx} ${ty1} A ${R} ${R} 0 1 0 ${tx} ${ty2}`}
+        stroke="#F2E8D0" strokeWidth={sw} strokeLinecap="butt" fill="none"
       />
-      {/* Upper terminal serif flick — thins out */}
-      <path d={`M ${x1} ${y1} Q ${(x1+tx1)/2} ${(y1+ty1)/2} ${tx1} ${ty1}`}
-        stroke={C.lCream} strokeWidth="11" strokeLinecap="round" />
-      <path d={`M ${tx1} ${ty1} L ${tx1 + 8} ${ty1 - 4}`}
-        stroke={C.lCream} strokeWidth="5" strokeLinecap="round" />
-      {/* Lower terminal serif flick */}
-      <path d={`M ${x2} ${y2} Q ${(x2+tx2)/2} ${(y2+ty2)/2} ${tx2} ${ty2}`}
-        stroke={C.lCream} strokeWidth="11" strokeLinecap="round" />
-      <path d={`M ${tx2} ${ty2} L ${tx2 + 8} ${ty2 + 4}`}
-        stroke={C.lCream} strokeWidth="5" strokeLinecap="round" />
+      <line x1={tx}  y1={ty1} x2={sX}  y2={sY1}
+            stroke="#F2E8D0" strokeWidth={sw * 0.78} strokeLinecap="butt"/>
+      <line x1={sX}  y1={sY1} x2={hX1} y2={hY1}
+            stroke="#F2E8D0" strokeWidth={sw * 0.36} strokeLinecap="butt"/>
+      <line x1={tx}  y1={ty2} x2={sX}  y2={sY2}
+            stroke="#F2E8D0" strokeWidth={sw * 0.78} strokeLinecap="butt"/>
+      <line x1={sX}  y1={sY2} x2={hX2} y2={hY2}
+            stroke="#F2E8D0" strokeWidth={sw * 0.36} strokeLinecap="butt"/>
 
-      {/* ── Inner golden concentric ring ── */}
-      <circle
-        cx={cx} cy={cy} r="46"
-        stroke="url(#ob3-ring)"
-        strokeWidth="1.8"
-        strokeDasharray="2 4"
-        filter="url(#ob3-glow)"
-      />
-      <circle
-        cx={cx} cy={cy} r="40"
-        stroke={C.lGold}
-        strokeWidth="0.75"
-        strokeOpacity="0.25"
-      />
+      {/* ── 2. Inner golden crescent ── */}
+      <path d={crescentD} fill={`url(#${gArc})`} />
 
-      {/* Subtle crosshair — barely visible */}
-      <line x1={cx} y1={cy-40} x2={cx} y2={cy+40} stroke={C.lGold} strokeWidth="0.5" strokeOpacity="0.18"/>
-      <line x1={cx-40} y1={cy} x2={cx+40} y2={cy} stroke={C.lGold} strokeWidth="0.5" strokeOpacity="0.18"/>
-
-      {/* ── 4-pointed needle star ── */}
-      {/* Soft glow layer underneath */}
-      <path d={starPath} fill={C.lGold} opacity="0.3" filter="url(#ob3-sglow)"
-        transform={`scale(1.35) translate(${cx*(1-1/1.35)} ${cy*(1-1/1.35)})`}
-      />
-      {/* Main star */}
-      <path d={starPath} fill="url(#ob3-star)" filter="url(#ob3-glow)" />
-      {/* Center bright point */}
-      <circle cx={cx} cy={cy} r="2.8" fill="rgba(255,248,200,0.95)" />
+      {/* ── 3. Sparkle star ── */}
+      <path d={starD} fill="#C8A030" opacity="0.25"
+            filter={`url(#${fGlow})`}
+            transform={`scale(1.45) translate(${cx*(1-1/1.45)} ${cy*(1-1/1.45)})`}/>
+      <path d={starD} fill={`url(#${gStar})`} />
+      <circle cx={cx} cy={cy} r="3.5" fill="rgba(255,252,220,0.94)" />
     </svg>
   );
 };
