@@ -15,7 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.data.LocationHelper
-import com.ciyato.launcher.services.CiyatoWeatherTileService
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoBg
 import com.ciyato.launcher.ui.theme.CiyatoTheme
@@ -43,7 +42,18 @@ class LauncherHomeActivity : ComponentActivity() {
         )
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = Unit  // Standard launcher: back does nothing on home
+            override fun handleOnBackPressed() {
+                val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                    addCategory(android.content.Intent.CATEGORY_HOME)
+                }
+                val resolveInfo = packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                val isDefault = resolveInfo?.activityInfo?.packageName == packageName
+                if (isDefault) {
+                    // Standard launcher: back does nothing on home screen
+                } else {
+                    finish()
+                }
+            }
         })
 
         setContent {
@@ -53,22 +63,11 @@ class LauncherHomeActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Check the weather-tile refresh signal on every resume.
-     * [CiyatoWeatherTileService] writes a timestamp to SharedPreferences when the user taps
-     * the Quick Settings tile; we consume (and clear) it here so weather re-fetches once.
-     */
     override fun onResume() {
         super.onResume()
-        val prefs = getSharedPreferences(CiyatoWeatherTileService.PREFS_NAME, MODE_PRIVATE)
-        val requestedAt = prefs.getLong(CiyatoWeatherTileService.KEY_REFRESH_REQUESTED_AT, 0L)
-        if (requestedAt > 0L) {
-            prefs.edit().putLong(CiyatoWeatherTileService.KEY_REFRESH_REQUESTED_AT, 0L).apply()
-            if (LocationHelper.hasPermission(this)) {
-                viewModel.forceRefreshWeather(this)
-            }
-        }
+        viewModel.refreshApps()
     }
+
 }
 
 // ── Navigation sealed class ────────────────────────────────────────────────────
@@ -77,12 +76,18 @@ private sealed class LauncherDest {
     object Home               : LauncherDest()
     object Drawer             : LauncherDest()
     object Settings           : LauncherDest()
+    object Search             : LauncherDest()
+    object ThemeStudio        : LauncherDest()
+    object HiddenApps         : LauncherDest()
+    object RemovedApps        : LauncherDest()
     data class CategoryDetail(val category: AppCategory) : LauncherDest()
     object DuplicateShortcuts : LauncherDest()
     object WeatherDetail      : LauncherDest()
     object Agenda             : LauncherDest()
     object FocusSession       : LauncherDest()   // Suggestion 75
     object PermissionAudit    : LauncherDest()   // Suggestion 139
+    object AIOptimizer        : LauncherDest()
+    object Files              : LauncherDest()
 }
 
 // ── Root composable ───────────────────────────────────────────────────────────
@@ -91,6 +96,16 @@ private sealed class LauncherDest {
 private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeActivity) {
     val context = LocalContext.current
     var dest by remember { mutableStateOf<LauncherDest>(LauncherDest.Home) }
+    val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
+
+    androidx.activity.compose.BackHandler(enabled = dest != LauncherDest.Home) {
+        dest = when (dest) {
+            is LauncherDest.PermissionAudit,
+            is LauncherDest.HiddenApps,
+            is LauncherDest.RemovedApps -> LauncherDest.Settings
+            else -> LauncherDest.Home
+        }
+    }
 
     // Auto-fetch weather on startup if already permitted
     LaunchedEffect(Unit) {
@@ -113,11 +128,10 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
             viewModel       = viewModel,
             onOpenDrawer    = { dest = LauncherDest.Drawer },
             onOpenSettings  = { dest = LauncherDest.Settings },
-            onCategoryTap   = { cat -> dest = LauncherDest.CategoryDetail(cat) },
-            onWeatherTap    = { dest = LauncherDest.WeatherDetail },
-            onAgendaTap     = { dest = LauncherDest.Agenda },
-            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
-            modifier        = Modifier.fillMaxSize().background(CiyatoBg),
+            onOpenSearch    = { dest = LauncherDest.Search },
+            onOpenTheme     = { dest = LauncherDest.ThemeStudio },
+            onOpenAIOptimizer = { dest = LauncherDest.AIOptimizer },
+            onOpenFiles     = { dest = LauncherDest.Files }
         )
 
         is LauncherDest.Drawer -> AppDrawerScreen(
@@ -131,6 +145,35 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
             onBack                     = { dest = LauncherDest.Home },
             onNavigateToPermissionAudit= { dest = LauncherDest.PermissionAudit },
             onNavigateToFocus          = { dest = LauncherDest.FocusSession },
+            onNavigateToTheme          = { dest = LauncherDest.ThemeStudio },
+            onNavigateToHiddenApps     = { dest = LauncherDest.HiddenApps },
+            onNavigateToRemovedApps    = { dest = LauncherDest.RemovedApps },
+        )
+
+        is LauncherDest.Search -> SearchScreen(
+            viewModel = viewModel,
+            onBack = {
+                viewModel.setSearch("")
+                dest = LauncherDest.Home
+            },
+            onCategoryFilter = { category -> dest = LauncherDest.CategoryDetail(category) },
+        )
+
+        is LauncherDest.ThemeStudio -> ThemeStudioScreen(
+            viewModel = viewModel,
+            onBack = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.HiddenApps -> AppVisibilityScreen(
+            mode = AppVisibilityMode.Hidden,
+            viewModel = viewModel,
+            onBack = { dest = LauncherDest.Settings },
+        )
+
+        is LauncherDest.RemovedApps -> AppVisibilityScreen(
+            mode = AppVisibilityMode.Removed,
+            viewModel = viewModel,
+            onBack = { dest = LauncherDest.Settings },
         )
 
         is LauncherDest.CategoryDetail -> CategoryDetailScreen(
@@ -161,6 +204,15 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
         is LauncherDest.PermissionAudit -> PermissionAuditScreen( // Suggestion 139
             viewModel = viewModel,
             onBack    = { dest = LauncherDest.Home },
+        )
+
+        is LauncherDest.AIOptimizer -> AIOptimizerScreen(
+            viewModel = viewModel,
+            onBack    = { dest = LauncherDest.Home }
+        )
+
+        is LauncherDest.Files -> FilesScreen(
+            onBack    = { dest = LauncherDest.Home }
         )
     }
 }

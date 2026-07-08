@@ -54,14 +54,22 @@ fun FileCollectionDetailScreen(
     collectionTitle: String,
     collectionIcon: ImageVector,
     collectionColor: Color,
+    initialFolderUri: Uri? = null,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var selectedFolderUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedFolderUri by remember(initialFolderUri) { mutableStateOf(initialFolderUri) }
     var files by remember { mutableStateOf<List<CiyatoFile>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember(initialFolderUri) { mutableStateOf(initialFolderUri != null) }
+
+    LaunchedEffect(initialFolderUri) {
+        if (initialFolderUri != null) {
+            files = loadFilesFromUri(context, initialFolderUri, collectionTitle)
+            isLoading = false
+        }
+    }
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -74,7 +82,7 @@ fun FileCollectionDetailScreen(
             selectedFolderUri = uri
             isLoading = true
             scope.launch {
-                files = loadFilesFromUri(context, uri)
+                files = loadFilesFromUri(context, uri, collectionTitle)
                 isLoading = false
             }
         }
@@ -260,7 +268,7 @@ private fun SafExplainerCard() {
             Text("Privacy first", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
         }
         Text(
-            "Ciyato uses Android's built-in folder picker. You control exactly which folder is shared. Access is revoked when you leave this screen or change folders.",
+            "Ciyato uses Android's built-in folder picker. You control exactly which folder is shared and can revoke that access from Android settings.",
             color = CiyatoMuted,
             fontSize = 12.sp,
             lineHeight = 18.sp,
@@ -322,7 +330,11 @@ private fun formatFileSize(bytes: Long): String {
     }
 }
 
-private suspend fun loadFilesFromUri(context: android.content.Context, treeUri: Uri): List<CiyatoFile> {
+private suspend fun loadFilesFromUri(
+    context: android.content.Context,
+    treeUri: Uri,
+    collectionTitle: String,
+): List<CiyatoFile> {
     return withContext(Dispatchers.IO) {
         val files = mutableListOf<CiyatoFile>()
         try {
@@ -343,6 +355,40 @@ private suspend fun loadFilesFromUri(context: android.content.Context, treeUri: 
         } catch (e: Exception) {
             // Silently return empty on access error
         }
-        files.sortedByDescending { it.lastModified }
+        files
+            .filter { matchesCollection(it, collectionTitle) }
+            .sortedByDescending { it.lastModified }
+    }
+}
+
+private fun matchesCollection(file: CiyatoFile, title: String): Boolean {
+    val name = file.name.lowercase()
+    val mime = file.mimeType.orEmpty().lowercase()
+    val isDocument = mime.contains("document") || mime.contains("word") ||
+        mime.contains("spreadsheet") || mime.contains("excel") ||
+        mime.contains("presentation") || mime == "application/pdf" ||
+        name.endsWith(".doc") || name.endsWith(".docx") || name.endsWith(".xls") ||
+        name.endsWith(".xlsx") || name.endsWith(".ppt") || name.endsWith(".pptx")
+
+    return when (title) {
+        "Screenshots" -> name.contains("screenshot") || name.contains("screen_shot")
+        "Documents" -> isDocument || mime.startsWith("text/")
+        "Photos" -> mime.startsWith("image/")
+        "WhatsApp", "WhatsApp Media" -> name.contains("whatsapp") || name.startsWith("wa")
+        "Videos" -> mime.startsWith("video/")
+        "APKs" -> mime == "application/vnd.android.package-archive" || name.endsWith(".apk")
+        "Work Files" -> isDocument
+        "Receipts" -> listOf("receipt", "invoice", "bill", "payment").any(name::contains)
+        "PDFs" -> mime == "application/pdf" || name.endsWith(".pdf")
+        "Contracts" -> listOf("contract", "agreement", "nda").any(name::contains)
+        "Screen Recordings" -> mime.startsWith("video/") &&
+            listOf("screen", "recording", "record").any(name::contains)
+        "Design Assets" -> mime.startsWith("image/") ||
+            listOf(".psd", ".ai", ".fig", ".sketch", ".xd").any(name::endsWith)
+        "Travel" -> listOf("travel", "flight", "hotel", "ticket", "trip", "itinerary").any(name::contains)
+        "College" -> listOf("college", "class", "lecture", "assignment", "semester", "notes").any(name::contains)
+        "Recently Added" -> file.lastModified > 0L &&
+            file.lastModified >= System.currentTimeMillis() - 7L * 24L * 60L * 60L * 1000L
+        else -> true
     }
 }

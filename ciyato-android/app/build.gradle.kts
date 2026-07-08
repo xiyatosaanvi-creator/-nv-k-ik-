@@ -48,14 +48,6 @@ android {
         }
     }
 
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "Ciyato.apk"
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -143,8 +135,8 @@ dependencies {
 tasks.whenTaskAdded {
     if (name == "assembleDebug") {
         doLast {
-            val apkSrc = file("${layout.buildDirectory.get().asFile}/outputs/apk/debug/Ciyato.apk")
-            val apkDst = file("${rootDir}/Ciyato.apk")
+            val apkSrc = file("${layout.buildDirectory.get().asFile}/outputs/apk/debug/app-debug.apk")
+            val apkDst = file("${rootDir}/Ciyoto.apk")
             if (apkSrc.exists()) { apkSrc.copyTo(apkDst, overwrite = true); println("✅ APK ready: ${apkDst.absolutePath}") }
         }
     }

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -61,14 +62,10 @@ fun RecentFilesScreen(
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            TopAppBar(
-                title = { Text("Recent Files", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = CiyatoWhite)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+            CiyatoTopBar(
+                title = "Recent Files",
+                subtitle = "Recently modified device media",
+                onBack = onBack
             )
         }
     ) { padding ->

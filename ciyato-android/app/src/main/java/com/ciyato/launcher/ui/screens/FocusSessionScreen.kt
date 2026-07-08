@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.FocusSessionManager
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
@@ -58,14 +59,10 @@ fun FocusSessionScreen(
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            TopAppBar(
-                title = { Text("Focus", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = CiyatoSec)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+            CiyatoTopBar(
+                title = "Focus",
+                subtitle = "Minimize distractions",
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -102,17 +99,12 @@ fun FocusSessionScreen(
                     )
                 }
                 item {
-                    Button(
+                    CiyatoButton(
+                        text = "Start $focusDuration-min Focus",
                         onClick = viewModel::startFocusSession,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold),
-                    ) {
-                        Icon(Icons.Default.Timer, null, tint = CiyatoBg, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Start $focusDuration-min Focus", color = CiyatoBg,
-                            fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
+                        leadingIcon = Icons.Default.Timer,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -131,11 +123,7 @@ private fun ActiveSessionCard(
     val bgColor   = CiyatoBgEl
 
     // Pulse animation
-    val pulse by rememberInfiniteTransition(label = "pulse").animateFloat(
-        initialValue = 1f, targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(tween(1_200), RepeatMode.Reverse),
-        label = "pulse",
-    )
+    val pulse by rememberPulse(1f, 1.04f)
 
     Column(
         modifier = Modifier

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ciyato</string>
+    <string name="app_name">Ciyoto</string>
     <string name="app_description">AI Phone Organizer for Android</string>
-    <string name="onboarding_set_home">Set Ciyato as Home App</string>
+    <string name="onboarding_set_home">Set Ciyoto as Home App</string>
     <string name="onboarding_skip">Skip for now</string>
     <string name="switch_back_home">Switch back to system launcher</string>
     <string name="open_home_settings">Open Home app settings</string>
-    <string name="uninstall_guidance">To uninstall safely, first switch to another Home app, then uninstall Ciyato from App Info.</string>
+    <string name="uninstall_guidance">To uninstall safely, first switch to another Home app, then uninstall Ciyoto from App Info.</string>
     <string name="could_not_open">Could not open app</string>
-    <string name="privacy_statement">Your data stays on your device. Ciyato organizes locally. Nothing is uploaded.</string>
-    <string name="photos_beta_notice">Photos feature: real media permission requested only when you enable it.</string>
+    <string name="privacy_statement">Your data stays on your device. Ciyoto organizes locally. Nothing is uploaded.</string>
+    <string name="photos_beta_notice">Photos uses Android Photo Picker. Ciyoto only sees media you explicitly select.</string>
 
     <!-- App Shortcuts -->
     <string name="shortcut_focus_short">Focus Mode</string>

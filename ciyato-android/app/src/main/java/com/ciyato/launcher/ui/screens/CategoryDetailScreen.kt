@@ -28,7 +28,11 @@ import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.components.RealAppIcon
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import com.ciyato.launcher.ui.components.AppContextMenu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +42,14 @@ fun CategoryDetailScreen(
     onBack: () -> Unit,
 ) {
     val allApps by viewModel.apps.collectAsState()
+    val categoryRenames by viewModel.categoryRenames.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
+    var showManageDialog by remember { mutableStateOf(false) }
+    var renameValue by remember(category) { mutableStateOf(viewModel.getCategoryDisplayName(category)) }
+    val categoryDisplayName = remember(category, categoryRenames) {
+        viewModel.getCategoryDisplayName(category)
+    }
 
     val categoryApps = remember(allApps, category) {
         viewModel.byCategory(category)
@@ -55,37 +66,19 @@ fun CategoryDetailScreen(
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            category.displayName,
-                            color = CiyatoWhite,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                        )
-                        Text(
-                            "${categoryApps.size} apps",
-                            color = CiyatoGold,
-                            fontSize = 12.sp,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = CiyatoSec,
-                        )
-                    }
-                },
+            CiyatoTopBar(
+                title = categoryDisplayName,
+                subtitle = "${categoryApps.size} apps",
+                onBack = onBack,
+                subtitleColor = CiyatoGold,
                 actions = {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = {
+                        renameValue = categoryDisplayName
+                        showManageDialog = true
+                    }) {
                         Icon(Icons.Default.Tune, contentDescription = "Manage", tint = CiyatoSec)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+                }
             )
         }
     ) { padding ->
@@ -120,7 +113,11 @@ fun CategoryDetailScreen(
 
                 // Category badge / hero
                 item {
-                    CategoryHeroBadge(category = category, appCount = categoryApps.size)
+                    CategoryHeroBadge(
+                        category = category,
+                        displayName = categoryDisplayName,
+                        appCount = categoryApps.size,
+                    )
                 }
 
                 // Apps header
@@ -157,6 +154,7 @@ fun CategoryDetailScreen(
                                 AppTile(
                                     app = app,
                                     onTap = { viewModel.launchApp(app) },
+                                    onLongTap = { contextMenuApp = app },
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -167,9 +165,55 @@ fun CategoryDetailScreen(
 
                 // Manage section
                 item {
-                    ManageCategoryCard(category = category)
+                    ManageCategoryCard(displayName = categoryDisplayName)
                 }
             }
+        }
+
+        if (contextMenuApp != null) {
+            AppContextMenu(
+                app = contextMenuApp!!,
+                viewModel = viewModel,
+                onDismiss = { contextMenuApp = null }
+            )
+        }
+
+        if (showManageDialog) {
+            AlertDialog(
+                onDismissRequest = { showManageDialog = false },
+                containerColor = CiyatoBgEl,
+                title = { Text("Rename category", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    OutlinedTextField(
+                        value = renameValue,
+                        onValueChange = { renameValue = it.take(24) },
+                        singleLine = true,
+                        label = { Text("Category name") },
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.setCategoryRename(category, renameValue.trim())
+                            showManageDialog = false
+                        },
+                        enabled = renameValue.isNotBlank(),
+                    ) {
+                        Text("Save", color = CiyatoGold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.setCategoryRename(category, "")
+                            renameValue = category.displayName
+                            showManageDialog = false
+                        },
+                    ) {
+                        Text("Reset", color = CiyatoSec)
+                    }
+                },
+            )
         }
     }
 }
@@ -212,7 +256,7 @@ private fun CategorySearchBar(
 }
 
 @Composable
-private fun CategoryHeroBadge(category: AppCategory, appCount: Int) {
+private fun CategoryHeroBadge(category: AppCategory, displayName: String, appCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -231,28 +275,35 @@ private fun CategoryHeroBadge(category: AppCategory, appCount: Int) {
                 .background(CiyatoGold.copy(alpha = 0.18f)),
         ) {
             Text(
-                text = category.emoji,
-                fontSize = 22.sp,
+                text = displayName.take(1).uppercase(),
+                color = CiyatoGold,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(category.displayName, color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(displayName, color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text("$appCount installed apps in this category", color = CiyatoSec, fontSize = 12.sp)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppTile(
     app: InstalledApp,
     onTap: () -> Unit,
+    onLongTap: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
-            .clickable(onClick = onTap)
+            .combinedClickable(
+                onClick = onTap,
+                onLongClick = onLongTap
+            )
             .padding(vertical = 10.dp, horizontal = 4.dp),
     ) {
         RealAppIcon(drawable = app.icon, size = 54.dp, cornerRadius = 14.dp)
@@ -268,7 +319,7 @@ private fun AppTile(
 }
 
 @Composable
-private fun ManageCategoryCard(category: AppCategory) {
+private fun ManageCategoryCard(displayName: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -280,26 +331,10 @@ private fun ManageCategoryCard(category: AppCategory) {
     ) {
         Text("About this category", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         Text(
-            "${category.displayName} apps are automatically identified and grouped by Ciyato — entirely on your device with no cloud processing.",
+            "$displayName apps are identified locally from package metadata and your overrides. Long-press an app to change its category, hide it, or remove it from Ciyato.",
             color = CiyatoMuted,
             fontSize = 12.sp,
             lineHeight = 18.sp,
         )
     }
 }
-
-private val AppCategory.emoji: String
-    get() = when (this) {
-        AppCategory.WORK         -> "💼"
-        AppCategory.SOCIAL       -> "💬"
-        AppCategory.FINANCE      -> "💰"
-        AppCategory.CREATIVITY   -> "🎨"
-        AppCategory.UTILITIES    -> "🔧"
-        AppCategory.DAILY        -> "☀️"
-        AppCategory.ENTERTAINMENT-> "🎬"
-        AppCategory.TRAVEL       -> "✈️"
-        AppCategory.PRODUCTIVITY -> "📋"
-        AppCategory.COMMUNICATION-> "📞"
-        AppCategory.RECENTLY_ADDED -> "🆕"
-        else                     -> "📱"
-    }

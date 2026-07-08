@@ -19,88 +19,174 @@ import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.theme.*
 
 /**
- * PASS 1-2-3 — Premium Smart Category Card.
+ * Premium Smart Category Card (Folder visual design).
  *
- * Reference: the generated Ciyato Home screen image.
- * Each card shows:
- *   - Category name (bold, white)
- *   - App count below it (muted, small)
- *   - Row of 3–4 real app icons (larger)
- *   - +N overflow badge if more than 3 icons
- *
- * Corner radius: 20dp (premium, not sharp, not too round).
- * Background: CiyatoBgEl (#12171B) with subtle border.
- * Icons: real installed app icons, 40dp in dense, 46dp in spacious.
+ * Visual layout:
+ * - A rounded card representing the folder / box containing miniature app icons (no click intercept).
+ * - The category name and app count are displayed below this card.
+ * - Supports three sizes: "small", "medium", "large".
  */
 @Composable
 fun SmartCategoryCard(
     category: AppCategory,
+    displayName: String,
     apps: List<InstalledApp>,
     onTap: () -> Unit,
-    onAppTap: (InstalledApp) -> Unit,
     modifier: Modifier = Modifier,
-    iconSize: Dp = 40.dp,
+    tileSize: String = "medium", // "small" | "medium" | "large"
+    isEditMode: Boolean = false,
+    onMoveLeft: (() -> Unit)? = null,
+    onMoveRight: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onToggleSize: (() -> Unit)? = null,
 ) {
-    // Show 3 icons max in the card — cleaner, matches reference (3 icons + "+N")
-    val visible  = apps.take(3)
-    val overflow = (apps.size - visible.size).coerceAtLeast(0)
+    val boxHeight: Dp = when (tileSize) {
+        "small" -> 76.dp
+        "large" -> 136.dp
+        else -> 100.dp // medium
+    }
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(CiyatoBgEl)
-            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp))
-            .clickable(onClick = onTap)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+    val iconMiniSize: Dp = when (tileSize) {
+        "small" -> 20.dp
+        "large" -> 28.dp
+        else -> 24.dp // medium
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.padding(vertical = 4.dp)
     ) {
-        Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight()) {
-            // Category name + count
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = category.displayName,
-                    color = CiyatoWhite,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    lineHeight = 17.sp,
+        // Folder / Box container
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(boxHeight)
+                .clip(RoundedCornerShape(20.dp))
+                .background(CiyatoBgEl)
+                .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp))
+                .clickable(onClick = onTap)
+                .padding(if (tileSize == "small") 8.dp else 12.dp)
+        ) {
+            // Draw a grid of miniature app icons
+            val maxVisible = when (tileSize) {
+                "large" -> 6
+                else -> 4
+            }
+            val visibleApps = apps.take(maxVisible)
+
+            if (visibleApps.isEmpty()) {
+                // Empty state indicator
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(CiyatoMuted.copy(alpha = 0.2f))
+                        .align(Alignment.Center)
                 )
-                Text(
-                    text = "${apps.size} apps",
-                    color = CiyatoMuted,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                )
+            } else {
+                val cols = 2
+                val rows = (visibleApps.size + cols - 1) / cols
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    for (r in 0 until rows) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            for (c in 0 until cols) {
+                                val idx = r * cols + c
+                                if (idx < visibleApps.size) {
+                                    val app = visibleApps[idx]
+                                    RealAppIcon(
+                                        drawable = app.icon,
+                                        size = iconMiniSize,
+                                        cornerRadius = 6.dp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            // App icons row + overflow
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                visible.forEach { app ->
-                    RealAppIcon(
-                        drawable = app.icon,
-                        size = iconSize,
-                        modifier = Modifier.clickable { onAppTap(app) },
-                    )
-                }
-                if (overflow > 0) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CiyatoBgEl2)
-                            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(12.dp)),
+            // Edit overlays when in Edit Mode
+            if (isEditMode) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(CiyatoBg.copy(alpha = 0.65f))
+                ) {
+                    // Actions row
+                    Row(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (onMoveLeft != null) {
+                            Text(
+                                "◀",
+                                color = CiyatoWhite,
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .clickable(onClick = onMoveLeft)
+                                    .padding(4.dp)
+                            )
+                        }
                         Text(
-                            text = "+$overflow",
-                            color = CiyatoSec,
+                            tileSize.first().uppercase(),
+                            color = CiyatoGold,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable(onClick = onToggleSize ?: {})
+                                .border(1.dp, CiyatoGold, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
+                        if (onMoveRight != null) {
+                            Text(
+                                "▶",
+                                color = CiyatoWhite,
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .clickable(onClick = onMoveRight)
+                                    .padding(4.dp)
+                            )
+                        }
+                    }
+
+                    // Delete X icon on top-right
+                    if (onDelete != null) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
+                                .clickable(onClick = onDelete)
+                        ) {
+                            Text("✕", color = CiyatoRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
         }
+
+        Spacer(Modifier.height(6.dp))
+
+        // Name and count below the folder container
+        Text(
+            text = displayName,
+            color = CiyatoWhite,
+            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            maxLines = 1
+        )
+        Text(
+            text = "${apps.size} apps",
+            color = CiyatoMuted,
+            fontSize = 10.sp
+        )
     }
 }

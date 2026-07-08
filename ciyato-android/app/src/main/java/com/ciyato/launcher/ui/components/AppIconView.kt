@@ -25,6 +25,8 @@ import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.theme.CiyatoLightSec
 import com.ciyato.launcher.ui.theme.CiyatoMuted
 import com.ciyato.launcher.ui.theme.CiyatoSec
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 
 /**
  * Displays the REAL installed-app icon from the device.
@@ -56,6 +58,7 @@ fun RealAppIcon(
  * Full app icon + label tile — used in grids and rows.
  * labelColor defaults to CiyatoSec (dark); pass CiyatoLightSec for light-mode drawer.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppIconTile(
     app: InstalledApp,
@@ -63,12 +66,16 @@ fun AppIconTile(
     showLabel: Boolean = true,
     labelColor: Color = CiyatoSec,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
         RealAppIcon(drawable = app.icon, size = iconSize)
@@ -85,6 +92,7 @@ fun AppIconTile(
         }
     }
 }
+
 
 @Composable
 fun AppIconView(

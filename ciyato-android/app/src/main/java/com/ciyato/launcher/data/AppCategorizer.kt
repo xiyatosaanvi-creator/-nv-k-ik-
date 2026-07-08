@@ -198,7 +198,7 @@ object AppCategorizer {
     private val labelKeywords: List<Pair<Regex, AppCategory>> = listOf(
         Regex("(?i)bank|wallet|pay|finance|invest|stock|crypto|cash|money|budget|coin|trading") to AppCategory.FINANCE,
         Regex("(?i)social|friend|network|connect|community|dating|tinder|bumble|hinge")         to AppCategory.SOCIAL,
-        Regex("(?i)chat|message|talk|call|voice|meet|video|sms|text|whats|telegr|signal")       to AppCategory.COMMUNICATION,
+        Regex("(?i)chat|message|talk|call|voice|meet|video call|video chat|sms|text|whats|telegr|signal")       to AppCategory.COMMUNICATION,
         Regex("(?i)\\bwork\\b|office|mail|email|calendar|task|todo|note|doc|sheet|drive|cloud|meeting|project") to AppCategory.WORK,
         Regex("(?i)music|radio|podcast|audio|sound|stream|listen|spotify|youtube|yt music")     to AppCategory.ENTERTAINMENT,
         Regex("(?i)\\bgame\\b|gaming|play|puzzle|quest|battle|word|chess|arena|clash|royale")   to AppCategory.GAMES,
@@ -227,7 +227,41 @@ object AppCategorizer {
         Regex("(?i)news|kindle|read|book|learn|edu|duolingo|goodreads|pocket")   to AppCategory.PRODUCTIVITY,
     )
 
+    private val dynamicallyLoadedApps = java.util.concurrent.ConcurrentHashMap<String, AppCategory>()
+
+    fun initialize(context: android.content.Context) {
+        if (dynamicallyLoadedApps.isNotEmpty()) return
+        try {
+            val jsonString = context.assets.open("google_play_apps_db.json").bufferedReader().use { it.readText() }
+            val jsonArray = org.json.JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val pkg = obj.optString("package")
+                val catStr = obj.optString("category")
+                if (pkg.isNotEmpty() && catStr.isNotEmpty()) {
+                    val cat = runCatching { AppCategory.valueOf(catStr) }.getOrNull()
+                    if (cat != null) {
+                        dynamicallyLoadedApps[pkg] = cat
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun categorize(packageName: String, label: String): AppCategory {
+        // High-priority check for AI assistants
+        val lowerLabel = label.lowercase()
+        val lowerPkg = packageName.lowercase()
+        if (lowerLabel.contains(Regex("gpt|deepseek|gemini|claude|copilot|ai assistant|ai chat"))) {
+            return AppCategory.PRODUCTIVITY
+        }
+        if (lowerPkg.contains(Regex("chatgpt|openai|deepseek|gemini|claude|copilot"))) {
+            return AppCategory.PRODUCTIVITY
+        }
+
+        dynamicallyLoadedApps[packageName]?.let { return it }
         knownApps[packageName]?.let { return it }
         for ((regex, cat) in labelKeywords)   if (regex.containsMatchIn(label))       return cat
         for ((regex, cat) in packageKeywords) if (regex.containsMatchIn(packageName)) return cat

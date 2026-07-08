@@ -17,6 +17,7 @@ data class InstalledApp(
     val isSystemApp: Boolean = false,
     val installTime: Long = 0L,
     val lastUpdateTime: Long = 0L,
+    val customCategoryName: String? = null,
 )
 
 enum class AppCategory(val displayName: String) {
@@ -35,5 +36,6 @@ enum class AppCategory(val displayName: String) {
     DAILY("Daily"),
     GAMES("Games"),
     HIDDEN("Hidden"),
+    CUSTOM("Custom"),
     OTHER("Other"),
 }

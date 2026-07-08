@@ -1,127 +1,157 @@
-# Testing and Build Guide — Ciyato (Functional Wiring Phase)
+# Ciyato Testing Guide
 
-## 1. Prerequisites
-- **Android Studio Koala (2024.1.1)** or newer
-- **JDK 17** (standard with Android Studio)
-- **Android Device/Emulator** running API 26 (Android 8.0) or higher
+## Automated verification
 
-## 2. Building the APK
+From `ciyato-android/`:
 
-### Option A: Android Studio (Recommended)
-1. Open Android Studio.
-2. Select **Open** and choose the `ciyato-android/` directory.
-3. Wait for Gradle to sync (it will download the `documentfile` dependency added in this phase).
-4. Go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
-5. The APK will be at: `app/build/outputs/apk/debug/Ciyato.apk`
-
-### Option B: Command Line
-```bash
-cd ciyato-android
-./gradlew assembleDebug
+```powershell
+$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+.\gradlew.bat --console=plain testDebugUnitTest assembleDebug
 ```
 
----
+Expected result:
 
-## 3. Functional Wiring Test Checklist
+- `BUILD SUCCESSFUL`
+- 9 `AppCategorizerTest` tests pass
+- APK at `app/build/outputs/apk/debug/app-debug.apk`
 
-### Core launcher (must not break)
-- [ ] Real installed app icons load on home screen
-- [ ] Tapping app icon in any grid/list launches the real app
-- [ ] App Drawer opens and displays categorized sections
-- [ ] Search finds installed apps by label and package name
-- [ ] Switch-back via Settings → Home still works
-- [ ] APK builds without error
+The build has also been verified with `apksigner` using the Android debug certificate. A release build requires a production signing configuration.
 
-### 1. Category Cards
-- [ ] Tapping a category card (Work, Social, Finance, etc.) opens `CategoryDetailScreen`
-- [ ] CategoryDetailScreen shows all apps in that category with real icons
-- [ ] Search inside category works (filters results live)
-- [ ] Tapping app inside CategoryDetailScreen launches the real app
-- [ ] Back navigation returns to Home
+## Install
 
-### 2. App Drawer Sections
-- [ ] Tapping a section header expands/collapses it (Work, Social, Utilities, etc.)
-- [ ] "Suggested" and "Recently Added" are expanded by default
-- [ ] Tapping an app in a section launches the real app
-- [ ] Duplicate Shortcuts card in Drawer is clickable → opens `DuplicateShortcutsScreen`
+```powershell
+adb install -r app\build\outputs\apk\debug\app-debug.apk
+```
 
-### 3. Duplicate Shortcuts
-- [ ] DuplicateShortcutStrip on Home is fully clickable (whole card) → opens `DuplicateShortcutsScreen`
-- [ ] "Manage shortcuts" link opens `DuplicateShortcutsScreen`
-- [ ] DuplicateShortcutsScreen shows multi-category apps with their category chips
-- [ ] Tapping app in DuplicateShortcutsScreen launches the real app
-- [ ] Explainer card correctly explains no APK duplication
+If no device is connected, copy the APK to a test phone and install it from the file manager.
 
-### 4. Weather
-- [ ] Tapping Weather card opens `WeatherDetailScreen`
-- [ ] WeatherDetailScreen shows permission explanation before any permission is granted
-- [ ] "Enable Local Weather" button triggers the system `ACCESS_COARSE_LOCATION` permission dialog
-- [ ] If permission denied: shows permission CTA again
-- [ ] If permission granted: shows "Location enabled" state + "Weather API not configured yet" message
-- [ ] No crash in any permission state
-- [ ] Back navigation works
+## Manual acceptance checklist
 
-### 5. Agenda
-- [ ] Tapping Agenda/Today card opens `AgendaScreen`
-- [ ] AgendaScreen shows Today and Upcoming sample events
-- [ ] Calendar permission CTA button shows "coming soon" (does not crash)
-- [ ] Add item placeholder is visible
-- [ ] Back navigation works
+### First launch and Home role
 
-### 6. Files
-- [ ] Tapping a Files category tile (Screenshots, Documents, etc.) triggers folder picker if no permission
-- [ ] Folder picker uses Android SAF (`ACTION_OPEN_DOCUMENT_TREE`)
-- [ ] After selecting a folder, files listed from that folder with real names, sizes, and icons
-- [ ] Tapping a file opens it with `ACTION_VIEW` (system viewer)
-- [ ] If folder has no files: shows "No files found" state
-- [ ] Back navigation from `FileCollectionDetailScreen` returns to `FilesScreen`
-- [ ] No `READ_EXTERNAL_STORAGE` is requested
-- [ ] No automatic file deletion occurs
+- [ ] Open Ciyato from the app list.
+- [ ] Onboarding explains launcher behavior, local data, optional permissions, and switch-back.
+- [ ] No location, files, photos, calendar, microphone, or notification permission appears automatically.
+- [ ] Tap **Set Ciyato as Home** and choose Ciyato.
+- [ ] Press Home and confirm `LauncherHomeActivity` opens.
+- [ ] Back does not trap the user or expose an invalid screen.
 
-### 7. Photos
-- [ ] Photos screen shows permission explanation card
-- [ ] "Enable" button shows explanation (integration with Photo Picker pending in next build)
-- [ ] No crash when tapping any Photos button
+### Installed apps
 
-### 8. AI Search
-- [ ] Searching installed app names returns real results
-- [ ] "Work apps" chip opens Work CategoryDetailScreen (or filters Work results)
-- [ ] "Recent WhatsApp files" chip opens Files permission flow
-- [ ] "Find payment screenshots" chip opens Photos permission flow
-- [ ] "Show PDFs from yesterday" chip opens Files permission flow
-- [ ] Locked sections shown below app results with "Enable Access" buttons
+- [ ] Real installed apps load.
+- [ ] Real app icons render.
+- [ ] Tap an app in Home, category detail, App Library, Search, duplicate shortcuts, and dock.
+- [ ] Confirm the correct explicit launcher activity opens.
+- [ ] Return Home and confirm Ciyato remains stable.
 
-### 9. Settings
-- [ ] Dense / Spacious toggle changes home grid columns (3 vs 2)
-- [ ] Gold Accents toggle persists via DataStore
-- [ ] Smart Categories toggle persists via DataStore
-- [ ] Duplicate Shortcuts toggle shows/hides the strip on Home
-- [ ] Reset layout restores defaults
-- [ ] Switch back → opens Android Home app settings
-- [ ] App Info → opens system App Info screen
+### Categories and App Library
 
-### 10. Navigation
-- [ ] Home → CategoryDetail → back to Home ✓
-- [ ] Home → WeatherDetail → back to Home ✓
-- [ ] Home → Agenda → back to Home ✓
-- [ ] Home → DuplicateShortcuts → back to Home ✓
-- [ ] Home → Drawer → DuplicateShortcuts → back to Home ✓
-- [ ] Home → Drawer → back to Home ✓
-- [ ] Home → Settings → back to Home ✓
+- [ ] Tap every Home category card.
+- [ ] Tap app preview icons directly.
+- [ ] Expand and collapse App Library sections.
+- [ ] Search inside a category.
+- [ ] Use Manage to rename a category.
+- [ ] Reopen Ciyato and confirm the rename persists.
+- [ ] Long-press an app and change its category.
+- [ ] Reset the category override.
 
----
+### Hidden and Removed
 
-## 4. Remaining Mocked / Pending
+- [ ] Long-press an app and choose **Hide App**.
+- [ ] Confirm it disappears from Home, App Library, categories, and normal search.
+- [ ] Open Settings → Hidden Apps and restore it.
+- [ ] Long-press an app and choose **Remove from display**.
+- [ ] Confirm it disappears but remains installed.
+- [ ] Open Settings → Removed Apps and restore it.
+- [ ] Confirm counts update after each action.
 
-| Feature | Status |
-|---------|--------|
-| Live weather (temperature) | Pending API key — shows "not configured" state |
-| Real calendar events | Beta mock only — system permission not yet requested |
-| Photos full gallery | Photo Picker integration pending; screen shows permission UI |
-| File cleanup / delete | Disabled — UI shows suggestion only, no destructive action |
-| Voice search | Not implemented in beta |
-| Category editing | UI placeholder only |
+### Dock
 
----
+- [ ] Long-press an app and pin it to the dock.
+- [ ] Confirm it appears in the dock.
+- [ ] Recreate the activity and confirm the dock choice persists.
+- [ ] Long-press and unpin it.
 
-*Ciyato — Organize Smarter. Live Better.*
+### Duplicate Smart Shortcuts
+
+- [ ] The duplicate strip appears when multi-category apps exist.
+- [ ] Tap a shortcut and confirm the real app opens.
+- [ ] Tap the strip/manage action and open Duplicate Shortcuts.
+- [ ] Confirm the UI explains that no APK is cloned.
+
+### Search
+
+- [ ] Open Search from the Home search bar and sparkle action.
+- [ ] Search by app label.
+- [ ] Search by package name.
+- [ ] Search by category phrase.
+- [ ] Launch an app result.
+- [ ] Test **Work apps**, **PDFs from yesterday**, **Payment screenshots**, and **Recent WhatsApp files**.
+- [ ] Confirm file/photo prompts open their permission-aware surfaces.
+- [ ] Confirm recent search history stores complete actions, not every typed prefix.
+
+### Weather
+
+- [ ] Open Weather with location denied.
+- [ ] Confirm Ciyato explains the request before Android asks.
+- [ ] Tap Not now and confirm the app remains usable.
+- [ ] Tap Enable and deny the Android dialog.
+- [ ] Retry and grant coarse location.
+- [ ] Confirm loading, success, no-location, offline, and refresh states do not crash.
+- [ ] Confirm no background-location request occurs.
+
+### Files
+
+- [ ] Open Files with no selected folder.
+- [ ] Confirm storage values are based on device storage, not static demo numbers.
+- [ ] Tap a category and cancel the Android folder picker.
+- [ ] Select a folder and confirm access is restored when returning to Files.
+- [ ] Open real files with the system viewer.
+- [ ] Test empty categories and all ten Smart Collections.
+- [ ] Confirm collections filter by names, MIME types, or dates where possible.
+- [ ] Confirm cleanup, junk, and vault are labelled staged/disabled.
+- [ ] Confirm no file is automatically moved or deleted.
+
+### Photos
+
+- [ ] Open Photos with no selected media.
+- [ ] Confirm no full-gallery permission is requested.
+- [ ] Tap Select Photos and cancel Android Photo Picker.
+- [ ] Select multiple photos and confirm real thumbnails appear.
+- [ ] Add more photos.
+- [ ] Confirm Collections states that automatic grouping is staged.
+- [ ] Confirm no upload or cloud-analysis action exists.
+
+### Theme Studio and guidance
+
+- [ ] Switch dense/spacious layout and confirm Home columns change.
+- [ ] Switch gold/blue accent and confirm Home action accent and live preview change.
+- [ ] Recreate the activity and confirm settings persist.
+- [ ] Dismiss the Home tip and confirm it stays dismissed.
+- [ ] Reset Tips & Onboarding and confirm guidance returns.
+- [ ] Reset shipped theme settings.
+
+### Switch back and uninstall
+
+- [ ] Open Settings and confirm default-Home status is shown.
+- [ ] Tap **Switch back to system launcher**.
+- [ ] Choose the previous launcher and press Home.
+- [ ] Open Ciyato App Info.
+- [ ] Confirm Android uninstall guidance is available.
+
+## Denied and empty states
+
+Test every user-controlled permission flow with:
+
+- cancel before selection,
+- deny once,
+- deny repeatedly,
+- grant and then revoke in Android settings,
+- selected folder with no matching files,
+- no installed apps in a category,
+- no hidden or removed apps,
+- no network for weather.
+
+## Current environment limitation
+
+The configured `medium_phone` AVD was detected, but it remained offline during the latest automated run. Therefore full interaction and screenshot acceptance still require a healthy emulator or physical Android device. Build, unit tests, APK permission inspection, and APK signature verification are complete; real-device UX is not claimed complete.

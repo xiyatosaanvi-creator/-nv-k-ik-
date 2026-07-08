@@ -7,7 +7,8 @@
         NoActionBar: we use TopAppBar from Compose, not the system action bar.
     -->
     <style name="Theme.Ciyato" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>

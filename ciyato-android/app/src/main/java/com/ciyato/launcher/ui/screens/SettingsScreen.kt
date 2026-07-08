@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.launch
 
@@ -47,6 +48,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissionAudit: (() -> Unit)? = null,
     onNavigateToFocus: (() -> Unit)? = null,
+    onNavigateToTheme: (() -> Unit)? = null,
+    onNavigateToHiddenApps: (() -> Unit)? = null,
+    onNavigateToRemovedApps: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val view    = LocalView.current
@@ -91,14 +95,10 @@ fun SettingsScreen(
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            TopAppBar(
-                title = { Text("Settings", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = CiyatoSec)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+            CiyatoTopBar(
+                title = "Settings",
+                subtitle = "Configure Ciyoto Launcher",
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -113,17 +113,36 @@ fun SettingsScreen(
 
             // ── Launcher ──────────────────────────────────────────────────────
             item { SectionHeader("Launcher") }
-            item { SettingsAction(Icons.Default.Home, "Set Ciyato as Home",
-                "Choose Ciyato as your default launcher") {
-                context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
-            }}
+            item {
+                CiyatoListCard(
+                    title = "Set Ciyato as Home",
+                    subtitle = "Choose Ciyato as your default launcher",
+                    icon = Icons.Default.Home,
+                    iconColor = CiyatoGold,
+                    onClick = { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+                )
+            }
 
             // ── Appearance ────────────────────────────────────────────────────
             item { SectionHeader("Appearance") }
-            item { SettingsToggle(Icons.Default.GridView, "Dense Layout",
-                "Fit more content on screen", denseLayout, viewModel::setDenseLayout) }
-            item { SettingsToggle(Icons.Default.Star, "Gold Accents", "Premium gold highlights",
-                goldAccent, viewModel::setGoldAccent) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Dense Layout",
+                    subtitle = "Fit more content on screen",
+                    icon = Icons.Default.GridView,
+                    checked = denseLayout,
+                    onCheckedChange = viewModel::setDenseLayout
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Gold Accents",
+                    subtitle = "Premium gold highlights",
+                    icon = Icons.Default.Star,
+                    checked = goldAccent,
+                    onCheckedChange = viewModel::setGoldAccent
+                )
+            }
 
             // Dark mode picker (Suggestion 97)
             item {
@@ -160,49 +179,94 @@ fun SettingsScreen(
 
             // Wallpaper blur (Suggestion 93)
             item {
-                SettingsSlider(
-                    icon    = Icons.Default.BlurOn,
-                    title   = "Background Blur",
-                    value   = wallpaperBlur.toFloat(),
-                    range   = 0f..20f,
-                    label   = if (wallpaperBlur == 0) "Off" else "$wallpaperBlur",
-                    onValueChange = { viewModel.setWallpaperBlur(it.toInt()) },
+                CiyatoSlider(
+                    value = wallpaperBlur.toFloat(),
+                    onValueChange = { blurVal -> viewModel.setWallpaperBlur(blurVal.toInt()) },
+                    valueRange = 0f..20f,
+                    label = "Background Blur",
+                    valueLabel = if (wallpaperBlur == 0) "Off" else "$wallpaperBlur"
+                )
+            }
+
+            // Theme Studio item
+            item {
+                CiyatoListCard(
+                    title = "Theme Studio",
+                    subtitle = "Customize colors, glass level, fonts & dock style",
+                    icon = Icons.Default.Palette,
+                    iconColor = CiyatoGold,
+                    onClick = { onNavigateToTheme?.invoke() }
                 )
             }
 
             // ── Smart Layout ──────────────────────────────────────────────────
             item { SectionHeader("Smart Layout") }
-            item { SettingsToggle(Icons.Default.Schedule, "Time-Aware Layout",
-                "Show relevant categories based on time of day", timeAwareLayout, viewModel::setTimeAwareLayout) }
-            item { SettingsToggle(Icons.Default.Bedtime, "Bedtime Mode",
-                "Hide social/entertainment apps after bedtime hour", bedtimeMode, viewModel::setBedtimeMode) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Time-Aware Layout",
+                    subtitle = "Show relevant categories based on time of day",
+                    icon = Icons.Default.Schedule,
+                    checked = timeAwareLayout,
+                    onCheckedChange = viewModel::setTimeAwareLayout
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Bedtime Mode",
+                    subtitle = "Hide social/entertainment apps after bedtime hour",
+                    icon = Icons.Default.Bedtime,
+                    checked = bedtimeMode,
+                    onCheckedChange = viewModel::setBedtimeMode
+                )
+            }
             if (bedtimeMode) {
                 item {
-                    SettingsAction(
-                        icon     = Icons.Default.Bedtime,
-                        title    = "Bedtime Hour",
+                    CiyatoListCard(
+                        title = "Bedtime Hour",
                         subtitle = "${bedtimeHour}:00 — apps hidden after this time",
-                        tintColor= CiyatoBlue,
-                        onClick  = { showBedtimeDialog = true },
+                        icon = Icons.Default.Bedtime,
+                        iconColor = CiyatoBlue,
+                        onClick = { showBedtimeDialog = true }
                     )
                 }
             }
-            item { SettingsToggle(Icons.Default.History, "Show Recently Launched",
-                "Quick access strip for recently opened apps", showRecentLaunched, viewModel::setShowRecentlyLaunched) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Show Recently Launched",
+                    subtitle = "Quick access strip for recently opened apps",
+                    icon = Icons.Default.History,
+                    checked = showRecentLaunched,
+                    onCheckedChange = viewModel::setShowRecentlyLaunched
+                )
+            }
 
             // ── Organization ──────────────────────────────────────────────────
             item { SectionHeader("Organization") }
-            item { SettingsToggle(Icons.Default.Category, "Smart Categories", "Automatic app grouping",
-                smartCategories, viewModel::setSmartCategories) }
-            item { SettingsToggle(Icons.Default.ContentCopy, "Duplicate Shortcuts",
-                "Show apps in multiple contexts", duplicateShortcuts, viewModel::setDuplicateShortcuts) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Smart Categories",
+                    subtitle = "Automatic app grouping",
+                    icon = Icons.Default.Category,
+                    checked = smartCategories,
+                    onCheckedChange = viewModel::setSmartCategories
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Duplicate Shortcuts",
+                    subtitle = "Show apps in multiple contexts",
+                    icon = Icons.Default.ContentCopy,
+                    checked = duplicateShortcuts,
+                    onCheckedChange = viewModel::setDuplicateShortcuts
+                )
+            }
 
             // ── Weather ───────────────────────────────────────────────────────
             item { SectionHeader("Weather") }
             item {
                 SettingsOptionRow(
                     icon     = Icons.Default.Thermostat,
-                    title    = "Temperature Unit",
+                    title = "Temperature Unit",
                     selected = tempUnit,
                     options  = listOf("C" to "°Celsius", "F" to "°Fahrenheit"),
                     onSelect = viewModel::setTempUnit,
@@ -211,61 +275,130 @@ fun SettingsScreen(
 
             // ── Accessibility ─────────────────────────────────────────────────
             item { SectionHeader("Accessibility") }
-            item { SettingsToggle(Icons.Default.Vibration, "Haptic Feedback",
-                "Feel taps, toggles and actions", hapticFeedback, viewModel::setHapticFeedback) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Haptic Feedback",
+                    subtitle = "Feel taps, toggles and actions",
+                    icon = Icons.Default.Vibration,
+                    checked = hapticFeedback,
+                    onCheckedChange = viewModel::setHapticFeedback
+                )
+            }
 
             // ── Focus ─────────────────────────────────────────────────────────
             item { SectionHeader("Focus") }
             item {
-                SettingsAction(Icons.Default.Timer, "Focus Sessions",
-                    "Block distracting apps for a set duration",
-                    tintColor = CiyatoGold,
-                    onClick   = { onNavigateToFocus?.invoke() })
+                CiyatoListCard(
+                    title = "Focus Sessions",
+                    subtitle = "Block distracting apps for a set duration",
+                    icon = Icons.Default.Timer,
+                    iconColor = CiyatoGold,
+                    onClick = { onNavigateToFocus?.invoke() }
+                )
             }
 
             // ── Privacy & Security ────────────────────────────────────────────
             item { SectionHeader("Privacy & Security") }
             item {
-                InfoCard(Icons.Default.Lock, "Local Only",
-                    "All app indexing, categorization, and preferences stay on your device. Nothing is uploaded.")
+                InfoCard(
+                    Icons.Default.Lock,
+                    "Local Only",
+                    "All app indexing, categorization, and preferences stay on your device. Nothing is uploaded."
+                )
             }
-            item { SettingsToggle(Icons.Default.VisibilityOff, "Privacy Mode",
-                "Hide notification counts and app labels", privacyMode, viewModel::setPrivacyMode) }
-            item { SettingsToggle(Icons.Default.Screenshot, "Block Screenshots",
-                "Prevents screen capture of Ciyato (FLAG_SECURE)", screenshotBlocked) {
-                viewModel.setScreenshotBlocked(it)
-                activity?.window?.let { window ->
-                    if (it) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                }
-            }}
             item {
-                SettingsAction(Icons.Default.Security, "Permission Audit",
-                    "See which apps have access to sensitive permissions",
-                    tintColor = CiyatoBlue,
-                    onClick   = { onNavigateToPermissionAudit?.invoke() })
+                CiyatoSettingSwitch(
+                    title = "Privacy Mode",
+                    subtitle = "Hide notification counts and app labels",
+                    icon = Icons.Default.VisibilityOff,
+                    checked = privacyMode,
+                    onCheckedChange = viewModel::setPrivacyMode
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Block Screenshots",
+                    subtitle = "Prevents screen capture of Ciyato (FLAG_SECURE)",
+                    icon = Icons.Default.Screenshot,
+                    checked = screenshotBlocked,
+                    onCheckedChange = { blocked ->
+                        viewModel.setScreenshotBlocked(blocked)
+                        activity?.window?.let { window ->
+                            if (blocked) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                            else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        }
+                    }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Permission Audit",
+                    subtitle = "See which apps have access to sensitive permissions",
+                    icon = Icons.Default.Security,
+                    iconColor = CiyatoBlue,
+                    onClick = { onNavigateToPermissionAudit?.invoke() }
+                )
+            }
+
+            item {
+                CiyatoListCard(
+                    title = "Hidden Apps",
+                    subtitle = "Apps hidden from home, drawer, and search",
+                    icon = Icons.Default.VisibilityOff,
+                    iconColor = CiyatoSec,
+                    onClick = { onNavigateToHiddenApps?.invoke() }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Removed Apps",
+                    subtitle = "Apps removed from launcher grids",
+                    icon = Icons.Default.RemoveCircleOutline,
+                    iconColor = CiyatoSec,
+                    onClick = { onNavigateToRemovedApps?.invoke() }
+                )
             }
 
             // ── Diagnostics ───────────────────────────────────────────────────
             item { SectionHeader("Diagnostics") }
-            item { SettingsToggle(Icons.Default.BugReport, "Crash Reporting",
-                "Save crash logs locally (never uploaded)", crashReporting, viewModel::setCrashReporting) }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Crash Reporting",
+                    subtitle = "Save crash logs locally (never uploaded)",
+                    icon = Icons.Default.BugReport,
+                    checked = crashReporting,
+                    onCheckedChange = viewModel::setCrashReporting
+                )
+            }
             if (crashReporting) {
                 item {
-                    SettingsAction(Icons.Default.Description, "View Crash Logs",
-                        "See locally stored crash reports",
-                        onClick = { showCrashLogs = true })
+                    CiyatoListCard(
+                        title = "View Crash Logs",
+                        subtitle = "See locally stored crash reports",
+                        icon = Icons.Default.Description,
+                        iconColor = CiyatoGold,
+                        onClick = { showCrashLogs = true }
+                    )
                 }
             }
 
             // ── Danger Zone ───────────────────────────────────────────────────
             item { SectionHeader("Danger Zone") }
-            item { SettingsAction(Icons.Default.RestartAlt, "Reset Layout", "Restore default layout settings",
-                tintColor = Color(0xFFF5C542), onClick = viewModel::resetLayout) }
             item {
-                SettingsAction(Icons.Default.Info, "App Info / Uninstall",
-                    "Open system settings to manage or uninstall",
-                    tintColor = Color(0xFFEF4444),
+                CiyatoListCard(
+                    title = "Reset Layout",
+                    subtitle = "Restore default layout settings",
+                    icon = Icons.Default.RestartAlt,
+                    iconColor = Color(0xFFF5C542),
+                    onClick = viewModel::resetLayout
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "App Info / Uninstall",
+                    subtitle = "Open system settings to manage or uninstall",
+                    icon = Icons.Default.Info,
+                    iconColor = Color(0xFFEF4444),
                     onClick = {
                         context.startActivity(
                             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -276,10 +409,13 @@ fun SettingsScreen(
                 )
             }
             item {
-                SettingsAction(Icons.AutoMirrored.Filled.Launch, "Switch back to system launcher",
-                    "Change Home app in system settings",
-                    tintColor = CiyatoSec,
-                    onClick = { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) })
+                CiyatoListCard(
+                    title = "Switch back to system launcher",
+                    subtitle = "Change Home app in system settings",
+                    icon = Icons.AutoMirrored.Filled.Launch,
+                    iconColor = CiyatoSec,
+                    onClick = { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+                )
             }
         }
     }

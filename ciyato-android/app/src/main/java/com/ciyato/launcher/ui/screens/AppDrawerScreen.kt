@@ -29,6 +29,7 @@ import com.ciyato.launcher.ui.components.AppIconTile
 import com.ciyato.launcher.ui.components.CiyatoSearchBar
 import com.ciyato.launcher.ui.components.RealAppIcon
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 // ── Light-mode palette (cream surface, matches reference) ─────────────────────
@@ -143,27 +144,19 @@ fun AppDrawerScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── 3. Filter Area ────────────────────────────────────────────────
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(FILTER_CHIPS) { (cat, label) ->
                     val selected = activeFilter == cat
-                    Text(
+                    CiyatoToggleChip(
                         text = label,
-                        color = if (selected) DrawerBg else DrawerSec,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                        fontSize = 13.sp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (selected) CiyatoGold else DrawerCard)
-                            .border(1.dp, if (selected) CiyatoGold else DrawerBorder, RoundedCornerShape(20.dp))
-                            .clickable {
-                                activeFilter = cat
-                                viewModel.setSearch("")   // clear search when chip selected
-                            }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        selected = selected,
+                        onClick = {
+                            activeFilter = cat
+                            viewModel.setSearch("")
+                        }
                     )
                 }
             }
@@ -171,20 +164,11 @@ fun AppDrawerScreen(
             Spacer(Modifier.height(8.dp))
 
             // ── 4. Pagination Indicator ───────────────────────────────────────
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            ) {
-                repeat(3) { i ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(if (i == 1) 22.dp else 6.dp, 6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(if (i == 1) CiyatoGold else DrawerBorder),
-                    )
-                }
-            }
+            CiyatoStepIndicator(
+                totalSteps = 3,
+                currentStep = 1,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp)
+            )
 
             Spacer(Modifier.height(8.dp))
 

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 
 private data class OnboardingPage(
     val icon: ImageVector,
@@ -92,7 +93,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold,
             )
-            Text("Ciyato", color = CiyatoWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text("Ciyoto", color = CiyatoWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text("AI Phone Organizer for Android", color = CiyatoSec, fontSize = 13.sp)
 
             Spacer(Modifier.height(48.dp))
@@ -126,40 +127,28 @@ fun OnboardingScreen(onDone: () -> Unit) {
             Spacer(Modifier.weight(1f))
 
             // Page dots
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                pages.forEachIndexed { i, _ ->
-                    Box(
-                        modifier = Modifier
-                            .size(if (i == page) 24.dp else 8.dp, 8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (i == page) CiyatoGold else CiyatoBorder)
-                    )
-                }
-            }
+            CiyatoStepIndicator(
+                totalSteps = pages.size,
+                currentStep = page,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Spacer(Modifier.height(32.dp))
 
             // Action button
             if (page < pages.size - 1) {
-                Button(
+                CiyatoButton(
+                    text = "Next",
                     onClick = { page++ },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text("Next", color = CiyatoBg, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             } else {
                 // Final page — trigger launcher selection
-                Button(
+                CiyatoButton(
+                    text = "Set Ciyato as Home App",
                     onClick = { requestDefaultLauncher(context, roleRequestLauncher::launch, onDone) },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text("Set Ciyato as Home App", color = CiyatoBg,
-                        fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(12.dp))
                 TextButton(onClick = onDone) {
                     Text("Skip for now", color = CiyatoMuted, fontSize = 13.sp)

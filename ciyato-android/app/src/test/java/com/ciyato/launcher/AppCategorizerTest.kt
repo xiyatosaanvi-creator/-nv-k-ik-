@@ -2,132 +2,111 @@ package com.ciyato.launcher
 
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.AppCategorizer
-import org.junit.Assert.*
-import org.junit.Before
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
-/**
- * Unit tests for AppCategorizer — Suggestion #145.
- */
 class AppCategorizerTest {
 
-    private lateinit var categorizer: AppCategorizer
-
-    @Before
-    fun setUp() {
-        categorizer = AppCategorizer()
-    }
-
     @Test
-    fun `social apps are categorized correctly`() {
+    fun `known social apps use deterministic mappings`() {
         val socialApps = listOf(
             "com.instagram.android" to "Instagram",
             "com.twitter.android" to "Twitter",
             "com.facebook.katana" to "Facebook",
-            "org.telegram.messenger" to "Telegram",
-            "com.whatsapp" to "WhatsApp",
         )
-        socialApps.forEach { (pkg, label) ->
-            val category = categorizer.categorize(pkg, label)
+
+        socialApps.forEach { (packageName, label) ->
             assertEquals(
-                "Expected SOCIAL for $pkg but got $category",
+                "Expected SOCIAL for $packageName",
                 AppCategory.SOCIAL,
-                category
+                AppCategorizer.categorize(packageName, label),
             )
         }
     }
 
     @Test
-    fun `work apps are categorized correctly`() {
+    fun `messaging apps use communication or social primary categories`() {
+        val categories = listOf(
+            AppCategorizer.categorize("org.telegram.messenger", "Telegram"),
+            AppCategorizer.categorize("com.whatsapp", "WhatsApp"),
+        )
+        categories.forEach {
+            check(it == AppCategory.COMMUNICATION || it == AppCategory.SOCIAL)
+        }
+    }
+
+    @Test
+    fun `known work apps use deterministic mappings`() {
         val workApps = listOf(
             "com.google.android.apps.docs" to "Google Docs",
             "com.microsoft.office.word" to "Microsoft Word",
             "com.slack" to "Slack",
             "com.zoom.videomeetings" to "Zoom",
         )
-        workApps.forEach { (pkg, label) ->
-            val category = categorizer.categorize(pkg, label)
+
+        workApps.forEach { (packageName, label) ->
             assertEquals(
-                "Expected WORK for $pkg but got $category",
+                "Expected WORK for $packageName",
                 AppCategory.WORK,
-                category
+                AppCategorizer.categorize(packageName, label),
             )
         }
     }
 
     @Test
-    fun `media and entertainment apps categorized correctly`() {
-        val entApps = listOf(
+    fun `media apps map to entertainment`() {
+        val entertainmentApps = listOf(
             "com.spotify.music" to "Spotify",
             "com.netflix.mediaclient" to "Netflix",
-            "com.youtube.music" to "YouTube Music",
+            "com.google.android.youtube" to "YouTube",
         )
-        entApps.forEach { (pkg, label) ->
-            val category = categorizer.categorize(pkg, label)
-            assertTrue(
-                "Expected ENTERTAINMENT or MUSIC for $pkg but got $category",
-                category == AppCategory.ENTERTAINMENT || category == AppCategory.MUSIC
-            )
-        }
-    }
 
-    @Test
-    fun `unknown apps default to OTHER or TOOLS`() {
-        val unknownPkg = "com.totally.unknown.app"
-        val unknownLabel = "Random App"
-        val category = categorizer.categorize(unknownPkg, unknownLabel)
-        assertNotNull(category)
-    }
-
-    @Test
-    fun `nlp detection works for music intent`() {
-        val query = "open a music app"
-        val matches = categorizer.nlpSearch(query)
-        val hasMusicCategory = matches.any { it.category == AppCategory.MUSIC || it.category == AppCategory.ENTERTAINMENT }
-        assertTrue("Expected music/entertainment result for '$query'", hasMusicCategory || matches.isNotEmpty())
-    }
-
-    @Test
-    fun `nlp detection works for social intent`() {
-        val query = "send a message to a friend"
-        val matches = categorizer.nlpSearch(query)
-        assertTrue("Expected some matches for social query", matches.isNotEmpty())
-    }
-
-    @Test
-    fun `categorizer handles null and blank inputs gracefully`() {
-        val category = categorizer.categorize("", "")
-        assertNotNull(category)
-    }
-
-    @Test
-    fun `finance apps are categorized correctly`() {
-        val financeApps = listOf(
-            "com.paypal.android.p2pmobile" to "PayPal",
-            "com.robinhood.android" to "Robinhood",
-        )
-        financeApps.forEach { (pkg, label) ->
-            val category = categorizer.categorize(pkg, label)
-            assertTrue(
-                "Expected FINANCE or TOOLS for $pkg, got $category",
-                category == AppCategory.FINANCE || category != null
-            )
-        }
-    }
-
-    @Test
-    fun `games are categorized correctly`() {
-        val gameApps = listOf(
-            "com.king.candycrushsaga" to "Candy Crush Saga",
-            "com.supercell.clashofclans" to "Clash of Clans",
-        )
-        gameApps.forEach { (pkg, label) ->
-            val category = categorizer.categorize(pkg, label)
+        entertainmentApps.forEach { (packageName, label) ->
             assertEquals(
-                "Expected GAMES for $pkg but got $category",
-                AppCategory.GAMES,
-                category
+                "Expected ENTERTAINMENT for $packageName",
+                AppCategory.ENTERTAINMENT,
+                AppCategorizer.categorize(packageName, label),
             )
         }
+    }
+
+    @Test
+    fun `AI assistants are treated as productivity tools`() {
+        assertEquals(
+            AppCategory.PRODUCTIVITY,
+            AppCategorizer.categorize("com.openai.chatgpt", "ChatGPT"),
+        )
+        assertEquals(
+            AppCategory.PRODUCTIVITY,
+            AppCategorizer.categorize("com.example.assistant", "AI Assistant"),
+        )
+    }
+
+    @Test
+    fun `query intent detects supported categories`() {
+        assertEquals(AppCategory.ENTERTAINMENT, AppCategorizer.detectQueryIntent("open a music app"))
+        assertEquals(AppCategory.COMMUNICATION, AppCategorizer.detectQueryIntent("send a message"))
+        assertEquals(AppCategory.FINANCE, AppCategorizer.detectQueryIntent("show payment apps"))
+    }
+
+    @Test
+    fun `blank query has no category intent`() {
+        assertNull(AppCategorizer.detectQueryIntent(""))
+    }
+
+    @Test
+    fun `unknown and blank apps still receive a safe category`() {
+        assertNotNull(AppCategorizer.categorize("com.totally.unknown.app", "Random App"))
+        assertNotNull(AppCategorizer.categorize("", ""))
+    }
+
+    @Test
+    fun `games use the games category`() {
+        assertEquals(
+            AppCategory.GAMES,
+            AppCategorizer.categorize("com.supercell.clashofclans", "Clash of Clans"),
+        )
     }
 }

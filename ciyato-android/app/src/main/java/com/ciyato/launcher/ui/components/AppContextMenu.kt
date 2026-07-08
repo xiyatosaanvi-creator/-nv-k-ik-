@@ -14,6 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.ciyato.launcher.data.AppCategory
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +49,7 @@ sealed class ContextAction {
     object AppInfo : ContextAction()
     object Uninstall : ContextAction()
     object Hide : ContextAction()
+    object RemoveFromDisplay : ContextAction()
     object AddToFocus : ContextAction()
     object PinToDock : ContextAction()
 }
@@ -60,6 +64,7 @@ fun AppContextMenu(
     val context = LocalContext.current
     val isPinned by remember { derivedStateOf { viewModel.isPinned(app) } }
     val isHidden by remember { derivedStateOf { viewModel.isHidden(app) } }
+    var showCategorySelector by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -110,13 +115,13 @@ fun AppContextMenu(
                         }
                     ))
                     add(ContextMenuItem(
-                        icon = if (isPinned) Icons.Default.PushPin else Icons.Default.PushPin,
+                        icon = Icons.Default.PushPin,
                         label = if (isPinned) "Unpin from Dock" else "Pin to Dock",
                         color = CiyatoGold,
                         action = {
                             if (isPinned) viewModel.unpinApp(app) else viewModel.pinApp(app)
                             onDismiss()
-                        }
+                        },
                     ))
                     add(ContextMenuItem(
                         icon = Icons.Default.VisibilityOff,
@@ -128,12 +133,21 @@ fun AppContextMenu(
                         }
                     ))
                     add(ContextMenuItem(
-                        icon = Icons.Default.Timer,
-                        label = "Add to Focus Block",
-                        color = Color(0xFF7DB7FF),
+                        icon = Icons.Default.RemoveCircleOutline,
+                        label = "Remove from display",
+                        color = CiyatoSec,
                         action = {
-                            onAction(ContextAction.AddToFocus)
+                            viewModel.removeAppFromDisplay(app.packageName)
+                            onAction(ContextAction.RemoveFromDisplay)
                             onDismiss()
+                        }
+                    ))
+                    add(ContextMenuItem(
+                        icon = Icons.Default.Category,
+                        label = "Change Category",
+                        color = CiyatoGold,
+                        action = {
+                            showCategorySelector = true
                         }
                     ))
                     add(ContextMenuItem(
@@ -169,6 +183,159 @@ fun AppContextMenu(
                 Spacer(Modifier.height(4.dp))
             }
         }
+    }
+
+    val customCats by viewModel.customCategories.collectAsState()
+    val customCatsList = remember(customCats) {
+        customCats.split(",").map(String::trim).filter(String::isNotEmpty)
+    }
+    var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+
+    if (showCategorySelector) {
+        AlertDialog(
+            onDismissRequest = { showCategorySelector = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Change Category", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 350.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Create New option at the top
+                    TextButton(
+                        onClick = {
+                            showNewCategoryDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = CiyatoGold, modifier = Modifier.size(16.dp))
+                            Text("Create Custom Category…", color = CiyatoGold)
+                        }
+                    }
+
+                    HorizontalDivider(color = CiyatoBorder)
+
+                    val categories = listOf(
+                        AppCategory.WORK,
+                        AppCategory.SOCIAL,
+                        AppCategory.COMMUNICATION,
+                        AppCategory.FINANCE,
+                        AppCategory.CREATIVITY,
+                        AppCategory.UTILITIES,
+                        AppCategory.PRODUCTIVITY,
+                        AppCategory.ENTERTAINMENT,
+                        AppCategory.TRAVEL,
+                        AppCategory.SHOPPING,
+                        AppCategory.DAILY,
+                        AppCategory.GAMES,
+                        AppCategory.OTHER
+                    )
+
+                    // Default categories
+                    categories.forEach { cat ->
+                        TextButton(
+                            onClick = {
+                                viewModel.setAppCategoryOverride(app.packageName, cat)
+                                showCategorySelector = false
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Text(viewModel.getCategoryDisplayName(cat), color = CiyatoSec, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+
+                    // Custom categories
+                    if (customCatsList.isNotEmpty()) {
+                        HorizontalDivider(color = CiyatoBorder)
+                        Text(
+                            "Custom Categories",
+                            color = CiyatoMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                        customCatsList.forEach { customName ->
+                            TextButton(
+                                onClick = {
+                                    viewModel.setAppCustomCategoryOverride(app.packageName, customName)
+                                    showCategorySelector = false
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(12.dp)
+                            ) {
+                                Text(customName, color = CiyatoSec, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = CiyatoBorder)
+
+                    TextButton(
+                        onClick = {
+                            viewModel.setAppCategoryOverride(app.packageName, null)
+                            showCategorySelector = false
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(12.dp)
+                    ) {
+                        Text("Reset to Default", color = Color(0xFFEF4444), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    if (showNewCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewCategoryDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("New Custom Category", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it.take(24) },
+                    singleLine = true,
+                    label = { Text("Category name") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = newCategoryName.trim()
+                        if (name.isNotBlank()) {
+                            viewModel.addCustomCategory(name)
+                            viewModel.setAppCustomCategoryOverride(app.packageName, name)
+                        }
+                        showNewCategoryDialog = false
+                        showCategorySelector = false
+                        onDismiss()
+                    },
+                    enabled = newCategoryName.isNotBlank()
+                ) {
+                    Text("Create & Assign", color = CiyatoGold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewCategoryDialog = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            }
+        )
     }
 }
 

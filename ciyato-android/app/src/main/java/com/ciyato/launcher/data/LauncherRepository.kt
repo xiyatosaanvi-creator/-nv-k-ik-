@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 /**
  * LauncherRepository — loads real installed apps from the system.
@@ -32,6 +33,9 @@ class LauncherRepository(private val context: Context) {
     private val _apps = MutableStateFlow<List<InstalledApp>>(emptyList())
     val apps: StateFlow<List<InstalledApp>> = _apps.asStateFlow()
 
+    private val _allApps = MutableStateFlow<List<InstalledApp>>(emptyList())
+    val allApps: StateFlow<List<InstalledApp>> = _allApps.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -43,10 +47,18 @@ class LauncherRepository(private val context: Context) {
 
     // ── Hidden apps (Suggestion 23) ───────────────────────────────────────────
     private val hiddenPackages = mutableSetOf<String>()
+    private val removedPackages = mutableSetOf<String>()
 
     fun setHiddenPackages(csv: String) {
         hiddenPackages.clear()
-        if (csv.isNotBlank()) hiddenPackages.addAll(csv.split(",").map { it.trim() })
+        hiddenPackages.addAll(parsePackageCsv(csv))
+        publishVisibleApps()
+    }
+
+    fun setRemovedPackages(csv: String) {
+        removedPackages.clear()
+        removedPackages.addAll(parsePackageCsv(csv))
+        publishVisibleApps()
     }
 
     // ── App loading ───────────────────────────────────────────────────────────
@@ -54,6 +66,22 @@ class LauncherRepository(private val context: Context) {
     suspend fun loadApps() = withContext(Dispatchers.IO) {
         _isLoading.value = true
         try {
+            AppCategorizer.initialize(context)
+            val settingsRepo = LauncherSettingsRepository(context)
+            val overridesJson = settingsRepo.appCategoryOverrides.first()
+            hiddenPackages.clear()
+            hiddenPackages.addAll(parsePackageCsv(settingsRepo.hiddenApps.first()))
+            removedPackages.clear()
+            removedPackages.addAll(parsePackageCsv(settingsRepo.removedApps.first()))
+            val overridesMap = try {
+                val obj = org.json.JSONObject(overridesJson)
+                val map = mutableMapOf<String, String>()
+                obj.keys().forEach { key ->
+                    map[key] = obj.getString(key)
+                }
+                map
+            } catch (_: Exception) { emptyMap() }
+
             val pm = context.packageManager
             val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
@@ -79,8 +107,25 @@ class LauncherRepository(private val context: Context) {
                     val installMs= pkgInfo?.firstInstallTime ?: 0L
                     val updateMs = pkgInfo?.lastUpdateTime   ?: 0L
 
-                    val primary   = AppCategorizer.categorize(pkg, label)
-                    val secondary = AppCategorizer.secondaryCategories(pkg, label, primary)
+                    val overrideName = overridesMap[pkg]
+                    val overrideCat = overrideName?.let { runCatching { AppCategory.valueOf(it) }.getOrNull() }
+
+                    val primary: AppCategory
+                    val customName: String?
+                    if (overrideName != null) {
+                        if (overrideCat != null) {
+                            primary = overrideCat
+                            customName = null
+                        } else {
+                            primary = AppCategory.CUSTOM
+                            customName = overrideName
+                        }
+                    } else {
+                        primary = AppCategorizer.categorize(pkg, label)
+                        customName = null
+                    }
+
+                    val secondary = if (primary == AppCategory.CUSTOM || overrideCat != null) emptyList() else AppCategorizer.secondaryCategories(pkg, label, primary)
 
                     InstalledApp(
                         id                  = "$pkg/$activity",
@@ -93,11 +138,13 @@ class LauncherRepository(private val context: Context) {
                         isSystemApp         = isSystem,
                         installTime         = installMs,
                         lastUpdateTime      = updateMs,
+                        customCategoryName  = customName,
                     )
                 } catch (_: Exception) { null }
-            }.filter { it.packageName !in hiddenPackages }   // Suggestion 23
+            }
 
-            _apps.value = installed
+            _allApps.value = installed
+            publishVisibleApps()
         } finally {
             _isLoading.value = false
         }
@@ -107,9 +154,11 @@ class LauncherRepository(private val context: Context) {
 
     fun launchApp(context: Context, app: InstalledApp): Boolean {
         return try {
-            val intent = context.packageManager
-                .getLaunchIntentForPackage(app.packageName) ?: return false
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                setClassName(app.packageName, app.activityName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            }
             context.startActivity(intent)
             launchCounts[app.packageName] = (launchCounts[app.packageName] ?: 0) + 1
             true
@@ -178,6 +227,9 @@ class LauncherRepository(private val context: Context) {
     fun byCategory(category: AppCategory): List<InstalledApp> =
         _apps.value.filter { it.category == category || category in it.secondaryCategories }
 
+    fun byCustomCategoryName(name: String): List<InstalledApp> =
+        _apps.value.filter { it.category == AppCategory.CUSTOM && it.customCategoryName == name }
+
     /** Apps that appear in 2+ categories — the "Duplicate Smart Shortcuts". */
     fun multiCategoryApps(): List<InstalledApp> =
         _apps.value.filter { it.secondaryCategories.isNotEmpty() }
@@ -188,6 +240,21 @@ class LauncherRepository(private val context: Context) {
 
     /** Returns launch count for a package (for usage-frequency sort). */
     fun launchCount(pkg: String) = launchCounts[pkg] ?: 0
+
+    fun hiddenApps(): List<InstalledApp> =
+        _allApps.value.filter { it.packageName in hiddenPackages }
+
+    fun removedApps(): List<InstalledApp> =
+        _allApps.value.filter { it.packageName in removedPackages }
+
+    private fun publishVisibleApps() {
+        _apps.value = _allApps.value.filter {
+            it.packageName !in hiddenPackages && it.packageName !in removedPackages
+        }
+    }
+
+    private fun parsePackageCsv(csv: String): Set<String> =
+        csv.split(",").map(String::trim).filter(String::isNotEmpty).toSet()
 
     // ── Levenshtein distance helper ───────────────────────────────────────────
 

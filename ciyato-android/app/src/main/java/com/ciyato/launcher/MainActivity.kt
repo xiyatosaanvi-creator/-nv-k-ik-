@@ -102,7 +102,45 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("settings") {
-                        SettingsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToTheme = { navController.navigate("theme") },
+                            onNavigateToHiddenApps = { navController.navigate("hidden_apps") },
+                            onNavigateToRemovedApps = { navController.navigate("removed_apps") },
+                            onNavigateToPermissionAudit = { navController.navigate("permission_audit") },
+                            onNavigateToFocus = { navController.navigate("focus") },
+                        )
+                    }
+
+                    composable("permission_audit") {
+                        PermissionAuditScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable("focus") {
+                        FocusSessionScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable("hidden_apps") {
+                        AppVisibilityScreen(
+                            mode = AppVisibilityMode.Hidden,
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable("removed_apps") {
+                        AppVisibilityScreen(
+                            mode = AppVisibilityMode.Removed,
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
 
                     // ── Functional wiring screens ──────────────────────────────

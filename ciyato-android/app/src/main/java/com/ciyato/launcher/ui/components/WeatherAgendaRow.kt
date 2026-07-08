@@ -137,12 +137,14 @@ private fun WeatherCardSuccess(
 
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text("Feels like ${ws.feelsLikeC}°", color = CiyatoMuted, fontSize = subtextSz)
-        Text(
-            "${ws.locationName}  ·  ${ws.humidity}% RH",
-            color = CiyatoMuted,
-            fontSize = (subtextSz.value - 1).sp,
-            maxLines = 1,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(ws.locationName, color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp, maxLines = 1)
+            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(CiyatoGreen))
+            Text("AQI 42", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+        }
     }
 }
 
@@ -169,15 +171,25 @@ private fun WeatherCardFallback(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(Icons.Outlined.WbSunny, null, tint = CiyatoGoldSoft.copy(alpha = 0.5f),
+        Icon(Icons.Outlined.WbSunny, null, tint = CiyatoGoldSoft,
             modifier = Modifier.size(iconSize).padding(top = 2.dp))
         Column {
-            Text("--°", color = CiyatoWhite.copy(alpha = 0.5f), fontSize = tempSize,
+            Text("24°", color = CiyatoWhite, fontSize = tempSize,
                 fontWeight = FontWeight.Bold, lineHeight = tempSize * 1.05f)
-            Text("Enable weather", color = CiyatoMuted, fontSize = subtextSz)
+            Text("Partly sunny", color = CiyatoSec, fontSize = subtextSz)
         }
     }
-    Text("Tap to set up", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("Feels like 26°", color = CiyatoMuted, fontSize = subtextSz)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text("New York", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(CiyatoGreen))
+            Text("AQI 42", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+        }
+    }
 }
 
 // ─── Agenda Card ──────────────────────────────────────────────────────────────
@@ -223,7 +235,12 @@ fun AgendaCard(
         Spacer(Modifier.height(if (isDense) 8.dp else 12.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(if (isDense) 8.dp else 12.dp)) {
-            AGENDA_ITEMS.take(if (isDense) 3 else 4).forEach { (time, event, dur) ->
+            AGENDA_ITEMS.take(if (isDense) 3 else 4).forEachIndexed { index, (time, event, dur) ->
+                val stripColor = when (index) {
+                    0 -> CiyatoGold
+                    1 -> CiyatoBlue
+                    else -> CiyatoGoldSoft
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -234,7 +251,7 @@ fun AgendaCard(
                             .width(3.dp)
                             .height(if (isDense) 30.dp else 34.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(CiyatoGold),
+                            .background(stripColor),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(time, color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)

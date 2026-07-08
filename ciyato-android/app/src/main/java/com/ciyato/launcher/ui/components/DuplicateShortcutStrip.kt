@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ fun DuplicateShortcutStrip(
     apps: List<InstalledApp>,
     onAppTap: (InstalledApp) -> Unit,
     onManage: () -> Unit,
+    onDismiss: () -> Unit,
     onStripTap: () -> Unit = onManage,
     modifier: Modifier = Modifier,
 ) {
@@ -45,13 +47,12 @@ fun DuplicateShortcutStrip(
             .clip(RoundedCornerShape(22.dp))
             .background(CiyatoGold.copy(alpha = 0.08f))
             .border(1.dp, CiyatoGold.copy(alpha = 0.22f), RoundedCornerShape(22.dp))
-            .clickable(onClick = onStripTap)
             .semantics { contentDescription = "Duplicate smart shortcuts — tap to manage" }
             .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
         // Header row: sparkle icon + titles
         Row(
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Gold sparkle badge
@@ -60,7 +61,8 @@ fun DuplicateShortcutStrip(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(CiyatoGold.copy(alpha = 0.18f)),
+                    .background(CiyatoGold.copy(alpha = 0.18f))
+                    .clickable(onClick = onStripTap),
             ) {
                 Icon(
                     Icons.Default.AutoFixHigh,
@@ -70,7 +72,7 @@ fun DuplicateShortcutStrip(
                 )
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).clickable(onClick = onStripTap)) {
                 Text(
                     "Duplicate smart shortcuts",
                     color = CiyatoWhite,
@@ -83,6 +85,23 @@ fun DuplicateShortcutStrip(
                     color = CiyatoSec,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
+                )
+            }
+
+            // Close button
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(CiyatoBgEl2.copy(alpha = 0.5f))
+                    .clickable(onClick = onDismiss)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = CiyatoMuted,
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }

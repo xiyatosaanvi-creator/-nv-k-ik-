@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.components.RealAppIcon
 import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
@@ -48,7 +49,7 @@ fun PermissionAuditScreen(
     val context = LocalContext.current
     val apps by viewModel.apps.collectAsState()
 
-    var filterLevel by remember { mutableStateOf("All") }
+    var filterLevel: String by remember { mutableStateOf("All") }
     val filters = listOf("All", "High Risk", "Medium", "Low")
 
     val auditedApps = remember(apps) {
@@ -70,14 +71,10 @@ fun PermissionAuditScreen(
     Scaffold(
         containerColor = CiyatoBg,
         topBar = {
-            TopAppBar(
-                title = { Text("Permission Audit", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = CiyatoSec)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
+            CiyatoTopBar(
+                title = "Permission Audit",
+                subtitle = "Security & Privacy Guardian",
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -86,22 +83,11 @@ fun PermissionAuditScreen(
             PermissionSummaryBanner(auditedApps)
 
             // Filter tabs
-            ScrollableTabRow(
-                selectedTabIndex = filters.indexOf(filterLevel).coerceAtLeast(0),
-                containerColor   = CiyatoBg,
-                contentColor     = CiyatoGold,
-                edgePadding      = 16.dp,
-            ) {
-                filters.forEach { f ->
-                    Tab(
-                        selected      = filterLevel == f,
-                        onClick       = { filterLevel = f },
-                        text          = { Text(f, fontSize = 13.sp) },
-                        selectedContentColor   = CiyatoGold,
-                        unselectedContentColor = CiyatoMuted,
-                    )
-                }
-            }
+            CiyatoTabRow(
+                tabs = filters,
+                selectedIndex = filters.indexOf(filterLevel).coerceAtLeast(0),
+                onTabSelected = { idx -> filterLevel = filters[idx] }
+            )
 
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),

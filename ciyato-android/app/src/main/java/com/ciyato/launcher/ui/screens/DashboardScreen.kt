@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +37,14 @@ fun DashboardScreen(
 ) {
     val apps by viewModel.apps.collectAsState()
     val totalApps = remember(apps) { apps.size }
+    val context = LocalContext.current
+    val storage = remember {
+        android.os.StatFs(context.filesDir.absolutePath).let { stats ->
+            val total = stats.totalBytes.coerceAtLeast(1L)
+            val used = (total - stats.availableBytes).coerceAtLeast(0L)
+            Triple(used, total, (used.toFloat() / total.toFloat()).coerceIn(0f, 1f))
+        }
+    }
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -44,8 +53,8 @@ fun DashboardScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Ciyato", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("AI Active", color = CiyatoGold, fontSize = 11.sp,
+                        Text("Ciyoto", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Local beta", color = CiyatoGold, fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
@@ -54,13 +63,9 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.AutoFixHigh, contentDescription = "AI",
+                    IconButton(onClick = onOpenSearch) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = "Smart Search",
                             tint = CiyatoGold, modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications",
-                            tint = CiyatoSec)
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = CiyatoSec)
@@ -95,7 +100,7 @@ fun DashboardScreen(
                 }
             }
 
-            // Storage card (mock for beta)
+            // Storage card
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth()
@@ -108,11 +113,11 @@ fun DashboardScreen(
                         Column(Modifier.weight(1f)) {
                             Text("Phone Storage", color = CiyatoWhite,
                                 fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                            Text("68 GB used of 128 GB", color = CiyatoSec,
+                            Text("${formatStorage(storage.first)} used of ${formatStorage(storage.second)}", color = CiyatoSec,
                                 fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
                             Spacer(Modifier.height(10.dp))
                             LinearProgressIndicator(
-                                progress = { 0.53f },
+                                progress = { storage.third },
                                 modifier = Modifier.fillMaxWidth().height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
                                 color = CiyatoGold,
@@ -121,12 +126,12 @@ fun DashboardScreen(
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("53%", color = CiyatoGold, fontWeight = FontWeight.Bold, fontSize = 26.sp)
+                            Text("${(storage.third * 100).toInt()}%", color = CiyatoGold, fontWeight = FontWeight.Bold, fontSize = 26.sp)
                             Text("Used", color = CiyatoMuted, fontSize = 11.sp)
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    Text("Clean suggestions: 2.4 GB  →", color = CiyatoBlue, fontSize = 12.sp)
+                    Text("Cleanup is disabled until a review-safe flow is implemented.", color = CiyatoMuted, fontSize = 12.sp)
                 }
             }
 
@@ -136,11 +141,11 @@ fun DashboardScreen(
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    QuickAction(Icons.Default.AutoFixHigh, "AI Organize", CiyatoGold, Modifier.weight(1f))
-                    QuickAction(Icons.Default.Delete, "Clean Up", CiyatoBlue, Modifier.weight(1f))
+                    QuickAction(Icons.Default.AutoFixHigh, "Smart Search", CiyatoGold, onOpenSearch, Modifier.weight(1f))
+                    QuickAction(Icons.Default.Folder, "Files", CiyatoBlue, onOpenFiles, Modifier.weight(1f))
                     QuickAction(Icons.Default.CopyAll, "Duplicates",
-                        MaterialTheme.colorScheme.error, Modifier.weight(1f))
-                    QuickAction(Icons.Default.PhotoAlbum, "Smart Album", CiyatoGreen, Modifier.weight(1f))
+                        MaterialTheme.colorScheme.error, onOpenFiles, Modifier.weight(1f))
+                    QuickAction(Icons.Default.PhotoAlbum, "Photos", CiyatoGreen, onOpenPhotos, Modifier.weight(1f))
                 }
             }
 
@@ -151,10 +156,10 @@ fun DashboardScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        Triple(Icons.Default.Image, "87 new photos organized", "2m ago"),
-                        Triple(Icons.Default.Delete, "Cleaned 1.2 GB from Downloads", "1h ago"),
-                        Triple(Icons.Default.CopyAll, "3 duplicate apps detected", "3h ago"),
-                        Triple(Icons.Default.Apps, "$totalApps apps loaded", "Just now"),
+                        Triple(Icons.Default.Apps, "$totalApps visible launcher apps loaded", "Live"),
+                        Triple(Icons.Default.FolderOpen, "File access is requested only when you choose a folder", "Private"),
+                        Triple(Icons.Default.PhotoLibrary, "Photos use Android Photo Picker", "Selected only"),
+                        Triple(Icons.Default.DeleteOutline, "No automatic cleanup or deletion", "Safe"),
                     ).forEach { (icon, label, time) ->
                         ActivityRow(icon = icon, label = label, time = time)
                     }
@@ -188,6 +193,7 @@ private fun QuickAction(
     icon: ImageVector,
     label: String,
     color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -195,12 +201,19 @@ private fun QuickAction(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(color.copy(alpha = 0.12f))
+            .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(6.dp))
         Text(label, color = CiyatoWhite, fontSize = 10.sp, fontWeight = FontWeight.Medium)
     }
+}
+
+private fun formatStorage(bytes: Long): String {
+    val gb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
+    return if (gb >= 1.0) String.format(java.util.Locale.US, "%.1f GB", gb)
+    else "${bytes / (1024 * 1024)} MB"
 }
 
 @Composable

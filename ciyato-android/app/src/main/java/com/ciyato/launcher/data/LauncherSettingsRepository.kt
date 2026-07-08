@@ -47,6 +47,7 @@ class LauncherSettingsRepository(private val context: Context) {
     private companion object {
         // ── Core ─────────────────────────────────────────────────────────────
         val KEY_ONBOARDING_DONE        = booleanPreferencesKey("onboarding_done")
+        val KEY_HOME_TIP_DISMISSED     = booleanPreferencesKey("home_tip_dismissed")
         val KEY_DENSE_LAYOUT           = booleanPreferencesKey("dense_layout")
         val KEY_DARK_MODE              = stringPreferencesKey("dark_mode")          // auto | dark | light | amoled
         val KEY_GOLD_ACCENT            = booleanPreferencesKey("gold_accent")
@@ -70,9 +71,12 @@ class LauncherSettingsRepository(private val context: Context) {
 
         // ── Organization (#23, #24, #25) ──────────────────────────────────────
         val KEY_HIDDEN_APPS            = stringPreferencesKey("hidden_apps")        // comma-separated packageNames
+        val KEY_REMOVED_APPS           = stringPreferencesKey("removed_apps")       // display-only removal
+        val KEY_DOCK_PACKAGES          = stringPreferencesKey("dock_packages")      // ordered CSV package names
         val KEY_CATEGORY_RENAMES       = stringPreferencesKey("category_renames")  // JSON {"WORK":"Office"}
         val KEY_RECENTLY_LAUNCHED      = stringPreferencesKey("recently_launched")  // JSON list (max 10)
         val KEY_SHOW_RECENTLY_LAUNCHED = booleanPreferencesKey("show_recently_launched")
+        val KEY_APP_CATEGORY_OVERRIDES = stringPreferencesKey("app_category_overrides")
 
         // ── Search (#36) ─────────────────────────────────────────────────────
         val KEY_RECENT_SEARCHES        = stringPreferencesKey("recent_searches")    // JSON list (max 10)
@@ -132,11 +136,20 @@ class LauncherSettingsRepository(private val context: Context) {
         // ── Debug (#113) ──────────────────────────────────────────────────────
         val KEY_DEBUG_WEATHER_STUB     = booleanPreferencesKey("debug_weather_stub")
         val KEY_DEBUG_LOCATION_STUB    = booleanPreferencesKey("debug_location_stub")
+
+        // ── Custom Layout Settings ──
+        val KEY_USE_SYSTEM_WALLPAPER   = booleanPreferencesKey("use_system_wallpaper")
+        val KEY_CATEGORY_ORDER         = stringPreferencesKey("category_order")
+        val KEY_CATEGORY_TILES_SIZES   = stringPreferencesKey("category_tiles_sizes")
+        val KEY_CUSTOM_CATEGORIES     = stringPreferencesKey("custom_categories")
+        val KEY_PAGE_0_APPS            = stringPreferencesKey("page_0_apps")
+        val KEY_PAGE_2_APPS            = stringPreferencesKey("page_2_apps")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
 
     val onboardingDone:         Flow<Boolean> = pref(KEY_ONBOARDING_DONE,         false)
+    val homeTipDismissed:       Flow<Boolean> = pref(KEY_HOME_TIP_DISMISSED,      false)
     val denseLayout:            Flow<Boolean> = pref(KEY_DENSE_LAYOUT,            true)
     val darkMode:               Flow<String>  = pref(KEY_DARK_MODE,               "auto")
     val goldAccent:             Flow<Boolean> = pref(KEY_GOLD_ACCENT,             true)
@@ -157,11 +170,14 @@ class LauncherSettingsRepository(private val context: Context) {
     val weatherCacheAt:         Flow<Long>    = pref(KEY_WEATHER_CACHE_AT,        0L)
 
     val hiddenApps:             Flow<String>  = pref(KEY_HIDDEN_APPS,             "")
+    val removedApps:            Flow<String>  = pref(KEY_REMOVED_APPS,            "")
+    val dockPackages:           Flow<String>  = pref(KEY_DOCK_PACKAGES,           "")
     val categoryRenames:        Flow<String>  = pref(KEY_CATEGORY_RENAMES,        "{}")
     val recentlyLaunched:       Flow<String>  = pref(KEY_RECENTLY_LAUNCHED,       "[]")
     val showRecentlyLaunched:   Flow<Boolean> = pref(KEY_SHOW_RECENTLY_LAUNCHED,  true)
 
     val recentSearches:         Flow<String>  = pref(KEY_RECENT_SEARCHES,         "[]")
+    val appCategoryOverrides:   Flow<String>  = pref(KEY_APP_CATEGORY_OVERRIDES,   "{}")
 
     val timeAwareLayout:        Flow<Boolean> = pref(KEY_TIME_AWARE_LAYOUT,       true)
     val bedtimeMode:            Flow<Boolean> = pref(KEY_BEDTIME_MODE,            false)
@@ -203,9 +219,17 @@ class LauncherSettingsRepository(private val context: Context) {
     val debugWeatherStub:       Flow<Boolean> = pref(KEY_DEBUG_WEATHER_STUB,      false)
     val debugLocationStub:      Flow<Boolean> = pref(KEY_DEBUG_LOCATION_STUB,     false)
 
+    val useSystemWallpaper:     Flow<Boolean> = pref(KEY_USE_SYSTEM_WALLPAPER,    false)
+    val categoryOrder:          Flow<String>  = pref(KEY_CATEGORY_ORDER,         "")
+    val categoryTilesSizes:     Flow<String>  = pref(KEY_CATEGORY_TILES_SIZES,     "{}")
+    val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
+    val page0Apps:              Flow<String>  = pref(KEY_PAGE_0_APPS,             "")
+    val page2Apps:              Flow<String>  = pref(KEY_PAGE_2_APPS,             "")
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setOnboardingDone(v: Boolean)          = set(KEY_ONBOARDING_DONE,          v)
+    suspend fun setHomeTipDismissed(v: Boolean)        = set(KEY_HOME_TIP_DISMISSED,       v)
     suspend fun setDenseLayout(v: Boolean)             = set(KEY_DENSE_LAYOUT,             v)
     suspend fun setDarkMode(v: String)                 = set(KEY_DARK_MODE,                v)
     suspend fun setGoldAccent(v: Boolean)              = set(KEY_GOLD_ACCENT,              v)
@@ -229,9 +253,12 @@ class LauncherSettingsRepository(private val context: Context) {
     }
 
     suspend fun setHiddenApps(csv: String)             = set(KEY_HIDDEN_APPS,             csv)
+    suspend fun setRemovedApps(csv: String)            = set(KEY_REMOVED_APPS,            csv)
+    suspend fun setDockPackages(csv: String)            = set(KEY_DOCK_PACKAGES,           csv)
     suspend fun setCategoryRenames(json: String)       = set(KEY_CATEGORY_RENAMES,        json)
     suspend fun setRecentlyLaunched(json: String)      = set(KEY_RECENTLY_LAUNCHED,       json)
     suspend fun setShowRecentlyLaunched(v: Boolean)    = set(KEY_SHOW_RECENTLY_LAUNCHED,  v)
+    suspend fun setAppCategoryOverrides(json: String)  = set(KEY_APP_CATEGORY_OVERRIDES,  json)
 
     suspend fun setRecentSearches(json: String)        = set(KEY_RECENT_SEARCHES,         json)
 
@@ -274,6 +301,13 @@ class LauncherSettingsRepository(private val context: Context) {
 
     suspend fun setDebugWeatherStub(v: Boolean)        = set(KEY_DEBUG_WEATHER_STUB,      v)
     suspend fun setDebugLocationStub(v: Boolean)       = set(KEY_DEBUG_LOCATION_STUB,     v)
+
+    suspend fun setUseSystemWallpaper(v: Boolean)      = set(KEY_USE_SYSTEM_WALLPAPER,     v)
+    suspend fun setCategoryOrder(v: String)            = set(KEY_CATEGORY_ORDER,           v)
+    suspend fun setCategoryTilesSizes(v: String)        = set(KEY_CATEGORY_TILES_SIZES,       v)
+    suspend fun setCustomCategories(v: String)          = set(KEY_CUSTOM_CATEGORIES,         v)
+    suspend fun setPage0Apps(v: String)                = set(KEY_PAGE_0_APPS,              v)
+    suspend fun setPage2Apps(v: String)                = set(KEY_PAGE_2_APPS,              v)
 
     suspend fun resetLayout() {
         context.dataStore.edit { p ->

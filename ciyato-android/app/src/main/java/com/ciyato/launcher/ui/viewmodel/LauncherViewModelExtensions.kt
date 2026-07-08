@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 private val _searchHistory = MutableStateFlow<List<String>>(emptyList())
 private val _customGreeting = MutableStateFlow<String?>(null)
-private val _pinnedApps = MutableStateFlow<Set<String>>(emptySet())
 
 val LauncherViewModel.searchHistory: StateFlow<List<String>>
     get() = _searchHistory.asStateFlow()
@@ -48,20 +47,19 @@ fun LauncherViewModel.setCustomGreeting(text: String?) {
 // ── Pin helpers (#16) ──────────────────────────────────────────────────────────
 
 fun LauncherViewModel.isPinned(app: InstalledApp): Boolean {
-    return _pinnedApps.value.contains(app.packageName)
+    return isPinnedToDock(app.packageName)
 }
 
 fun LauncherViewModel.isHidden(app: InstalledApp): Boolean {
-    val hidden = hiddenApps.value
-    return hidden.split(",").any { it.trim() == app.packageName }
+    return isHidden(app.packageName)
 }
 
 fun LauncherViewModel.pinApp(app: InstalledApp) {
-    _pinnedApps.value = _pinnedApps.value + app.packageName
+    pinToDock(app.packageName)
 }
 
 fun LauncherViewModel.unpinApp(app: InstalledApp) {
-    _pinnedApps.value = _pinnedApps.value - app.packageName
+    unpinFromDock(app.packageName)
 }
 
 fun LauncherViewModel.hideApp(app: InstalledApp) {

@@ -1,79 +1,72 @@
-# Security and Privacy Policy — Ciyato
+# Ciyato Security and Privacy
 
-Ciyato is designed with a **Privacy-First** and **Local-First** philosophy. All processing happens on your device. No data is uploaded, shared, or sent to any server.
+Ciyato is local-first. The beta does not include analytics, advertising SDKs, cloud backup, account login, photo upload, file upload, or remote app-list classification.
 
-## Core Security Principles
+## APK permissions
 
-1. **Local Processing:** All app categorization, file indexing, and smart organization happen entirely on your device.
-2. **Permission Minimization:** Permissions are requested only when you enter a specific feature and accept a clear explanation. Nothing is requested at onboarding.
-3. **No Hidden Tracking:** Ciyato contains no background analytics, tracking SDKs, or "phone booster" scams.
-4. **User Control:** You can switch back to your previous launcher or uninstall at any time.
+The current debug APK declares:
 
----
+| Permission | Purpose | Request timing |
+|---|---|---|
+| `QUERY_ALL_PACKAGES` | Discover launchable apps for the Home launcher | Install-time capability; no dialog |
+| `INTERNET` | Fetch weather from Open-Meteo | Only used by weather |
+| `ACCESS_NETWORK_STATE` | Show weather/network failure states | No runtime dialog |
+| `ACCESS_COARSE_LOCATION` | Approximate foreground location for local weather | Only after the user opens Weather and taps Enable |
+| `VIBRATE` | Optional tap feedback | No runtime dialog |
 
-## Permission Details (Functional Wiring Phase)
+Android also generates an app-private `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. It is not a user data permission and is not exported to other apps.
 
-### Location (`ACCESS_COARSE_LOCATION`)
-- **When requested:** Only when you open the Weather card and tap "Enable Local Weather"
-- **Never requested:** At onboarding, app launch, or automatically in the background
-- **How used:** Approximate location only — to fetch local weather conditions
-- **What is NOT done:** No background location, no precise GPS, no location logging, no upload
+The beta does not declare broad storage access, `MANAGE_EXTERNAL_STORAGE`, full-gallery media access, background location, calendar, microphone, notification-listener, usage-stat, exact-alarm, boot, foreground-service, or biometric permissions.
 
-### File Access (Storage Access Framework)
-- **When requested:** Only when you open a Files collection tile and tap "Choose Folder"
-- **How used:** You select a specific folder via Android's built-in folder picker (SAF); Ciyato reads only that folder's listing
-- **What is NOT done:** No `READ_EXTERNAL_STORAGE`, no `MANAGE_EXTERNAL_STORAGE`, no broad storage access in beta
-- **Data stays local:** File names, sizes, and MIME types are displayed on-device only
+## Files
 
-### Photo Access
-- **When requested:** Only when you open Photos and choose to enable organization
-- **How used:** Android Photo Picker only in beta — no full gallery access required
-- **What is NOT done:** No cloud upload, no off-device AI analysis, no background scanning
+- Ciyato uses Android Storage Access Framework.
+- The user selects a folder in Android's system picker.
+- Persistable read access is kept only for the chosen folder.
+- The selected folder can be revoked in Android app/storage settings.
+- Ciyato lists and opens files locally.
+- Cleanup and deletion are disabled; there is no automatic destructive action.
+- Smart Collections use local filename, MIME type, and date heuristics.
 
-### App List (`QUERY_ALL_PACKAGES`)
-- **Always granted at install:** Required for launcher function
-- **How used:** Loads installed app names, icons, and categories on-device
-- **Data stays local:** The app list is never transmitted
+## Photos
 
-### Calendar
-- **Not requested in beta:** Sample agenda items shown only
-- **Future:** Will be requested only if the user explicitly enables real calendar integration
+- Ciyato uses Android Photo Picker.
+- Full-gallery permission is not requested.
+- Only selected media is displayed.
+- Selected photos are not uploaded.
+- Cloud AI analysis is not present.
+- Automatic moment grouping is staged and is labelled as staged.
 
-### Microphone
-- **Not requested in beta:** Voice search is not implemented
+## Installed apps
 
----
+- Labels, package names, activities, icons, install times, and category assignments stay on-device.
+- Hidden and Removed states affect only Ciyato's display.
+- Hide/Remove never uninstalls an app.
+- Uninstall is a separate, explicit system-confirmed action.
+- Category overrides and dock choices are stored locally in DataStore.
 
-## What Ciyato Does NOT Do
+## Weather
 
-- Does not upload app data, file data, photos, or location to any server
-- Does not delete or modify files automatically (cleanup requires explicit user confirmation)
-- Does not clone or duplicate APK files ("Duplicate Smart Shortcuts" is visual multi-placement only)
-- Does not request background location
-- Does not use `MANAGE_EXTERNAL_STORAGE` in beta
-- Does not share data with any third party
+- The user sees an explanation before the Android permission dialog.
+- Only coarse foreground location is requested.
+- Background location is not declared or used.
+- Weather data is fetched from Open-Meteo.
+- Denial leaves a graceful enable/limited state.
 
----
+## Local storage
 
-## Data Retention
+Preferences are stored with Android DataStore. Crash logs, when enabled, are written locally and are never uploaded automatically. `android:allowBackup` is disabled in the current beta.
 
-- All preferences are stored locally using Android DataStore (on-device only)
-- File/folder URI permissions are managed by Android SAF and can be revoked at any time in Android Settings
-- Uninstalling Ciyato removes all local data
+Uninstalling Ciyato removes app-private preferences and logs. Android may separately retain or revoke document-picker grants according to platform behavior.
 
----
+## User control and exit safety
 
-## Threat Model
+- Ciyato Settings links to Android Home app settings.
+- Ciyato Settings links to Android App Info and uninstall controls.
+- The user can restore Hidden and Removed apps.
+- The user can reset layout and first-run guidance.
+- Ciyato does not attempt to block switching launchers or uninstalling.
 
-| Threat | Mitigation |
-|--------|-----------|
-| Location misuse | Foreground-only, never background, explicitly user-triggered |
-| File data exfiltration | SAF only — no broad storage access; no network calls from repository |
-| Photo leakage | Photo Picker only in beta; no cloud AI; no upload path exists |
-| App list exposure | Local use only; no analytics SDK present |
-| Accidental file deletion | No automatic deletion; user must confirm every destructive action |
-| Launcher lock-in | Switch-back via Settings → Home app always preserved and tested |
+## Roadmap boundaries
 
----
-
-*Ciyato — Organize Smarter. Live Better.*
+Optional backup, accounts, device migration, encrypted private areas, and semantic AI grouping are roadmap items. They are not active in this beta. Any future cloud feature must be opt-in, explain its data destination, provide deletion controls, and avoid uploading sensitive content by default.

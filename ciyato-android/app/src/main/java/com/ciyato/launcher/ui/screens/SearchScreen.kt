@@ -44,6 +44,7 @@ fun SearchScreen(
     val searchQuery     by viewModel.searchQuery.collectAsState()
     val searchResults   by viewModel.searchResults.collectAsState()
     val isLoading       by viewModel.isLoading.collectAsState()
+    val apps            by viewModel.apps.collectAsState()
     val recentSearches  by viewModel.recentSearches.collectAsState()
     val nlpResult       by viewModel.nlpSearchResult.collectAsState()
 
@@ -53,19 +54,16 @@ fun SearchScreen(
     if (showFilesFlow)  { FilesScreen(onBack = { showFilesFlow  = false }); return }
     if (showPhotosFlow) { PhotosScreen(onBack = { showPhotosFlow = false }); return }
 
-    // Time-aware suggestion chips (Suggestion 45)
     val suggestionChips = remember {
-        val timeCats = viewModel.timeAwareCategories()
-        buildList {
-            timeCats.take(2).forEach { cat ->
-                add(Triple("${cat.displayName} apps", Icons.Default.Category, cat))
-            }
-            add(Triple("PDFs & documents", Icons.Default.Description, null))
-            add(Triple("Recent photos",    Icons.Default.Photo,       null))
-        }
+        listOf(
+            Triple("Work apps", Icons.Default.Work, AppCategory.WORK),
+            Triple("PDFs from yesterday", Icons.Default.PictureAsPdf, null),
+            Triple("Payment screenshots", Icons.Default.Screenshot, null),
+            Triple("Recent WhatsApp files", Icons.AutoMirrored.Filled.Chat, null),
+        )
     }
 
-    val frequentApps = remember { viewModel.byUsageFrequency().take(8) }
+    val frequentApps = remember(apps) { viewModel.byUsageFrequency().take(8) }
     val groups = remember(searchResults) {
         searchResults.groupBy { it.category.displayName }
             .filter { it.value.size >= 2 && it.key != "Other" }
@@ -76,11 +74,11 @@ fun SearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    SearchField(
-                        query         = searchQuery,
+                    CiyatoSearchBar(
+                        query = searchQuery,
                         onQueryChange = viewModel::setSearch,
-                        onClear       = { viewModel.setSearch("") },
-                        modifier      = Modifier.fillMaxWidth(),
+                        placeholder = "Search apps…",
+                        modifier = Modifier.fillMaxWidth()
                     )
                 },
                 navigationIcon = {
@@ -147,11 +145,14 @@ fun SearchScreen(
                             items(suggestionChips) { (label, icon, cat) ->
                                 SuggestionChip(label, icon) {
                                     if (cat != null) {
+                                        viewModel.recordSearch(label)
                                         viewModel.setSearch(label)
                                         onCategoryFilter?.invoke(cat)
-                                    } else if (label.contains("PDF") || label.contains("document")) {
+                                    } else if (label.contains("PDF") || label.contains("WhatsApp")) {
+                                        viewModel.recordSearch(label)
                                         showFilesFlow = true
                                     } else {
+                                        viewModel.recordSearch(label)
                                         showPhotosFlow = true
                                     }
                                 }
@@ -229,7 +230,10 @@ fun SearchScreen(
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(searchResults.take(16), key = { it.packageName }) { app ->
                                 AppIconTile(app = app, iconSize = 52.dp,
-                                    onClick = { viewModel.launchApp(app) },
+                                    onClick = {
+                                        viewModel.recordSearch(searchQuery)
+                                        viewModel.launchApp(app)
+                                    },
                                     modifier = Modifier.width(64.dp))
                             }
                         }
@@ -252,32 +256,7 @@ fun SearchScreen(
     }
 }
 
-// ─── Search field ─────────────────────────────────────────────────────────────
 
-@Composable
-private fun SearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit, modifier: Modifier) {
-    Box(modifier = modifier.height(44.dp).clip(RoundedCornerShape(999.dp)).background(CiyatoBgEl)
-        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp)),
-        contentAlignment = Alignment.CenterStart) {
-        if (query.isBlank()) {
-            Row(modifier = Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Search, null, tint = CiyatoMuted, modifier = Modifier.size(16.dp))
-                Text("Search apps…", color = CiyatoMuted, fontSize = 14.sp)
-            }
-        }
-        androidx.compose.foundation.text.BasicTextField(
-            value = query, onValueChange = onQueryChange, singleLine = true,
-            textStyle = androidx.compose.ui.text.TextStyle(color = CiyatoWhite, fontSize = 14.sp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 11.dp),
-        )
-        if (query.isNotBlank()) {
-            IconButton(onClick = onClear, modifier = Modifier.align(Alignment.CenterEnd).size(36.dp)) {
-                Icon(Icons.Default.Close, "Clear", tint = CiyatoMuted, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-}
 
 // ─── Suggestion chip ──────────────────────────────────────────────────────────
 

@@ -42,10 +42,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     val repo     = LauncherRepository(app)
     val settings = LauncherSettingsRepository(app)
+    val aiOptimizer = AIOptimizerManager(app)
+
+    fun optimizeSystem() {
+        viewModelScope.launch {
+            aiOptimizer.optimizeSystem(this@LauncherViewModel)
+        }
+    }
 
     // ── App list ──────────────────────────────────────────────────────────────
 
     val apps      get() = repo.apps
+    val allApps   get() = repo.allApps
     val isLoading get() = repo.isLoading
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -64,7 +72,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSearch(q: String) {
         _searchQuery.value = q
-        if (q.isNotBlank()) viewModelScope.launch { addRecentSearch(q) }
+    }
+
+    fun recordSearch(q: String) {
+        if (q.isNotBlank()) viewModelScope.launch { addRecentSearch(q.trim()) }
     }
 
     // ── NLP / grouped search (Suggestions 40, 42) ─────────────────────────────
@@ -77,6 +88,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     // ── Settings ──────────────────────────────────────────────────────────────
 
     val onboardingDone     = settings.onboardingDone    .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val homeTipDismissed   = settings.homeTipDismissed  .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val denseLayout        = settings.denseLayout        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val darkMode           = settings.darkMode           .stateIn(viewModelScope, SharingStarted.Eagerly, "auto")
     val goldAccent         = settings.goldAccent         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -88,7 +100,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val wallpaperBlur      = settings.wallpaperBlur      .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
     val tempUnit           = settings.tempUnit           .stateIn(viewModelScope, SharingStarted.Eagerly, "C")
     val hiddenApps         = settings.hiddenApps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val removedApps        = settings.removedApps        .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val dockPackages       = settings.dockPackages       .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryRenames    = settings.categoryRenames    .stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val appCategoryOverrides = settings.appCategoryOverrides.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val showRecentlyLaunched= settings.showRecentlyLaunched.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val timeAwareLayout    = settings.timeAwareLayout    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val bedtimeMode        = settings.bedtimeMode        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -100,10 +115,25 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val privacyMode        = settings.privacyMode        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val screenshotBlocked  = settings.screenshotBlocked  .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val crashReporting     = settings.crashReporting     .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val biometricLock      = settings.biometricLock      .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val appLockTimerMin    = settings.appLockTimerMin    .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val networkCallLog     = settings.networkCallLog     .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val useSystemWallpaper = settings.useSystemWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val categoryOrder      = settings.categoryOrder     .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val categoryTilesSizes = settings.categoryTilesSizes.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val page0Apps          = settings.page0Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val page2Apps          = settings.page2Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
     fun setOnboardingDone()               = viewModelScope.launch { settings.setOnboardingDone(true) }
+    fun dismissHomeTip()                  = viewModelScope.launch { settings.setHomeTipDismissed(true) }
+    fun resetGuidance()                   = viewModelScope.launch {
+        settings.setHomeTipDismissed(false)
+        settings.setOnboardingDone(false)
+    }
     fun setDenseLayout(v: Boolean)        = viewModelScope.launch { settings.setDenseLayout(v) }
     fun setDarkMode(v: String)            = viewModelScope.launch { settings.setDarkMode(v) }
     fun setGoldAccent(v: Boolean)         = viewModelScope.launch { settings.setGoldAccent(v) }
@@ -123,9 +153,101 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setPrivacyMode(v: Boolean)        = viewModelScope.launch { settings.setPrivacyMode(v) }
     fun setScreenshotBlocked(v: Boolean)  = viewModelScope.launch { settings.setScreenshotBlocked(v) }
     fun setCrashReporting(v: Boolean)     = viewModelScope.launch { settings.setCrashReporting(v) }
+    fun setBiometricLock(v: Boolean)      = viewModelScope.launch { settings.setBiometricLock(v) }
+    fun setAppLockTimerMin(v: Int)        = viewModelScope.launch { settings.setAppLockTimerMin(v) }
+    fun setNetworkCallLog(v: Boolean)     = viewModelScope.launch { settings.setNetworkCallLog(v) }
     fun setShowRecentlyLaunched(v: Boolean)= viewModelScope.launch { settings.setShowRecentlyLaunched(v) }
 
+    fun setUseSystemWallpaper(v: Boolean)  = viewModelScope.launch { settings.setUseSystemWallpaper(v) }
+    fun setCategoryOrder(v: String)        = viewModelScope.launch { settings.setCategoryOrder(v) }
+    fun setCategoryTilesSizes(v: String)    = viewModelScope.launch { settings.setCategoryTilesSizes(v) }
+    fun setCustomCategories(v: String)     = viewModelScope.launch { settings.setCustomCategories(v) }
+    fun setPage0Apps(v: String)            = viewModelScope.launch { settings.setPage0Apps(v) }
+    fun setPage2Apps(v: String)            = viewModelScope.launch { settings.setPage2Apps(v) }
+
     fun resetLayout() = viewModelScope.launch { settings.resetLayout() }
+
+    // ── Custom Category Customizers ───────────────────────────────────────────
+
+    fun byCustomCategory(name: String): List<InstalledApp> = repo.byCustomCategoryName(name)
+
+    fun addCustomCategory(name: String) = viewModelScope.launch {
+        val current = parsePackageCsv(customCategories.value).toMutableList()
+        if (name !in current) {
+            current.add(name)
+            settings.setCustomCategories(current.joinToString(","))
+        }
+    }
+
+    fun removeCustomCategory(name: String) = viewModelScope.launch {
+        val current = parsePackageCsv(customCategories.value).toMutableList()
+        current.remove(name)
+        settings.setCustomCategories(current.joinToString(","))
+        
+        // Cleanup overrides mapped to this custom category
+        val overrides = try { JSONObject(appCategoryOverrides.value) } catch(_: Exception) { JSONObject() }
+        val toRemove = mutableListOf<String>()
+        overrides.keys().forEach { key ->
+            if (overrides.getString(key) == name) {
+                toRemove.add(key)
+            }
+        }
+        toRemove.forEach { overrides.remove(it) }
+        settings.setAppCategoryOverrides(overrides.toString())
+        repo.loadApps()
+    }
+
+    fun setAppCustomCategoryOverride(packageName: String, customName: String?) = viewModelScope.launch {
+        val map = try { JSONObject(appCategoryOverrides.value) } catch (_: Exception) { JSONObject() }
+        if (customName == null) {
+            map.remove(packageName)
+        } else {
+            map.put(packageName, customName)
+        }
+        settings.setAppCategoryOverrides(map.toString())
+        repo.loadApps()
+    }
+
+    fun setCategoryTileSize(categoryKey: String, size: String) = viewModelScope.launch {
+        val map = try { JSONObject(categoryTilesSizes.value) } catch (_: Exception) { JSONObject() }
+        map.put(categoryKey, size)
+        settings.setCategoryTilesSizes(map.toString())
+    }
+
+    fun getCategoryTileSize(categoryKey: String): String {
+        return try {
+            val map = JSONObject(categoryTilesSizes.value)
+            map.optString(categoryKey, "medium")
+        } catch (_: Exception) { "medium" }
+    }
+
+    // ── Multi-Page Custom Apps ───────────────────────────────────────────────
+
+    fun addAppToPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
+        val flow = if (pageIndex == 0) settings.page0Apps else settings.page2Apps
+        val current = parsePackageCsv(flow.first()).toMutableList()
+        if (pkg !in current) {
+            current.add(pkg)
+            if (pageIndex == 0) settings.setPage0Apps(current.joinToString(","))
+            else settings.setPage2Apps(current.joinToString(","))
+        }
+    }
+
+    fun removeAppFromPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
+        val flow = if (pageIndex == 0) settings.page0Apps else settings.page2Apps
+        val current = parsePackageCsv(flow.first()).toMutableList()
+        if (current.remove(pkg)) {
+            if (pageIndex == 0) settings.setPage0Apps(current.joinToString(","))
+            else settings.setPage2Apps(current.joinToString(","))
+        }
+    }
+
+    fun getAppsForPage(pageIndex: Int): List<InstalledApp> {
+        val csv = if (pageIndex == 0) page0Apps.value else page2Apps.value
+        val pkgs = parsePackageCsv(csv)
+        val byPkg = apps.value.associateBy { it.packageName }
+        return pkgs.mapNotNull { byPkg[it] }
+    }
 
     // ── Screenshot blocking (Suggestion 145) ──────────────────────────────────
 
@@ -137,26 +259,89 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     // ── Hidden apps (Suggestion 23) ───────────────────────────────────────────
 
     fun hideApp(pkg: String) = viewModelScope.launch {
-        val current = hiddenApps.value
-        val updated = if (current.isBlank()) pkg else "$current,$pkg"
-        settings.setHiddenApps(updated)
-        repo.setHiddenPackages(updated)
-        repo.loadApps()
+        val hidden = parsePackageCsv(settings.hiddenApps.first()).toMutableSet().apply { add(pkg) }
+        val removed = parsePackageCsv(settings.removedApps.first()).toMutableSet().apply { remove(pkg) }
+        val hiddenCsv = hidden.sorted().joinToString(",")
+        val removedCsv = removed.sorted().joinToString(",")
+        settings.setHiddenApps(hiddenCsv)
+        settings.setRemovedApps(removedCsv)
+        repo.setHiddenPackages(hiddenCsv)
+        repo.setRemovedPackages(removedCsv)
     }
 
     fun unhideApp(pkg: String) = viewModelScope.launch {
-        val updated = hiddenApps.value.split(",").filter { it.trim() != pkg }.joinToString(",")
-        settings.setHiddenApps(updated)
-        repo.setHiddenPackages(updated)
-        repo.loadApps()
+        val hidden = parsePackageCsv(settings.hiddenApps.first()).toMutableSet().apply { remove(pkg) }
+        val hiddenCsv = hidden.sorted().joinToString(",")
+        settings.setHiddenApps(hiddenCsv)
+        repo.setHiddenPackages(hiddenCsv)
+    }
+
+    fun removeAppFromDisplay(pkg: String) = viewModelScope.launch {
+        val removed = parsePackageCsv(settings.removedApps.first()).toMutableSet().apply { add(pkg) }
+        val hidden = parsePackageCsv(settings.hiddenApps.first()).toMutableSet().apply { remove(pkg) }
+        val removedCsv = removed.sorted().joinToString(",")
+        val hiddenCsv = hidden.sorted().joinToString(",")
+        settings.setRemovedApps(removedCsv)
+        settings.setHiddenApps(hiddenCsv)
+        repo.setRemovedPackages(removedCsv)
+        repo.setHiddenPackages(hiddenCsv)
+    }
+
+    fun restoreApp(pkg: String) = viewModelScope.launch {
+        val removed = parsePackageCsv(settings.removedApps.first()).toMutableSet().apply { remove(pkg) }
+        val hidden = parsePackageCsv(settings.hiddenApps.first()).toMutableSet().apply { remove(pkg) }
+        val removedCsv = removed.sorted().joinToString(",")
+        val hiddenCsv = hidden.sorted().joinToString(",")
+        settings.setRemovedApps(removedCsv)
+        settings.setHiddenApps(hiddenCsv)
+        repo.setRemovedPackages(removedCsv)
+        repo.setHiddenPackages(hiddenCsv)
+    }
+
+    fun isHidden(pkg: String): Boolean = pkg in parsePackageCsv(hiddenApps.value)
+    fun isRemoved(pkg: String): Boolean = pkg in parsePackageCsv(removedApps.value)
+    fun hiddenAppItems(): List<InstalledApp> = repo.hiddenApps()
+    fun removedAppItems(): List<InstalledApp> = repo.removedApps()
+
+    fun isPinnedToDock(pkg: String): Boolean = pkg in parsePackageCsv(dockPackages.value)
+
+    fun pinToDock(pkg: String) = viewModelScope.launch {
+        val current = settings.dockPackages.first()
+            .split(",")
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .filterNot { it == pkg }
+            .toMutableList()
+        current.add(0, pkg)
+        settings.setDockPackages(current.take(5).joinToString(","))
+    }
+
+    fun unpinFromDock(pkg: String) = viewModelScope.launch {
+        val updated = settings.dockPackages.first()
+            .split(",")
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .filterNot { it == pkg }
+        settings.setDockPackages(updated.joinToString(","))
     }
 
     // ── Category renames (Suggestion 24) ──────────────────────────────────────
 
-    fun renameCategory(category: AppCategory, newName: String) = viewModelScope.launch {
+    fun setCategoryRename(cat: AppCategory, newName: String) = viewModelScope.launch {
         val map = try { JSONObject(categoryRenames.value) } catch (_: Exception) { JSONObject() }
-        map.put(category.name, newName.take(24))
+        map.put(cat.name, newName)
         settings.setCategoryRenames(map.toString())
+    }
+
+    fun setAppCategoryOverride(packageName: String, newCategory: AppCategory?) = viewModelScope.launch {
+        val map = try { JSONObject(appCategoryOverrides.value) } catch (_: Exception) { JSONObject() }
+        if (newCategory == null) {
+            map.remove(packageName)
+        } else {
+            map.put(packageName, newCategory.name)
+        }
+        settings.setAppCategoryOverrides(map.toString())
+        repo.loadApps()
     }
 
     fun getCategoryDisplayName(category: AppCategory): String {
@@ -230,6 +415,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun recentlyAdded()                    = repo.recentlyAdded()
     fun categoriesForApp(app: InstalledApp)= repo.categoriesForApp(app)
     fun byUsageFrequency()                 = repo.byUsageFrequency()
+    fun launchCount(pkg: String)           = repo.launchCount(pkg)
 
     // ── Time-aware layout helpers (Suggestion 72) ─────────────────────────────
 
@@ -361,10 +547,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
-            // Apply hidden apps to repo before first load
-            val hidden = settings.hiddenApps.first()
-            if (hidden.isNotBlank()) repo.setHiddenPackages(hidden)
             repo.loadApps()
         }
     }
+
+    private fun parsePackageCsv(csv: String): Set<String> =
+        csv.split(",").map(String::trim).filter(String::isNotEmpty).toSet()
 }

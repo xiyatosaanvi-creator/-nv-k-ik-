@@ -5,12 +5,18 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,18 +24,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.view.WindowManager
-import androidx.compose.ui.platform.LocalView
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.FocusSessionManager
 import com.ciyato.launcher.data.InstalledApp
@@ -40,7 +49,6 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Default home categories
 private val ALL_HOME_CATEGORIES = listOf(
     AppCategory.WORK,
     AppCategory.SOCIAL,
@@ -59,22 +67,29 @@ private val DOCK_PRIORITY_PACKAGES = listOf(
     "com.google.android.GoogleCamera", "com.android.camera2", "com.sec.android.app.camera",
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: LauncherViewModel,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit = {},
+    onOpenTheme: () -> Unit = {},
     onCategoryTap: (AppCategory) -> Unit = {},
     onWeatherTap: () -> Unit = {},
     onAgendaTap: () -> Unit = {},
     onDuplicatesTap: () -> Unit = {},
+    onOpenAIOptimizer: () -> Unit = {},
+    onOpenFiles: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val apps              by viewModel.apps.collectAsState()
     val isLoading         by viewModel.isLoading.collectAsState()
-    val searchQuery       by viewModel.searchQuery.collectAsState()
-    val searchResults     by viewModel.searchResults.collectAsState()
     val denseLayout       by viewModel.denseLayout.collectAsState()
+    val showSmartCategories by viewModel.smartCategories.collectAsState()
+    val goldAccentEnabled by viewModel.goldAccent.collectAsState()
+    val homeTipDismissed by viewModel.homeTipDismissed.collectAsState()
+    val dockPackages by viewModel.dockPackages.collectAsState()
     val showDupes         by viewModel.duplicateShortcuts.collectAsState()
     val toastEvent        by viewModel.toastEvent.collectAsState()
     val weatherState      by viewModel.weatherState.collectAsState()
@@ -84,24 +99,32 @@ fun HomeScreen(
     val privacyMode       by viewModel.privacyMode.collectAsState()
     val screenshotBlocked by viewModel.screenshotBlocked.collectAsState()
     val focusSession      by FocusSessionManager.activeSession.collectAsState()
+    val activeAccent = if (goldAccentEnabled) CiyatoGold else CiyatoBlue
 
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
 
-    // ── Anti-screenshot (Suggestion #79) ─────────────────────────────────────
-    DisposableEffect(screenshotBlocked) {
-        val window = (view.context as? android.app.Activity)?.window
-        if (screenshotBlocked) {
-            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        } else {
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        }
-        onDispose {
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        }
+    var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
+    var isEditMode by remember { mutableStateOf(false) }
+
+    // Custom categories & order
+    val customCats by viewModel.customCategories.collectAsState()
+    val customCatsList = remember(customCats) {
+        customCats.split(",").map(String::trim).filter(String::isNotEmpty)
     }
 
-    // ── Live clock (Suggestion 4) ─────────────────────────────────────────────
+    val categoryOrderVal by viewModel.categoryOrder.collectAsState()
+    val categoryTilesSizesVal by viewModel.categoryTilesSizes.collectAsState()
+
+    // Dialog state for creating a custom category
+    var showCreateCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+
+    // Dialog state for picking apps for custom pages
+    var showPageAppPicker by remember { mutableStateOf(false) }
+    var pickerPageIndex by remember { mutableStateOf(0) }
+
+    // ── Live clock ─────────────────────────────────────────────────────────────
     var liveClock by remember { mutableStateOf(currentTimeString()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -113,26 +136,48 @@ fun HomeScreen(
     val dateStr = remember { SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date()) }
 
     // ── Dock apps ─────────────────────────────────────────────────────────────
-    val dockApps = remember(apps) {
+    val dockApps = remember(apps, dockPackages) {
         val byPkg = apps.associateBy { it.packageName }
-        DOCK_PRIORITY_PACKAGES.mapNotNull { byPkg[it] }.distinctBy { it.packageName }.take(5)
+        val pinned = dockPackages.split(",").map(String::trim).filter(String::isNotEmpty)
+        (pinned + DOCK_PRIORITY_PACKAGES)
+            .mapNotNull { byPkg[it] }
+            .distinctBy { it.packageName }
+            .take(5)
             .ifEmpty { apps.take(5) }
     }
 
-    // ── Smart categories for current context (Suggestions 72, 74, 75) ─────────
-    val displayCategories = remember(apps, timeAwareLayout, focusSession) {
+    // ── Smart & Custom Categories ─────────────────────────────────────────────
+    val displayCategories = remember(apps, timeAwareLayout, focusSession, customCatsList) {
         val timeCats = if (timeAwareLayout) viewModel.timeAwareCategories() else ALL_HOME_CATEGORIES
-        val beadtimeHide = viewModel.isBedtimeNow()
+        val bedtimeHide = viewModel.isBedtimeNow()
         val allVisible = (timeCats + ALL_HOME_CATEGORIES).distinct()
-        allVisible.filter { cat ->
+
+        val standard = allVisible.filter { cat ->
             val hasApps = viewModel.byCategory(cat).isNotEmpty()
             val notBlocked = !FocusSessionManager.isBlocked(cat)
-            val notBedtime = !beadtimeHide || cat !in listOf(AppCategory.SOCIAL, AppCategory.ENTERTAINMENT, AppCategory.GAMES)
+            val notBedtime = !bedtimeHide || cat !in listOf(AppCategory.SOCIAL, AppCategory.ENTERTAINMENT, AppCategory.GAMES)
             hasApps && notBlocked && notBedtime
-        }.take(8)
+        }.map { it.name }
+
+        val custom = customCatsList.filter { name ->
+            viewModel.byCustomCategory(name).isNotEmpty()
+        }
+
+        (standard + custom)
     }
 
-    // ── Recently launched (Suggestion 25) ─────────────────────────────────────
+    val orderedCategories = remember(displayCategories, categoryOrderVal) {
+        val order = categoryOrderVal.split(",").map(String::trim).filter(String::isNotEmpty)
+        if (order.isEmpty()) {
+            displayCategories
+        } else {
+            val sorted = displayCategories.filter { it in order }.sortedBy { order.indexOf(it) }
+            val remaining = displayCategories.filter { it !in order }
+            sorted + remaining
+        }
+    }
+
+    // ── Recently launched ─────────────────────────────────────────────────────
     val recentApps = remember(apps) { viewModel.getRecentlyLaunchedApps() }
 
     // ── Duplicate apps ────────────────────────────────────────────────────────
@@ -147,228 +192,508 @@ fun HomeScreen(
         }
     }
 
-    // ── Layout density vars ───────────────────────────────────────────────────
+    // ── Layout variables ───────────────────────────────────────────────────────
     val columns        = if (denseLayout) 3 else 2
     val cardHeight: Dp = if (denseLayout) 114.dp else 142.dp
     val spacing        = if (denseLayout) 14.dp else 22.dp
     val topPad         = if (denseLayout) 20.dp else 36.dp
     val greetingSize   = if (denseLayout) 22.sp else 28.sp
-    val clockSize      = if (denseLayout) 36.sp else 46.sp
+
+    // ── Wallpaper & Background mode ───────────────────────────────────────────
+    val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
+    val infiniteTransition = rememberInfiniteTransition(label = "aurora")
+    val pulseGlow by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseGlow"
+    )
+
+    val backgroundModifier = if (useSystemWallpaper) {
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.35f))
+    } else {
+        Modifier
+            .fillMaxSize()
+            .drawBehind {
+                drawRect(CiyatoBg)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(CiyatoGold.copy(alpha = 0.08f * pulseGlow), Color.Transparent),
+                        radius = size.width * 0.8f
+                    ),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.1f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(CiyatoBlue.copy(alpha = 0.12f * (1f - pulseGlow)), Color.Transparent),
+                        radius = size.width * 0.9f
+                    ),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.5f)
+                )
+            }
+    }
+
+    // ── Pager state for swiping screens ──────────────────────────────────────
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
 
     Scaffold(
-        containerColor = CiyatoBg,
+        containerColor = Color.Transparent, // Let system wallpaper or custom background show
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { scaffoldPadding ->
-        Box(
-            modifier = modifier.fillMaxSize()
-                .background(Brush.verticalGradient(listOf(CiyatoBgEl2, CiyatoBg, CiyatoBg)))
-        ) {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start  = 16.dp, end = 16.dp,
-                    top    = scaffoldPadding.calculateTopPadding() + topPad,
-                    bottom = 140.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(spacing),
-                modifier = Modifier.fillMaxSize(),
-            ) {
+        Box(modifier = backgroundModifier) {
 
-                // ── 1. Clock + Greeting ───────────────────────────────────────
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            // Live clock (Suggestion 4)
-                            AnimatedContent(targetState = liveClock, transitionSpec = {
-                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                            }, label = "clock") { time ->
-                                Text(time, color = CiyatoWhite, fontSize = clockSize,
-                                    fontWeight = FontWeight.ExtraBold, lineHeight = clockSize * 1.05f)
-                            }
-                            Text(
-                                if (!privacyMode) viewModel.greeting else "Welcome back",
-                                color = CiyatoSec,
-                                fontSize = if (denseLayout) 13.sp else 14.sp,
-                            )
-                            Text(dateStr, color = CiyatoMuted, fontSize = if (denseLayout) 12.sp else 13.sp)
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // Focus session indicator (Suggestion 75)
-                            if (focusSession != null) {
-                                FocusBadge(focusSession!!)
-                            }
-                            ActionCircle(Icons.Default.AutoFixHigh, CiyatoGold, 42.dp)
-                            Box(contentAlignment = Alignment.TopEnd) {
-                                ActionCircle(Icons.Default.Notifications, CiyatoSec, 42.dp)
-                                if (!privacyMode) {
-                                    Box(modifier = Modifier.size(9.dp).offset((-1).dp, 1.dp)
-                                        .clip(CircleShape).background(Color(0xFFEF4444))
-                                        .border(1.5.dp, CiyatoBg, CircleShape))
-                                }
-                            }
-                        }
-                    }
-                }
+            // Swipable layout area
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0, 2 -> {
+                        // Custom screens Page 0 & Page 2
+                        val pageIndex = if (page == 0) 0 else 2
+                        val pageApps = remember(apps, pageIndex) { viewModel.getAppsForPage(pageIndex) }
 
-                // ── 2. Search bar ─────────────────────────────────────────────
-                item {
-                    HomeSearchBar(
-                        query         = searchQuery,
-                        onQueryChange = {
-                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.setSearch(it)
-                        },
-                        isDense  = denseLayout,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                // ── 3. Search results (early-exit) ────────────────────────────
-                if (searchQuery.isNotBlank()) {
-                    if (searchResults.isEmpty()) {
-                        item { Text("No results for \"$searchQuery\"", color = CiyatoMuted,
-                            modifier = Modifier.padding(vertical = 16.dp)) }
-                    } else {
-                        item { Text("Results", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
-                        item {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                items(searchResults.take(14), key = { it.packageName }) { app ->
-                                    AppIconTile(app = app, iconSize = if (denseLayout) 50.dp else 56.dp,
-                                        onClick = {
-                                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.launchApp(app)
-                                        },
-                                        modifier = Modifier.width(if (denseLayout) 62.dp else 68.dp))
-                                }
-                            }
-                        }
-                    }
-                    return@LazyColumn
-                }
-
-                // ── 4. Weather + Agenda row ───────────────────────────────────
-                item {
-                    WeatherAgendaRow(
-                        isDense      = denseLayout,
-                        weatherState = if (privacyMode) null else weatherState,
-                        onWeatherTap = {
-                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onWeatherTap()
-                        },
-                        onAgendaTap  = onAgendaTap,
-                        modifier     = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                // ── 5. Recently launched (Suggestion 25) ──────────────────────
-                if (showRecentLaunched && recentApps.isNotEmpty() && !privacyMode) {
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Text("Recent", color = CiyatoWhite, fontWeight = FontWeight.SemiBold,
-                                    fontSize = if (denseLayout) 15.sp else 17.sp)
-                            }
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                items(recentApps.take(8), key = { it.packageName }) { app ->
-                                    AppIconTile(app = app, iconSize = if (denseLayout) 44.dp else 50.dp,
-                                        onClick = {
-                                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.launchApp(app)
-                                        },
-                                        modifier = Modifier.width(if (denseLayout) 56.dp else 62.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── 6. Smart categories header ────────────────────────────────
-                item {
-                    Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                if (timeAwareLayout) "Right now" else "Smart categories",
-                                color = CiyatoWhite, fontWeight = FontWeight.SemiBold,
-                                fontSize = if (denseLayout) 17.sp else 20.sp,
-                            )
-                            if (focusSession != null) {
-                                Box(Modifier.clip(RoundedCornerShape(6.dp))
-                                    .background(CiyatoGold.copy(0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                                    Text("Focus", color = CiyatoGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                        Text("Edit", color = CiyatoBlue,
-                            fontSize = if (denseLayout) 13.sp else 14.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
-
-                // ── 7. Category grid (with skeleton, Suggestion 132) ──────────
-                item {
-                    if (isLoading) {
-                        // Skeleton loading (Suggestion 132)
-                        SkeletonCategoryGrid(columns = columns, rows = 2, cardHeight = cardHeight)
-                    } else if (displayCategories.isEmpty()) {
-                        Text("No apps found", color = CiyatoMuted, modifier = Modifier.padding(16.dp))
-                    } else {
-                        val rows = (displayCategories.size + columns - 1) / columns
-                        val gridH = cardHeight * rows + 10.dp * (rows - 1).coerceAtLeast(0)
-                        Column(
-                            modifier = Modifier.fillMaxWidth().height(gridH),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 20.dp, end = 20.dp,
+                                top = scaffoldPadding.calculateTopPadding() + topPad + 20.dp,
+                                bottom = 140.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = {
+                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        isEditMode = true
+                                    }
+                                )
                         ) {
-                            displayCategories.chunked(columns).forEach { rowCats ->
-                                Row(modifier = Modifier.fillMaxWidth().weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    rowCats.forEach { cat ->
-                                        SmartCategoryCard(
-                                            category = cat,
-                                            apps     = viewModel.byCategory(cat),
-                                            onTap    = {
-                                                if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onCategoryTap(cat)
-                                            },
-                                            onAppTap = {
-                                                if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                viewModel.launchApp(it)
-                                            },
-                                            iconSize = if (denseLayout) 38.dp else 46.dp,
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (pageIndex == 0) "Custom workspace A" else "Custom workspace B",
+                                        color = CiyatoWhite,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 18.sp
+                                    )
+                                    if (isEditMode) {
+                                        TextButton(
+                                            onClick = {
+                                                pickerPageIndex = pageIndex
+                                                showPageAppPicker = true
+                                            }
+                                        ) {
+                                            Text("+ Add App", color = CiyatoGold, fontSize = 13.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (pageApps.isEmpty()) {
+                                item {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 60.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isEditMode) "Tap '+ Add App' to pin shortcuts here." else "Long press to enter Edit Mode and add app shortcuts.",
+                                            color = CiyatoMuted,
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 13.sp
                                         )
                                     }
-                                    repeat(columns - rowCats.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                            } else {
+                                val rows = pageApps.chunked(4)
+                                items(rows) { rowApps ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        rowApps.forEach { app ->
+                                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopEnd) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .combinedClickable(
+                                                            onClick = { viewModel.launchApp(app) },
+                                                            onLongClick = { contextMenuApp = app }
+                                                        )
+                                                        .padding(8.dp)
+                                                ) {
+                                                    RealAppIcon(drawable = app.icon, size = 52.dp, cornerRadius = 14.dp)
+                                                    Text(
+                                                        text = app.label,
+                                                        color = CiyatoWhite,
+                                                        fontSize = 11.sp,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                                if (isEditMode) {
+                                                    Box(
+                                                        contentAlignment = Alignment.Center,
+                                                        modifier = Modifier
+                                                            .size(20.dp)
+                                                            .clip(CircleShape)
+                                                            .background(CiyatoRed)
+                                                            .clickable {
+                                                                viewModel.removeAppFromPage(pageIndex, app.packageName)
+                                                            }
+                                                    ) {
+                                                        Text("✕", color = CiyatoWhite, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        repeat(4 - rowApps.size) { Spacer(Modifier.weight(1f)) }
+                                    }
                                 }
                             }
                         }
                     }
-                }
+                    1 -> {
+                        // Main home screen
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start  = 16.dp, end = 16.dp,
+                                top    = scaffoldPadding.calculateTopPadding() + topPad,
+                                bottom = 140.dp,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(spacing),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = {
+                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        isEditMode = true
+                                    }
+                                ),
+                        ) {
 
-                // ── 8. Duplicate shortcuts (Suggestion 25 wiring) ────────────
-                if (showDupes && dupeApps.isNotEmpty() && !privacyMode) {
-                    item {
-                        DuplicateShortcutStrip(
-                            apps       = dupeApps,
-                            onAppTap   = {
-                                if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.launchApp(it)
-                            },
-                            onManage   = onDuplicatesTap,
-                            onStripTap = onDuplicatesTap,
-                            modifier   = Modifier.fillMaxWidth(),
-                        )
+                            // 1. Clock + Greeting
+                            item {
+                                Row(modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            if (!privacyMode) viewModel.greeting else "Welcome back",
+                                            color = CiyatoWhite,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = greetingSize,
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(dateStr, color = CiyatoSec, fontSize = if (denseLayout) 12.sp else 13.sp)
+                                            AnimatedContent(
+                                                targetState = liveClock,
+                                                transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) },
+                                                label = "clock",
+                                            ) { time ->
+                                                Text("· $time", color = CiyatoMuted, fontSize = if (denseLayout) 12.sp else 13.sp)
+                                            }
+                                        }
+                                    }
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (focusSession != null) {
+                                            FocusBadge(focusSession!!)
+                                        }
+                                        CiyatoAIButton(
+                                            icon = Icons.Default.AutoMode,
+                                            contentDescription = "Open AI Optimizer",
+                                            onClick = onOpenAIOptimizer,
+                                            size = 42.dp,
+                                        )
+                                        CiyatoIconButton(
+                                            icon = Icons.Default.AutoFixHigh,
+                                            contentDescription = "Open smart search",
+                                            onClick = onOpenSearch,
+                                            size = 42.dp,
+                                            tint = activeAccent,
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 2. Search bar
+                            item {
+                                HomeSearchBar(
+                                    isDense = denseLayout,
+                                    onClick = onOpenSearch,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            if (!homeTipDismissed && !isEditMode) {
+                                item {
+                                    CiyatoTipBanner(
+                                        text = "Long-press an app or empty space to edit layout, resize/reorder cards, or hide apps.",
+                                        onDismiss = viewModel::dismissHomeTip,
+                                        actionLabel = "Customize layout",
+                                        onAction = onOpenTheme,
+                                        accentColor = activeAccent
+                                    )
+                                }
+                            }
+
+                            // 4. Weather + Agenda row
+                            item {
+                                WeatherAgendaRow(
+                                    isDense      = denseLayout,
+                                    weatherState = if (privacyMode) null else weatherState,
+                                    onWeatherTap = {
+                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onWeatherTap()
+                                    },
+                                    onAgendaTap  = onAgendaTap,
+                                    modifier     = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            // Premium Widgets Grid
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        WorldClockWidget(modifier = Modifier.weight(1f))
+                                        BatteryStatusWidget(modifier = Modifier.weight(1f))
+                                    }
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        NewsHeadlineWidget(modifier = Modifier.weight(1f))
+                                        DailyAffirmationWidget(modifier = Modifier.weight(1f))
+                                    }
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        StockCryptoWidget(modifier = Modifier.weight(1f))
+                                        MediaControlsWidget(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+
+                            // 5. Recently launched
+                            if (showRecentLaunched && recentApps.isNotEmpty() && !privacyMode) {
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                "Recent",
+                                                color = CiyatoWhite,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = if (denseLayout) 14.sp else 16.sp,
+                                            )
+                                        }
+                                        LazyRow(
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            items(recentApps.take(8), key = { it.packageName }) { app ->
+                                                AppIconTile(app = app, iconSize = if (denseLayout) 44.dp else 50.dp,
+                                                    onClick = {
+                                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        viewModel.launchApp(app)
+                                                    },
+                                                    onLongClick = {
+                                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        contextMenuApp = app
+                                                    },
+                                                    modifier = Modifier.width(if (denseLayout) 56.dp else 62.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 6. Smart categories header
+                            if (showSmartCategories) {
+                                item {
+                                    Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Row(verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(
+                                                if (timeAwareLayout) "Right now" else "Smart categories",
+                                                color = CiyatoWhite, fontWeight = FontWeight.SemiBold,
+                                                fontSize = if (denseLayout) 17.sp else 20.sp,
+                                            )
+                                            if (focusSession != null) {
+                                                Box(Modifier.clip(RoundedCornerShape(6.dp))
+                                                    .background(CiyatoGold.copy(0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                                                    Text("Focus", color = CiyatoGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            if (isEditMode) {
+                                                TextButton(
+                                                    onClick = { showCreateCategoryDialog = true },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text("+ New Category", color = CiyatoGold, fontSize = 13.sp)
+                                                }
+                                            }
+                                            Text(
+                                                text = if (isEditMode) "Done" else "Edit",
+                                                color = CiyatoBlue,
+                                                fontSize = if (denseLayout) 13.sp else 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable {
+                                                        isEditMode = !isEditMode
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 7. Category grid
+                                item {
+                                    if (isLoading) {
+                                        SkeletonCategoryGrid(columns = columns, rows = 2, cardHeight = cardHeight)
+                                    } else if (orderedCategories.isEmpty()) {
+                                        Text("No apps found", color = CiyatoMuted, modifier = Modifier.padding(16.dp))
+                                    } else {
+                                        val rows = (orderedCategories.size + columns - 1) / columns
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        ) {
+                                            orderedCategories.chunked(columns).forEach { rowCats ->
+                                                Row(modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                    rowCats.forEach { catKey ->
+                                                        // Resolve if standard enum or custom category
+                                                        val standardCat = runCatching { AppCategory.valueOf(catKey) }.getOrNull()
+                                                        val displayName = if (standardCat != null) {
+                                                            viewModel.getCategoryDisplayName(standardCat)
+                                                        } else {
+                                                            catKey
+                                                        }
+                                                        val catApps = if (standardCat != null) {
+                                                            viewModel.byCategory(standardCat)
+                                                        } else {
+                                                            viewModel.byCustomCategory(catKey)
+                                                        }
+
+                                                        val tileSize = viewModel.getCategoryTileSize(catKey)
+                                                        val cardWeight = when (tileSize) {
+                                                            "large" -> 2f
+                                                            else -> 1f
+                                                        }
+
+                                                        SmartCategoryCard(
+                                                            category = standardCat ?: AppCategory.CUSTOM,
+                                                            displayName = displayName,
+                                                            apps     = catApps,
+                                                            onTap    = {
+                                                                if (standardCat != null) {
+                                                                    if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                    onCategoryTap(standardCat)
+                                                                } else {
+                                                                    // Open custom category details or dialogue
+                                                                }
+                                                            },
+                                                            tileSize = tileSize,
+                                                            isEditMode = isEditMode,
+                                                            onMoveLeft = {
+                                                                val idx = orderedCategories.indexOf(catKey)
+                                                                if (idx > 0) {
+                                                                    val mutable = orderedCategories.toMutableList()
+                                                                    val temp = mutable[idx]
+                                                                    mutable[idx] = mutable[idx - 1]
+                                                                    mutable[idx - 1] = temp
+                                                                    viewModel.setCategoryOrder(mutable.joinToString(","))
+                                                                }
+                                                            },
+                                                            onMoveRight = {
+                                                                val idx = orderedCategories.indexOf(catKey)
+                                                                if (idx < orderedCategories.size - 1) {
+                                                                    val mutable = orderedCategories.toMutableList()
+                                                                    val temp = mutable[idx]
+                                                                    mutable[idx] = mutable[idx + 1]
+                                                                    mutable[idx + 1] = temp
+                                                                    viewModel.setCategoryOrder(mutable.joinToString(","))
+                                                                }
+                                                            },
+                                                            onToggleSize = {
+                                                                val nextSize = when (tileSize) {
+                                                                    "small" -> "medium"
+                                                                    "medium" -> "large"
+                                                                    else -> "small"
+                                                                }
+                                                                viewModel.setCategoryTileSize(catKey, nextSize)
+                                                            },
+                                                            onDelete = {
+                                                                if (standardCat != null) {
+                                                                    // We can hide it
+                                                                } else {
+                                                                    viewModel.removeCustomCategory(catKey)
+                                                                }
+                                                            },
+                                                            modifier = Modifier.weight(cardWeight),
+                                                        )
+                                                    }
+                                                    repeat(columns - rowCats.size) { Spacer(Modifier.weight(1f)) }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Duplicate Shortcuts
+                            if (showDupes && dupeApps.isNotEmpty() && !privacyMode) {
+                                item {
+                                    DuplicateShortcutStrip(
+                                        apps = dupeApps,
+                                        onAppTap = viewModel::launchApp,
+                                        onManage = onDuplicatesTap,
+                                        onDismiss = {
+                                            viewModel.setDuplicateShortcuts(false)
+                                        },
+                                        onStripTap = onDuplicatesTap,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+
+                            item { Spacer(Modifier.height(16.dp)) }
+                        }
                     }
                 }
-
-                item { Spacer(Modifier.height(16.dp)) }
             }
 
-            // ── Fixed dock overlay ────────────────────────────────────────────
+            // Fixed dock overlay at bottom
             Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .padding(bottom = scaffoldPadding.calculateBottomPadding() + 20.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally,
@@ -384,6 +709,14 @@ fun HomeScreen(
                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onOpenDrawer()
                         },
+                        onOpenFiles = {
+                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenFiles()
+                        },
+                        onOpenTheme = {
+                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenTheme()
+                        },
                         onOpenSettings = {
                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onOpenSettings()
@@ -392,10 +725,196 @@ fun HomeScreen(
                 }
             }
         }
+
+        if (contextMenuApp != null) {
+            AppContextMenu(
+                app = contextMenuApp!!,
+                viewModel = viewModel,
+                onDismiss = { contextMenuApp = null }
+            )
+        }
+
+        // Custom Category Dialog
+        if (showCreateCategoryDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreateCategoryDialog = false },
+                containerColor = CiyatoBgEl,
+                title = { Text("New Custom Category", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    OutlinedTextField(
+                        value = newCategoryName,
+                        onValueChange = { newCategoryName = it.take(24) },
+                        singleLine = true,
+                        label = { Text("Category name") }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val name = newCategoryName.trim()
+                            if (name.isNotBlank()) {
+                                viewModel.addCustomCategory(name)
+                            }
+                            showCreateCategoryDialog = false
+                            newCategoryName = ""
+                        },
+                        enabled = newCategoryName.isNotBlank()
+                    ) {
+                        Text("Create", color = CiyatoGold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreateCategoryDialog = false }) {
+                        Text("Cancel", color = CiyatoSec)
+                    }
+                }
+            )
+        }
+
+        // Custom Page App Picker
+        if (showPageAppPicker) {
+            val allInstalledApps by viewModel.allApps.collectAsState()
+            AlertDialog(
+                onDismissRequest = { showPageAppPicker = false },
+                containerColor = CiyatoBgEl,
+                title = { Text("Add Shortcut", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 350.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        allInstalledApps.forEach { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.addAppToPage(pickerPageIndex, app.packageName)
+                                        showPageAppPicker = false
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RealAppIcon(app.icon, size = 36.dp, cornerRadius = 8.dp)
+                                Text(app.label, color = CiyatoWhite, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {}
+            )
+        }
     }
 }
 
-// ─── Focus session badge ──────────────────────────────────────────────────────
+private fun currentTimeString(): String =
+    SimpleDateFormat("h:mm", Locale.getDefault()).format(Date())
+
+@Composable
+private fun ActionCircle(
+    icon: ImageVector,
+    color: Color,
+    size: Dp,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(contentAlignment = Alignment.Center,
+        modifier = Modifier.size(size).clip(CircleShape).background(CiyatoBgEl)
+            .border(1.dp, CiyatoSubtleBorder, CircleShape)
+            .clickable(onClick = onClick)) {
+        Icon(icon, contentDescription, tint = color, modifier = Modifier.size(size * 0.5f))
+    }
+}
+
+@Composable
+private fun HomeSearchBar(isDense: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    Box(modifier = modifier.height(if (isDense) 50.dp else 56.dp)
+        .clip(RoundedCornerShape(999.dp)).background(CiyatoBgEl)
+        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp))
+        .clickable(onClick = onClick),
+        contentAlignment = Alignment.CenterStart) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Default.Search, null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+            Text("Search apps, files, contacts…", color = CiyatoMuted, fontSize = if (isDense) 14.sp else 15.sp)
+        }
+    }
+}
+
+@Composable
+private fun HomeNavBar(
+    onOpenDrawer: () -> Unit,
+    onOpenFiles: () -> Unit,
+    onOpenTheme: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val navItems = remember {
+        listOf(
+            CiyatoNavItem(Icons.Default.GridView, "Library"),
+            CiyatoNavItem(Icons.Default.FolderOpen, "Files"),
+            CiyatoNavItem(Icons.Default.StarOutline, "Theme"),
+            CiyatoNavItem(Icons.Default.Settings, "Settings")
+        )
+    }
+    CiyatoBottomNavBar(
+        items = navItems,
+        selectedIndex = -1,
+        onItemSelected = { idx ->
+            when (idx) {
+                0 -> onOpenDrawer()
+                1 -> onOpenFiles()
+                2 -> onOpenTheme()
+                3 -> onOpenSettings()
+            }
+        },
+        modifier = Modifier.padding(horizontal = 12.dp)
+    )
+}
+
+@Composable
+private fun LauncherTip(
+    accent: Color,
+    onDismiss: () -> Unit,
+    onCustomize: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(accent.copy(alpha = 0.09f))
+            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(16.dp))
+            .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Default.TipsAndUpdates, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Long-press an app or empty space to edit layout, resize/reorder cards, or hide apps.", color = CiyatoWhite, fontSize = 12.sp)
+            Text(
+                "Customize layout",
+                color = accent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onCustomize).padding(top = 4.dp),
+            )
+        }
+        IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.Close, contentDescription = "Dismiss tip", tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun NavCircle(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Box(contentAlignment = Alignment.Center,
+        modifier = Modifier.size(52.dp).clip(CircleShape).background(CiyatoBgEl)
+            .border(1.dp, CiyatoSubtleBorder, CircleShape).clickable(onClick = onClick)) {
+        Icon(icon, label, tint = CiyatoSec, modifier = Modifier.size(24.dp))
+    }
+}
 
 @Composable
 private fun FocusBadge(session: FocusSessionManager.FocusSession) {
@@ -413,58 +932,5 @@ private fun FocusBadge(session: FocusSessionManager.FocusSession) {
             Text("%02d:%02d".format(session.remainingMin, session.remainingSec),
                 color = CiyatoGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
-    }
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-private fun currentTimeString(): String =
-    SimpleDateFormat("h:mm", Locale.getDefault()).format(Date())
-
-@Composable
-private fun ActionCircle(icon: ImageVector, color: Color, size: Dp) {
-    Box(contentAlignment = Alignment.Center,
-        modifier = Modifier.size(size).clip(CircleShape).background(CiyatoBgEl)
-            .border(1.dp, CiyatoSubtleBorder, CircleShape)) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(size * 0.5f))
-    }
-}
-
-@Composable
-private fun HomeSearchBar(query: String, onQueryChange: (String) -> Unit, isDense: Boolean, modifier: Modifier) {
-    Box(modifier = modifier.height(if (isDense) 50.dp else 56.dp)
-        .clip(RoundedCornerShape(999.dp)).background(CiyatoBgEl)
-        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp)),
-        contentAlignment = Alignment.CenterStart) {
-        if (query.isBlank()) {
-            Row(modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Default.Search, null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
-                Text("Search apps, files, contacts…", color = CiyatoMuted, fontSize = if (isDense) 14.sp else 15.sp)
-            }
-        }
-        androidx.compose.foundation.text.BasicTextField(
-            value = query, onValueChange = onQueryChange, singleLine = true,
-            textStyle = androidx.compose.ui.text.TextStyle(color = CiyatoWhite, fontSize = if (isDense) 14.sp else 15.sp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp, vertical = 14.dp),
-        )
-    }
-}
-
-@Composable
-private fun HomeNavBar(onOpenDrawer: () -> Unit, onOpenSettings: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(36.dp), verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 24.dp)) {
-        NavCircle(Icons.Default.Apps, "App Drawer", onOpenDrawer)
-        NavCircle(Icons.Default.Settings, "Settings", onOpenSettings)
-    }
-}
-
-@Composable
-private fun NavCircle(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Box(contentAlignment = Alignment.Center,
-        modifier = Modifier.size(52.dp).clip(CircleShape).background(CiyatoBgEl)
-            .border(1.dp, CiyatoSubtleBorder, CircleShape).clickable(onClick = onClick)) {
-        Icon(icon, label, tint = CiyatoSec, modifier = Modifier.size(24.dp))
     }
 }
