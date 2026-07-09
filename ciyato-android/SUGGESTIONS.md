@@ -12,7 +12,7 @@ All suggestions maintain Ciyato's dark premium design system.
 2. **App icon badges** — draw notification count overlay on dock icons using AccessibilityService data.
 3. **Long-press context menu** — on any app icon: Open, App Info, Pin to Dock, Hide, Add to Category.
 4. **Live clock widget** — replace static date text with a `LaunchedEffect`-driven clock that ticks every second.
-5. **Gold gradient text** — apply a horizontal `Brush.linearGradient` to screen titles for a premium feel.
+5. **Silver gradient text** - apply a horizontal `Brush.linearGradient` to screen titles for a premium feel.
 6. **Smooth spring animations** — replace instant navigation transitions with `spring(dampingRatio=0.7f)` motion.
 7. **Icon shape selector** — squircle, circle, rounded square, or raw (system) shape applied to all `RealAppIcon`.
 8. **Category color coding** — each `AppCategory` gets a unique accent color used on card borders and headers.
@@ -20,7 +20,7 @@ All suggestions maintain Ciyato's dark premium design system.
 10. **Pinch-to-zoom categories** — pinch on the home grid to switch between Dense (3-col) and Spacious (2-col).
 11. **Double-tap home** — opens the most recently used app.
 12. **Empty state illustrations** — custom SVG illustrations for no-apps, no-files, no-internet states.
-13. **Glowing gold dot** — animated pulse behind the "C✦" logo badge (scale + alpha loop).
+13. **Glowing silver dot** - animated pulse behind the "C*" logo badge (scale + alpha loop).
 14. **Bottom sheet for settings** — replace full SettingsScreen navigation with a `ModalBottomSheet`.
 15. **Swipe-to-dismiss notifications** — show notification heads-up cards on the home screen with swipe dismiss.
 
@@ -70,7 +70,7 @@ All suggestions maintain Ciyato's dark premium design system.
 46. **Real calendar integration** — `READ_CALENDAR` permission + `CalendarContract.Events` query.
 47. **Event countdown pills** — show "in 23 min" countdown on the AgendaCard for the next event.
 48. **Calendar account selector** — let user pick which Google / Exchange account to show events from.
-49. **Event color chips** — read `CalendarContract.Events.CALENDAR_COLOR` and apply to the gold left-bar.
+49. **Event color chips** — read `CalendarContract.Events.CALENDAR_COLOR` and apply to the accent left-bar.
 50. **Add event shortcut** — "Add" button opens `Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)`.
 51. **Recurring event badge** — show a loop icon on events where `CalendarContract.Events.RRULE != null`.
 52. **All-day event section** — separate all-day events above the timed event list.
@@ -133,7 +133,7 @@ All suggestions maintain Ciyato's dark premium design system.
 97. **Dark / light / amoled modes** — three explicit themes; AMOLED uses pure `Color(0xFF000000)` background.
 98. **Font selector** — choose from 5 bundled fonts (Inter, Outfit, DM Sans, Syne, Geist) stored in res/font/.
 99. **Glass morphism presets** — presets for blur radius / opacity / border intensity applied globally.
-100. **Seasonal themes** — automatically switch accent colors for holidays (golden in Dec, pink in Feb, etc.).
+100. **Seasonal themes** — automatically switch accent colors for holidays while preserving the monochrome premium base.
 
 ---
 
@@ -175,14 +175,14 @@ All suggestions maintain Ciyato's dark premium design system.
 ## 🎨 MOTION & ANIMATION
 
 126. **Shared element transitions** — `SharedTransitionLayout` when navigating from category card to detail screen.
-127. **Particle burst on app launch** — 8 gold particles explode outward from the icon tap point using `Canvas`.
+127. **Particle burst on app launch** — 8 silver particles explode outward from the icon tap point using `Canvas`.
 128. **Elastic dock spring** — dock icons spring-compress and rebound when pressed, using `Animatable`.
 129. **Morphing category icons** — icons smoothly cross-fade (alpha + scale) when category filter changes.
 130. **Page-turn drawer** — `HorizontalPager` with a 3D perspective `graphicsLayer` rotation for drawer pages.
-131. **Floating action glow** — gold `BlurMaskFilter` pulsing shadow behind the Ciyato AI button.
+131. **Floating action glow** — silver `BlurMaskFilter` pulsing shadow behind the Ciyato AI button.
 132. **Skeleton loading** — shimmer placeholder for category cards while apps are loading.
 133. **Confetti burst** — `Canvas`-drawn confetti on completing the onboarding flow.
-134. **Ripple customisation** — replace Android's default grey ripple with a gold-tinted custom `Indication`.
+134. **Ripple customisation** — replace Android's default grey ripple with a silver-tinted custom `Indication`.
 135. **Scroll parallax** — home screen greeting slides upward at 0.5× scroll speed for a depth effect.
 
 ---

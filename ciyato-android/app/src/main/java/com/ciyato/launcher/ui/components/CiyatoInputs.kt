@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
 
-/**
- * Ciyato standard text input field.
- * Gold focus ring, dark background, clean label.
+ /**
+  * Ciyato standard text input field.
+ * Silver focus ring, dark background, clean label.
  */
 @Composable
 fun CiyatoInputField(
@@ -156,8 +156,8 @@ fun CiyatoSearchField(
     )
 }
 
-/**
- * Ciyato Switch — gold-accented toggle.
+ /**
+ * Ciyato Switch — silver-accented toggle.
  */
 @Composable
 fun CiyatoSwitch(
@@ -229,8 +229,8 @@ fun CiyatoSettingSwitch(
     }
 }
 
-/**
- * Ciyato Slider — gold-tinted range input.
+ /**
+ * Ciyato Slider — silver-tinted range input.
  */
 @Composable
 fun CiyatoSlider(
@@ -300,4 +300,3 @@ fun CiyatoPasswordField(
         onImeAction = onImeAction,
     )
 }
-

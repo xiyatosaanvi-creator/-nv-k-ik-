@@ -100,4 +100,4 @@ If Ciyato cannot be opened, use Android **Settings → Apps → Default apps →
 
 Ciyato categorizes apps locally. Files are available only from folders the user selects through Android's folder picker, and the remembered folder can be forgotten from Files or Settings. Photos are available only from Android Photo Picker selections. Weather requests approximate foreground location only after an explanation and explicit user action.
 
-See `SECURITY.md`, `TESTING.md`, `PROJECT_AUDIT.md`, and `IMPLEMENTATION_PLAN.md`.
+See `SECURITY.md`, `TESTING.md`, `STORE_READINESS.md`, `PROJECT_AUDIT.md`, and `IMPLEMENTATION_PLAN.md`.

@@ -37,7 +37,7 @@ The findings above describe the initial checkout. The current worktree now inclu
 - Files restores persisted folder access, passes the folder into collection details, uses real storage totals, and exposes ten heuristic Smart Collections.
 - Static cleanup actions are labelled staged or disabled.
 - Dashboard claims were replaced with live app/storage state and privacy-safe facts.
-- The APK icon now uses the user-supplied black rounded tile with an ivory `C` and gold sparkle, including adaptive and density launcher resources.
+- The APK icon now uses the user-supplied black rounded tile with an ivory `C` and premium sparkle, including adaptive and density launcher resources.
 - The manifest was reduced. The built APK now contains only launcher discovery, network/weather, coarse location, haptics, and Android's generated private receiver permission.
 - The unit tests were repaired: 9 tests now pass.
 - `testDebugUnitTest assembleDebug` succeeds and produces `app/build/outputs/apk/debug/app-debug.apk`.
@@ -231,13 +231,13 @@ The actual ten provided files map as follows:
 9. Ciyato Files
 10. Smart File Collections
 
-Common visual language: charcoal/black background, soft blue-black elevation, restrained glass cards, ivory text, muted secondary text, warm gold accents, 20–30 dp rounded corners, real icons, compact but readable hierarchy, and a large soft dock.
+Common visual language: charcoal/black background, soft graphite elevation, restrained glass cards, ivory text, muted secondary text, silver/white accents, 20-30 dp rounded corners, real icons, compact but readable hierarchy, and a large soft dock.
 
-Current Compose screens share the dark/gold palette and rounded cards, but runtime parity is not proven. Reference-critical gaps include the home composition, duplicate strip, true Theme Studio controls/preview, photo thumbnails, Files information hierarchy, and the dark App Library treatment.
+Current Compose screens now target the black/gray/white/silver palette and rounded cards, but runtime parity is not proven without physical-device acceptance. Reference-critical gaps include the home composition, duplicate strip, true Theme Studio controls/preview, photo thumbnails, Files information hierarchy, and the dark App Library treatment.
 
 ## App icon audit
 
-The launcher icon now uses the final supplied PNG: a black rounded tile with an ivory/cream `C` and gold sparkle. The white outside-corner background was made transparent, adaptive-icon foreground/background XML was wired to the bitmap artwork, and mdpi through xxxhdpi launcher PNGs were generated for legacy launchers.
+The launcher icon now uses the final supplied PNG: a black rounded tile with an ivory/cream `C` and premium sparkle. The white outside-corner background was made transparent, adaptive-icon foreground/background XML was wired to the bitmap artwork, and mdpi through xxxhdpi launcher PNGs were generated for legacy launchers.
 
 ## Documentation audit
 
