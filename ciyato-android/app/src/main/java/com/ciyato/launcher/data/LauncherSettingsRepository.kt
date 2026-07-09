@@ -59,7 +59,7 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_ICON_SHAPE             = stringPreferencesKey("icon_shape")         // squircle | circle | rounded | raw
         val KEY_FONT                   = stringPreferencesKey("font")               // inter | outfit | dm_sans | syne | geist
         val KEY_WALLPAPER_BLUR         = intPreferencesKey("wallpaper_blur")        // 0–20
-        val KEY_CUSTOM_ACCENT_COLOR    = stringPreferencesKey("custom_accent_color") // hex string e.g. "#FFB300"
+        val KEY_CUSTOM_ACCENT_COLOR    = stringPreferencesKey("custom_accent_color") // hex string e.g. "#E8E8E4"
         val KEY_GLASS_MORPHISM_PRESET  = stringPreferencesKey("glass_preset")       // none | light | medium | heavy
         val KEY_SEASONAL_THEMES        = booleanPreferencesKey("seasonal_themes")   // auto seasonal accent
         val KEY_MATERIAL_YOU           = booleanPreferencesKey("material_you")      // dynamic color
@@ -144,6 +144,8 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_CUSTOM_CATEGORIES     = stringPreferencesKey("custom_categories")
         val KEY_PAGE_0_APPS            = stringPreferencesKey("page_0_apps")
         val KEY_PAGE_2_APPS            = stringPreferencesKey("page_2_apps")
+        val KEY_FILES_ROOT_URI         = stringPreferencesKey("files_root_uri")
+        val KEY_DRAWER_STYLE           = stringPreferencesKey("drawer_style")       // smart | dense | spacious
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ class LauncherSettingsRepository(private val context: Context) {
     val iconShape:              Flow<String>  = pref(KEY_ICON_SHAPE,              "squircle")
     val font:                   Flow<String>  = pref(KEY_FONT,                    "inter")
     val wallpaperBlur:          Flow<Int>     = pref(KEY_WALLPAPER_BLUR,          0)
-    val customAccentColor:      Flow<String>  = pref(KEY_CUSTOM_ACCENT_COLOR,     "#FFB300")
+    val customAccentColor:      Flow<String>  = pref(KEY_CUSTOM_ACCENT_COLOR,     "#E8E8E4")
     val glassMorphismPreset:    Flow<String>  = pref(KEY_GLASS_MORPHISM_PRESET,   "medium")
     val seasonalThemes:         Flow<Boolean> = pref(KEY_SEASONAL_THEMES,         true)
     val materialYou:            Flow<Boolean> = pref(KEY_MATERIAL_YOU,            false)
@@ -225,6 +227,8 @@ class LauncherSettingsRepository(private val context: Context) {
     val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
     val page0Apps:              Flow<String>  = pref(KEY_PAGE_0_APPS,             "")
     val page2Apps:              Flow<String>  = pref(KEY_PAGE_2_APPS,             "")
+    val filesRootUri:           Flow<String>  = pref(KEY_FILES_ROOT_URI,          "")
+    val drawerStyle:            Flow<String>  = pref(KEY_DRAWER_STYLE,            "smart")
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -308,18 +312,29 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setCustomCategories(v: String)          = set(KEY_CUSTOM_CATEGORIES,         v)
     suspend fun setPage0Apps(v: String)                = set(KEY_PAGE_0_APPS,              v)
     suspend fun setPage2Apps(v: String)                = set(KEY_PAGE_2_APPS,              v)
+    suspend fun setFilesRootUri(v: String)             = set(KEY_FILES_ROOT_URI,           v)
+    suspend fun setDrawerStyle(v: String)              = set(KEY_DRAWER_STYLE,             v)
 
     suspend fun resetLayout() {
         context.dataStore.edit { p ->
             p[KEY_DENSE_LAYOUT]        = true
+            p[KEY_DARK_MODE]           = "auto"
             p[KEY_GOLD_ACCENT]         = true
             p[KEY_SMART_CATEGORIES]    = true
             p[KEY_DUPLICATE_SHORTCUTS] = true
             p[KEY_ICON_STYLE]          = "real"
             p[KEY_ICON_SHAPE]          = "squircle"
+            p[KEY_FONT]                = "inter"
             p[KEY_WALLPAPER_BLUR]      = 0
+            p[KEY_CUSTOM_ACCENT_COLOR]  = "#E8E8E4"
             p[KEY_GLASS_MORPHISM_PRESET] = "medium"
+            p[KEY_MATERIAL_YOU]        = false
+            p[KEY_DRAWER_STYLE]        = "smart"
         }
+    }
+
+    suspend fun resetAllPreferences() {
+        context.dataStore.edit { it.clear() }
     }
 
     // ── Generic helpers ───────────────────────────────────────────────────────

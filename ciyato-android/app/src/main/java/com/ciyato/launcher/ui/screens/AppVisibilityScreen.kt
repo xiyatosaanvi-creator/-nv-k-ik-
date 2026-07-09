@@ -26,11 +26,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +77,12 @@ fun AppVisibilityScreen(
             AppVisibilityMode.Removed -> it.packageName in removed
         }
     }
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredApps = apps.filter {
+        searchQuery.isBlank() ||
+            it.label.contains(searchQuery, ignoreCase = true) ||
+            it.packageName.contains(searchQuery, ignoreCase = true)
+    }
     val title = if (mode == AppVisibilityMode.Hidden) "Hidden Apps" else "Removed Apps"
     val description = if (mode == AppVisibilityMode.Hidden) {
         "Hidden apps stay installed but do not appear in Home, categories, the App Library, or normal search."
@@ -86,7 +96,14 @@ fun AppVisibilityScreen(
             CiyatoTopBar(
                 title = title,
                 subtitle = "Manage launcher presence",
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    if (apps.isNotEmpty()) {
+                        TextButton(onClick = { apps.forEach { viewModel.restoreApp(it.packageName) } }) {
+                            Text("Restore all", color = CiyatoGold, fontSize = 12.sp)
+                        }
+                    }
+                }
             )
         },
     ) { padding ->
@@ -119,17 +136,31 @@ fun AppVisibilityScreen(
                 }
             }
 
-            if (apps.isEmpty()) {
+            if (apps.isNotEmpty()) {
+                item {
+                    CiyatoSearchField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = "Search ${title.lowercase()}",
+                        onClear = { searchQuery = "" }
+                    )
+                }
+            }
+
+            if (filteredApps.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 56.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("No ${title.lowercase()}", color = CiyatoMuted)
+                        Text(
+                            if (apps.isEmpty()) "No ${title.lowercase()}" else "No apps match \"$searchQuery\"",
+                            color = CiyatoMuted
+                        )
                     }
                 }
             } else {
-                items(apps, key = { it.packageName }) { app ->
+                items(filteredApps, key = { it.packageName }) { app ->
                     VisibilityAppRow(app = app, onRestore = { viewModel.restoreApp(app.packageName) })
                 }
             }

@@ -23,8 +23,10 @@ The beta does not declare broad storage access, `MANAGE_EXTERNAL_STORAGE`, full-
 - Ciyato uses Android Storage Access Framework.
 - The user selects a folder in Android's system picker.
 - Persistable read access is kept only for the chosen folder.
+- The selected folder URI is remembered locally in DataStore and can be forgotten from Files or Settings.
 - The selected folder can be revoked in Android app/storage settings.
 - Ciyato lists and opens files locally.
+- Ciyato supports nested browsing inside the selected folder.
 - Cleanup and deletion are disabled; there is no automatic destructive action.
 - Smart Collections use local filename, MIME type, and date heuristics.
 

@@ -48,18 +48,12 @@ fun SearchScreen(
     val recentSearches  by viewModel.recentSearches.collectAsState()
     val nlpResult       by viewModel.nlpSearchResult.collectAsState()
 
-    var showFilesFlow  by remember { mutableStateOf(false) }
-    var showPhotosFlow by remember { mutableStateOf(false) }
-
-    if (showFilesFlow)  { FilesScreen(onBack = { showFilesFlow  = false }); return }
-    if (showPhotosFlow) { PhotosScreen(onBack = { showPhotosFlow = false }); return }
-
     val suggestionChips = remember {
         listOf(
             Triple("Work apps", Icons.Default.Work, AppCategory.WORK),
-            Triple("PDFs from yesterday", Icons.Default.PictureAsPdf, null),
-            Triple("Payment screenshots", Icons.Default.Screenshot, null),
-            Triple("Recent WhatsApp files", Icons.AutoMirrored.Filled.Chat, null),
+            Triple("Social apps", Icons.Default.Groups, AppCategory.SOCIAL),
+            Triple("Games", Icons.Default.SportsEsports, AppCategory.GAMES),
+            Triple("Finance", Icons.Default.AccountBalance, AppCategory.FINANCE),
         )
     }
 
@@ -144,17 +138,9 @@ fun SearchScreen(
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(suggestionChips) { (label, icon, cat) ->
                                 SuggestionChip(label, icon) {
-                                    if (cat != null) {
-                                        viewModel.recordSearch(label)
-                                        viewModel.setSearch(label)
-                                        onCategoryFilter?.invoke(cat)
-                                    } else if (label.contains("PDF") || label.contains("WhatsApp")) {
-                                        viewModel.recordSearch(label)
-                                        showFilesFlow = true
-                                    } else {
-                                        viewModel.recordSearch(label)
-                                        showPhotosFlow = true
-                                    }
+                                    viewModel.recordSearch(label)
+                                    viewModel.setSearch(label)
+                                    onCategoryFilter?.invoke(cat)
                                 }
                             }
                         }

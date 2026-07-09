@@ -1,6 +1,6 @@
-# Ciyoto Grand UX & Architecture Plan: 500 Premium Suggestions
+﻿# Ciyato Grand UX & Architecture Plan: 500 Premium Suggestions
 
-This document presents an exhaustive, itemized analysis of the Ciyoto Android Launcher project. It outlines 500 professional suggestions spanning visual aesthetics, home screen design, gesture pagers, application libraries, performance tuning, local security, and offline AI architecture.
+This document presents an exhaustive, itemized analysis of the Ciyato Android Launcher project. It outlines 500 professional suggestions spanning visual aesthetics, home screen design, gesture pagers, application libraries, performance tuning, local security, and offline AI architecture.
 
 ---
 
@@ -37,10 +37,10 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 28. Ensure navigation bar background remains completely transparent and its buttons adapt to background colors.
 29. Draw subtle circular auroras that gently float in the background on the home screen.
 30. Let users configure the velocity of background aurora pulsations (from still to active).
-31. Include a preset color scheme called "Golden Dust" featuring deep charcoal `#1A1A1A` paired with `#DFBA73` gold accents.
+31. Include a preset color scheme called "Silver Dust" featuring deep charcoal `#1A1A1A` paired with `#E8E8E4` silver accents.
 32. Include a preset color scheme called "Cyberpunk Neon" featuring midnight indigo `#0B0C10` paired with `#66FCF1` cyan highlights.
 33. Include a preset color scheme called "Monochrome Minimal" featuring gray `#2B2B2B` with crisp silver-white accents.
-34. Implement a "Muted Gold" accent variation for a less saturated, highly executive look.
+34. Implement a "Muted Silver" accent variation for a less saturated, highly executive look.
 35. Create an animated shimmer effect for cards in loading states to replace standard static loaders.
 36. Allow users to choose a custom bitmap image as a background texture (e.g., carbon fiber, brushed metal, or canvas).
 37. Implement anti-flicker drawing when switching themes to prevent flash of white blocks during transition.
@@ -51,7 +51,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 42. Implement a "Winter Sparkle" seasonal theme that adds ice-crystal designs around top widgets in December.
 43. Implement an "Autumn Amber" seasonal theme that shifts accent highlights to orange and copper tones in October.
 44. Implement a "Spring Blossom" seasonal theme that adds soft cherry blossom accents in April.
-45. Implement a "Summer Sun" seasonal theme with bright gold highlights in July.
+45. Implement a "Summer Sun" seasonal theme with bright Silver highlights in July.
 46. Apply an infinite transition on seasonal highlights to keep them alive and organic.
 47. Support a "Glassmorphic Heavy" preset that utilizes higher blur values and higher alpha colors for card backgrounds.
 48. Support a "Glassmorphic Light" preset that uses minimal blur and highly transparent card backgrounds.
@@ -59,7 +59,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 50. Implement automatic dark mode scheduling based on custom bedtime settings in Datastore.
 51. Support custom icon coloring options (mono, duotone, colorized).
 52. Standardize all spacing to use 4dp grid multiples (4, 8, 12, 16, 20, 24, 32, 48) to keep layouts perfectly aligned.
-53. Draw a tiny 1dp gold star icon next to premium/smart suggestions.
+53. Draw a tiny 1dp silver star icon next to premium/smart suggestions.
 54. Set a custom alpha channel on card titles to keep them slightly less bright than main headings, enhancing visual hierarchy.
 55. Allow users to set a custom color for the haptic-feedback tap indicators.
 56. Create a custom background shader for folders to make them look like a physical box with a subtle lid contour.
@@ -71,27 +71,27 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 62. Create a "Contrast Booster" switch in settings to improve legibility for visually impaired users.
 63. Automatically suggest accent colors based on a photo of your wallpaper analyzed using K-Means color clustering.
 64. Enable a "Privacy Blur" that blurs the entire launcher when a system secure overlay is displayed.
-65. Make the notification badge pulse in gold when a high-priority notification arrives.
+65. Make the notification badge pulse in Silver when a high-priority notification arrives.
 66. Support styling of app shortcuts context menus to match the current theme preset.
 67. Let users configure the transparency level of the bottom dock independently of the main cards.
 68. Implement a "Cyber Glow" background mode where widgets cast soft colored shadows onto the wallpaper.
 69. Restyle the Agenda list items with custom vertical timeline lines that match the theme accent.
 70. Ensure all icons inside cards use a consistent color tint (e.g. CiyatoSec) when they are not running.
-71. Draw a gold-colored accent ring around the search icon to draw user attention to search functionality.
+71. Draw a silver-colored accent ring around the search icon to draw user attention to search functionality.
 72. Allow users to configure font weights independently for headers and body text.
 73. Implement custom visual themes for the weather card icons to match the overall premium aesthetic.
 74. Ensure the system navigation bar doesn't obscure any interactive element on tablets.
 75. Create a "Retro Terminal" theme preset featuring phosphor green text on pure black.
 76. Create a "Nordic Frost" theme preset featuring soft blues, ice white, and light gray surfaces.
-77. Render a glowing gold underscore below active page indicator dots.
+77. Render a glowing Silver underscore below active page indicator dots.
 78. Support animated transition gradients when swiping between custom pages.
-79. Create custom visual borders for the search bar (e.g., gold-accented gradient outline).
+79. Create custom visual borders for the search bar (e.g., silver-accented gradient outline).
 80. Implement a custom "Glow Strength" setting in the Theme Studio for glowing widgets.
 81. Automatically dim folder backgrounds when they are expanded to full screen.
 82. Ensure the App Drawer search bar matches the Home screen search bar's styling exactly.
 83. Draw a delicate grid pattern in the background of Edit Mode to help align tiles.
 84. Render a subtle highlight line at the top edge of all cards to simulate an overhead light source.
-85. Make the calendar date badge color shift to gold on weekends.
+85. Make the calendar date badge color shift to Silver on weekends.
 86. Support custom typography kerning adjustments in the font settings.
 87. Keep text elements on the home screen single-lined and use ellipses to prevent layout breaking.
 88. Implement high-quality text shadow rendering for all labels when displayed directly on wallpapers.
@@ -131,7 +131,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 116. Position all widgets inside a 2-column horizontal grid below the clock for symmetry.
 117. Let users choose which widgets are displayed (weather, calendar, news, battery, custom).
 118. Implement a battery status widget that displays the phone's battery level and temperature.
-119. Draw the battery level as a premium circular progress indicator with a gold accent.
+119. Draw the battery level as a premium circular progress indicator with a silver accent.
 120. Provide a news headline widget that aggregates local RSS feeds in the background.
 
 ### 2.2 Category Folders & Dock
@@ -141,7 +141,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 124. Scale the miniature preview icons inside folders down to 24dp for a premium look.
 125. Disable click listeners on the folder preview icons so that tapping them expands the folder detail screen.
 126. Support folder tile sizing (small takes 1 grid space, medium takes 1 grid space with extra height, large takes 2 grid spaces).
-127. Render a delicate gold star icon in the corner of smart categories.
+127. Render a delicate silver star icon in the corner of smart categories.
 128. Let users drag-and-drop folders to rearrange their placement on the grid.
 129. Implement a "+" button at the end of the folder grid to add a custom category.
 130. Show a rename option when custom folders are long-pressed.
@@ -153,7 +153,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 136. Add a "Recently Used" app strip on the home screen above categories.
 137. Let users configure the maximum number of recent apps displayed in the strip (from 3 to 8).
 138. Implement a close button ("✕") on the recent apps section to hide it.
-139. Render a gold-colored accent outline around recently launched app icons.
+139. Render a silver-colored accent outline around recently launched app icons.
 140. Support pinning specific apps to the recent apps strip so they never rotate out.
 141. Position the bottom dock at the bottom of the home screen page.
 142. Standardize the bottom dock to hold up to 5 apps (default: Phone, Messages, Chrome, Camera, settings).
@@ -209,7 +209,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 190. Animate dialog entries with a scale-up transition from the center.
 191. Support landscape layouts for edit mode on tablets.
 192. Display device memory info inside settings dashboard.
-193. Draw a gold-colored border around the selected folder size button in Edit Mode.
+193. Draw a silver-colored border around the selected folder size button in Edit Mode.
 194. Prevent folder reordering from causing screen lag by updating database lists asynchronously.
 195. Standardize button heights inside edit dialogs to 48dp for touch target compliance.
 196. Show a "Cancel" button in all editing dialogs to discard changes.
@@ -230,7 +230,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 205. Designate Page 2 (Right) as an extra screen for pinning less-used shortcuts or tools.
 206. Keep the bottom dock and navigation keys stationary below the pager so they are visible across all pages.
 207. Render a custom page indicator overlay above the bottom dock.
-208. Style the page indicator dots using small gold circles.
+208. Style the page indicator dots using small silver circles.
 209. Scale the active page indicator dot slightly larger than the inactive dots.
 210. Animate page indicator transitions with a smooth slide transition.
 211. Support adding up to 5 home screen pages dynamically.
@@ -282,7 +282,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 255. Support a double-tap gesture on any page to lock the screen.
 256. Automatically save page layout configurations when apps are dragged.
 257. Support a "Workspace Mode" that hides the widgets section on Page 1.
-258. Draw a gold-accented dot indicator for the default home page in page indicator.
+258. Draw a silver-accented dot indicator for the default home page in page indicator.
 259. Let users customize dock icon size independently from page grids.
 260. Automatically dim inactive page indicators when the user is scrolling.
 261. Support vertical swiping to open the App Drawer from any page.
@@ -308,13 +308,13 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 281. Automatically hide page headers when not in Edit Mode.
 282. Display a confirmation tip when an app is pinned to a page.
 283. Support drag-and-drop between Page 0 and Page 2 by holding the icon near the screen border.
-284. Render a glowing gold glow on the edge of the screen when dragging apps near boundaries.
+284. Render a glowing silver glow on the edge of the screen when dragging apps near boundaries.
 285. Support a "Folder-to-Folder" merge gesture by dropping one folder onto another.
 286. Render a folder merging animation when folders are combined.
 287. Keep custom page layouts locked during Focus Sessions to prevent distractions.
 288. Let users rename home screen folders by long-pressing their headers.
 289. Support adding custom notes widgets to Page 0 and Page 2.
-290. Render notes widgets with a premium paper texture and gold pushpins.
+290. Render notes widgets with a premium paper texture and silver pins.
 291. Keep notes widgets scrollable if the text content is long.
 292. Display a count indicator on the note icon.
 293. Let users customize note background colors.
@@ -331,7 +331,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 ## Chapter 4: App Drawer & Search Engineering (Suggestions 301–400)
 
 ### 4.1 Filter Chips & List Layout
-301. Redesign filter chips in the app drawer to use a glassmorphic background with a gold outline.
+301. Redesign filter chips in the app drawer to use a glassmorphic background with a silver outline.
 302. Add a count badge next to category labels inside filter chips (e.g., "Work (12)").
 303. Scale filter chips to 36dp height to ensure comfortable touch targets.
 304. Animate category filter selection with a smooth slide transition.
@@ -346,7 +346,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 313. Render a premium timeline line next to drawer sections.
 314. Implement alphabetical section divider headers in the "All" app list.
 315. Display a fast-scroll alphabet sidebar on the right side of the App Drawer.
-316. Highlight the active letter in the alphabet sidebar with a gold glow.
+316. Highlight the active letter in the alphabet sidebar with a silver glow.
 317. Provide haptic clicks when scrolling past letters in the sidebar.
 318. Support an alternate grid view for the App Drawer (flat grid of all apps).
 319. Let users configure the grid columns in the App Drawer (from 3 to 6 columns).
@@ -355,12 +355,12 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 ### 4.2 Search Functionality & Context Menus
 321. Position the search bar at the top of the App Drawer.
 322. Style the search bar using a round glassmorphic card style.
-323. Render a search icon on the left of the search bar, styled in gold.
+323. Render a search icon on the left of the search bar, styled in Silver.
 324. Add a clear button ("✕") on the right of the search bar when text is entered.
 325. Automatically open the keyboard when the search screen is launched.
 326. Implement a fuzzy search algorithm utilizing Levenshtein distance fallback.
 327. Set the fuzzy search edit distance threshold to 3 characters.
-328. Highlight matching text characters inside search results in gold.
+328. Highlight matching text characters inside search results in Silver.
 329. Support natural language search query intent detection (e.g., "play songs" -> groups entertainment).
 330. Group search results by category header (e.g. "Apps", "Work", "Social").
 331. Display local contact search results inside the launcher search.
@@ -400,7 +400,7 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 365. Standardize drawer padding to prevent navigation buttons from obscuring app labels.
 366. Automatically adjust App Drawer background blur to match the global settings.
 367. Support vertical swiping down to close the App Drawer.
-368. Draw a gold-accented arrow at the top of the App Drawer to indicate closing swipe.
+368. Draw a silver-accented arrow at the top of the App Drawer to indicate closing swipe.
 369. Support quick search shortcuts for categories (e.g. typing "social:" shows social apps).
 370. Hide keyboard automatically when search results scroll.
 371. Animate drawer opening with a smooth slide-up animation.
@@ -541,3 +541,4 @@ This document presents an exhaustive, itemized analysis of the Ciyoto Android La
 498. Animate the bottom dock entrance with a smooth spring bounce.
 499. Provide local backup restoration instructions on Onboarding screen.
 500. Automatically test database load performance during initial configuration.
+

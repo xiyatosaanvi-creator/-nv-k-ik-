@@ -27,7 +27,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ciyato.launcher.BuildConfig
 import com.ciyato.launcher.data.CrashReporter
+import com.ciyato.launcher.data.LocationHelper
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -48,6 +50,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissionAudit: (() -> Unit)? = null,
     onNavigateToFocus: (() -> Unit)? = null,
+    onNavigateToFiles: (() -> Unit)? = null,
     onNavigateToTheme: (() -> Unit)? = null,
     onNavigateToHiddenApps: (() -> Unit)? = null,
     onNavigateToRemovedApps: (() -> Unit)? = null,
@@ -73,6 +76,10 @@ fun SettingsScreen(
     val screenshotBlocked  by viewModel.screenshotBlocked.collectAsState()
     val crashReporting     by viewModel.crashReporting.collectAsState()
     val showRecentLaunched by viewModel.showRecentlyLaunched.collectAsState()
+    val filesRootUri       by viewModel.filesRootUri.collectAsState()
+    val hiddenAppsCsv      by viewModel.hiddenApps.collectAsState()
+    val removedAppsCsv     by viewModel.removedApps.collectAsState()
+    val locationGranted    = LocationHelper.hasPermission(context)
 
     // Screenshot FLAG_SECURE (Suggestion 145)
     val activity = (context as? android.app.Activity)
@@ -86,6 +93,10 @@ fun SettingsScreen(
     var showBedtimeDialog by remember { mutableStateOf(false) }
     var showBlurDialog    by remember { mutableStateOf(false) }
     var showCrashLogs     by remember { mutableStateOf(false) }
+    var showForgetFilesDialog by remember { mutableStateOf(false) }
+    var showResetLayoutDialog by remember { mutableStateOf(false) }
+    var showResetGuidanceDialog by remember { mutableStateOf(false) }
+    var showResetAllDialog by remember { mutableStateOf(false) }
 
     if (showCrashLogs) {
         CrashLogsScreen(context = context, onBack = { showCrashLogs = false })
@@ -97,7 +108,7 @@ fun SettingsScreen(
         topBar = {
             CiyatoTopBar(
                 title = "Settings",
-                subtitle = "Configure Ciyoto Launcher",
+                subtitle = "Configure Ciyato Launcher",
                 onBack = onBack
             )
         }
@@ -136,8 +147,8 @@ fun SettingsScreen(
             }
             item {
                 CiyatoSettingSwitch(
-                    title = "Gold Accents",
-                    subtitle = "Premium gold highlights",
+                    title = "Silver Highlights",
+                    subtitle = "Monochrome silver and white highlights",
                     icon = Icons.Default.Star,
                     checked = goldAccent,
                     onCheckedChange = viewModel::setGoldAccent
@@ -192,7 +203,7 @@ fun SettingsScreen(
             item {
                 CiyatoListCard(
                     title = "Theme Studio",
-                    subtitle = "Customize colors, glass level, fonts & dock style",
+                    subtitle = "Customize density, drawer style, colors, fonts, and blur",
                     icon = Icons.Default.Palette,
                     iconColor = CiyatoGold,
                     onClick = { onNavigateToTheme?.invoke() }
@@ -268,12 +279,51 @@ fun SettingsScreen(
                     icon     = Icons.Default.Thermostat,
                     title = "Temperature Unit",
                     selected = tempUnit,
-                    options  = listOf("C" to "°Celsius", "F" to "°Fahrenheit"),
+                    options  = listOf("C" to "Celsius", "F" to "Fahrenheit"),
                     onSelect = viewModel::setTempUnit,
                 )
             }
 
             // ── Accessibility ─────────────────────────────────────────────────
+            item { SectionHeader("Permissions & Access") }
+            item {
+                CiyatoListCard(
+                    title = "Files Access",
+                    subtitle = if (filesRootUri.isBlank()) {
+                        "No folder selected. Open Files to choose one folder."
+                    } else {
+                        "Selected folder is remembered. Tap to manage it."
+                    },
+                    icon = Icons.Default.FolderOpen,
+                    iconColor = CiyatoGold,
+                    onClick = {
+                        if (filesRootUri.isBlank()) {
+                            onNavigateToFiles?.invoke() ?: openAppSettings(context)
+                        } else {
+                            showForgetFilesDialog = true
+                        }
+                    }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Photos Access",
+                    subtitle = "Uses Android Photo Picker; no full-gallery permission is requested.",
+                    icon = Icons.Default.PhotoLibrary,
+                    iconColor = CiyatoBlue,
+                    onClick = { openAppSettings(context) }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Weather Location",
+                    subtitle = if (locationGranted) "Approximate location permission is enabled." else "Location is off until Weather asks for it.",
+                    icon = Icons.Default.LocationOn,
+                    iconColor = CiyatoGreen,
+                    onClick = { openAppSettings(context) }
+                )
+            }
+
             item { SectionHeader("Accessibility") }
             item {
                 CiyatoSettingSwitch(
@@ -343,7 +393,7 @@ fun SettingsScreen(
             item {
                 CiyatoListCard(
                     title = "Hidden Apps",
-                    subtitle = "Apps hidden from home, drawer, and search",
+                    subtitle = "${countCsv(hiddenAppsCsv)} hidden - restore any time",
                     icon = Icons.Default.VisibilityOff,
                     iconColor = CiyatoSec,
                     onClick = { onNavigateToHiddenApps?.invoke() }
@@ -352,7 +402,7 @@ fun SettingsScreen(
             item {
                 CiyatoListCard(
                     title = "Removed Apps",
-                    subtitle = "Apps removed from launcher grids",
+                    subtitle = "${countCsv(removedAppsCsv)} removed from display - restore any time",
                     icon = Icons.Default.RemoveCircleOutline,
                     iconColor = CiyatoSec,
                     onClick = { onNavigateToRemovedApps?.invoke() }
@@ -383,29 +433,50 @@ fun SettingsScreen(
             }
 
             // ── Danger Zone ───────────────────────────────────────────────────
+            item { SectionHeader("App Info") }
+            item {
+                InfoCard(
+                    Icons.Default.Info,
+                    "Ciyato ${BuildConfig.VERSION_NAME}",
+                    "Build ${BuildConfig.VERSION_CODE} - ${if (BuildConfig.DEBUG) "debug" else "release"}"
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "App Info / Uninstall",
+                    subtitle = "Open Android app settings for Ciyato",
+                    icon = Icons.Default.Info,
+                    iconColor = CiyatoSec,
+                    onClick = { openAppSettings(context) }
+                )
+            }
+
             item { SectionHeader("Danger Zone") }
             item {
                 CiyatoListCard(
                     title = "Reset Layout",
                     subtitle = "Restore default layout settings",
                     icon = Icons.Default.RestartAlt,
-                    iconColor = Color(0xFFF5C542),
-                    onClick = viewModel::resetLayout
+                    iconColor = CiyatoSec,
+                    onClick = { showResetLayoutDialog = true }
                 )
             }
             item {
                 CiyatoListCard(
-                    title = "App Info / Uninstall",
-                    subtitle = "Open system settings to manage or uninstall",
-                    icon = Icons.Default.Info,
+                    title = "Reset Tips & Onboarding",
+                    subtitle = "Show setup guidance again",
+                    icon = Icons.Default.TipsAndUpdates,
+                    iconColor = CiyatoBlue,
+                    onClick = { showResetGuidanceDialog = true }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Reset All Ciyato Preferences",
+                    subtitle = "Clear local settings, hidden apps, removed apps, and selected folders",
+                    icon = Icons.Default.DeleteForever,
                     iconColor = Color(0xFFEF4444),
-                    onClick = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = android.net.Uri.fromParts("package", context.packageName, null)
-                            }
-                        )
-                    }
+                    onClick = { showResetAllDialog = true }
                 )
             }
             item {
@@ -443,6 +514,122 @@ fun SettingsScreen(
                     Text("Done", color = CiyatoGold)
                 }
             },
+        )
+    }
+
+    if (showForgetFilesDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgetFilesDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Forget Files Folder", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Ciyato will stop remembering the selected folder. You can choose it again from Files.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearFilesRootUri()
+                    showForgetFilesDialog = false
+                }) {
+                    Text("Forget", color = CiyatoGold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgetFilesDialog = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            }
+        )
+    }
+
+    if (showResetLayoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetLayoutDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Reset Layout", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "This restores density, accents, drawer style, icon shape, font, and blur to Ciyato defaults.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetLayout()
+                    showResetLayoutDialog = false
+                }) {
+                    Text("Reset", color = CiyatoGold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetLayoutDialog = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            }
+        )
+    }
+
+    if (showResetGuidanceDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetGuidanceDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Reset Guidance", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Onboarding and home tips will appear again the next time Ciyato opens.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetGuidance()
+                    showResetGuidanceDialog = false
+                }) {
+                    Text("Reset", color = CiyatoGold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetGuidanceDialog = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            }
+        )
+    }
+
+    if (showResetAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetAllDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Reset All Preferences", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "This clears Ciyato preferences stored on this device. It does not uninstall apps or delete files.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetAllPreferences()
+                    showResetAllDialog = false
+                }) {
+                    Text("Reset All", color = Color(0xFFEF4444))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetAllDialog = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            }
         )
     }
 }
@@ -636,4 +823,15 @@ private fun InfoCard(icon: ImageVector, title: String, body: String) {
         }
         Text(body, color = CiyatoSec, fontSize = 12.sp, lineHeight = 17.sp)
     }
+}
+
+private fun countCsv(csv: String): Int =
+    csv.split(",").count { it.trim().isNotEmpty() }
+
+private fun openAppSettings(context: Context) {
+    context.startActivity(
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = android.net.Uri.fromParts("package", context.packageName, null)
+        }
+    )
 }

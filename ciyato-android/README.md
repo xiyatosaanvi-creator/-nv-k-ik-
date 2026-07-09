@@ -16,12 +16,13 @@ This repository contains older web and Expo prototypes, but the product delivera
 - Long-press actions to pin to the dock, hide, remove from Ciyato, recategorize, open app info, or request uninstall
 - Separate persistent Hidden and Removed app lists with restore actions
 - Persistent category renames and per-app primary-category overrides
-- Persistent dense/spacious layout, accent choice, dock choices, launcher tip state, and onboarding state
+- Persistent dense/spacious layout, drawer style, silver/white accent choice, dock choices, launcher tip state, and onboarding state
 - Full local installed-app search by label, package name, and category
-- Required smart prompt routes for Work apps, PDFs, payment screenshots, and recent WhatsApp files
+- Search prompt routes for installed-app categories such as Work, Social, Games, and Finance
 - Foreground coarse-location weather flow using Open-Meteo
-- Storage Access Framework folder selection, local file listing, collection filtering, and system file opening
+- Storage Access Framework folder selection, nested local folder browsing, local file listing, and system file opening
 - Android Photo Picker selected-media display without full-gallery permission
+- Professional multi-step onboarding that explains launcher behavior, permissions, privacy, Files, Photos, Weather, and switch-back
 - Android Home settings, app info, uninstall guidance, and switch-back path
 
 ### Staged or limited
@@ -31,7 +32,7 @@ This repository contains older web and Expo prototypes, but the product delivera
 - File collections use local filename, MIME type, and date heuristics within the selected folder. Recursive indexing is not implemented.
 - Cleanup, junk removal, vault, and destructive file actions are disabled/staged.
 - Search is real for installed apps. File/photo semantic indexing across all device data is not implemented.
-- Theme Studio currently ships real density and gold/blue accent controls. Wallpaper packs, system wallpaper changes, icon frames, additional fonts, and glass presets are staged.
+- Theme Studio currently ships real density, drawer style, accent, appearance, icon shape, font, background blur, preview, and reset controls. Wallpaper packs, system wallpaper changes, and glass presets are staged.
 - No remote AI model, cloud backup, account, analytics, or hidden upload is active.
 
 ## Build
@@ -97,6 +98,6 @@ If Ciyato cannot be opened, use Android **Settings → Apps → Default apps →
 
 ## Privacy
 
-Ciyato categorizes apps locally. Files are available only from folders the user selects through Android's folder picker. Photos are available only from Android Photo Picker selections. Weather requests approximate foreground location only after an explanation and explicit user action.
+Ciyato categorizes apps locally. Files are available only from folders the user selects through Android's folder picker, and the remembered folder can be forgotten from Files or Settings. Photos are available only from Android Photo Picker selections. Weather requests approximate foreground location only after an explanation and explicit user action.
 
 See `SECURITY.md`, `TESTING.md`, `PROJECT_AUDIT.md`, and `IMPLEMENTATION_PLAN.md`.

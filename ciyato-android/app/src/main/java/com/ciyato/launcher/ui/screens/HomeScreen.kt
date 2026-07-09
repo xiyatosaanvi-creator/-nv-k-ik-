@@ -80,7 +80,6 @@ fun HomeScreen(
     onAgendaTap: () -> Unit = {},
     onDuplicatesTap: () -> Unit = {},
     onOpenAIOptimizer: () -> Unit = {},
-    onOpenFiles: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val apps              by viewModel.apps.collectAsState()
@@ -106,6 +105,7 @@ fun HomeScreen(
 
     var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
     var isEditMode by remember { mutableStateOf(false) }
+    var selectedCustomCategory by remember { mutableStateOf<String?>(null) }
 
     // Custom categories & order
     val customCats by viewModel.customCategories.collectAsState()
@@ -620,8 +620,12 @@ fun HomeScreen(
                                                                     if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                                     onCategoryTap(standardCat)
                                                                 } else {
-                                                                    // Open custom category details or dialogue
+                                                                    selectedCustomCategory = catKey
                                                                 }
+                                                            },
+                                                            onAppTap = { app ->
+                                                                if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                viewModel.launchApp(app)
                                                             },
                                                             tileSize = tileSize,
                                                             isEditMode = isEditMode,
@@ -653,13 +657,9 @@ fun HomeScreen(
                                                                 }
                                                                 viewModel.setCategoryTileSize(catKey, nextSize)
                                                             },
-                                                            onDelete = {
-                                                                if (standardCat != null) {
-                                                                    // We can hide it
-                                                                } else {
-                                                                    viewModel.removeCustomCategory(catKey)
-                                                                }
-                                                            },
+                                                            onDelete = if (standardCat == null) {
+                                                                { viewModel.removeCustomCategory(catKey) }
+                                                            } else null,
                                                             modifier = Modifier.weight(cardWeight),
                                                         )
                                                     }
@@ -704,19 +704,16 @@ fun HomeScreen(
                             viewModel.launchApp(it)
                         })
                     }
-                    HomeNavBar(
+                    LauncherControlStrip(
                         onOpenDrawer = {
                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onOpenDrawer()
                         },
-                        onOpenFiles = {
+                        onToggleEdit = {
                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onOpenFiles()
+                            isEditMode = !isEditMode
                         },
-                        onOpenTheme = {
-                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onOpenTheme()
-                        },
+                        isEditMode = isEditMode,
                         onOpenSettings = {
                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onOpenSettings()
@@ -731,6 +728,65 @@ fun HomeScreen(
                 app = contextMenuApp!!,
                 viewModel = viewModel,
                 onDismiss = { contextMenuApp = null }
+            )
+        }
+
+        selectedCustomCategory?.let { categoryName ->
+            val customApps = viewModel.byCustomCategory(categoryName)
+            AlertDialog(
+                onDismissRequest = { selectedCustomCategory = null },
+                containerColor = CiyatoBgEl,
+                title = { Text(categoryName, color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (customApps.isEmpty()) {
+                            Text("No apps in this custom category yet.", color = CiyatoMuted, fontSize = 13.sp)
+                        } else {
+                            customApps.forEach { app ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(CiyatoBgEl2)
+                                        .clickable {
+                                            selectedCustomCategory = null
+                                            viewModel.launchApp(app)
+                                        }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    RealAppIcon(app.icon, size = 38.dp, cornerRadius = 10.dp)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(app.label, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                        Text(app.packageName, color = CiyatoMuted, fontSize = 10.sp, maxLines = 1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { selectedCustomCategory = null }) {
+                        Text("Done", color = CiyatoGold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.removeCustomCategory(categoryName)
+                            selectedCustomCategory = null
+                        }
+                    ) {
+                        Text("Remove category", color = CiyatoRed)
+                    }
+                }
             )
         }
 
@@ -845,33 +901,55 @@ private fun HomeSearchBar(isDense: Boolean, onClick: () -> Unit, modifier: Modif
 }
 
 @Composable
-private fun HomeNavBar(
+private fun LauncherControlStrip(
     onOpenDrawer: () -> Unit,
-    onOpenFiles: () -> Unit,
-    onOpenTheme: () -> Unit,
+    onToggleEdit: () -> Unit,
+    isEditMode: Boolean,
     onOpenSettings: () -> Unit,
 ) {
-    val navItems = remember {
-        listOf(
-            CiyatoNavItem(Icons.Default.GridView, "Library"),
-            CiyatoNavItem(Icons.Default.FolderOpen, "Files"),
-            CiyatoNavItem(Icons.Default.StarOutline, "Theme"),
-            CiyatoNavItem(Icons.Default.Settings, "Settings")
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(CiyatoBgEl.copy(alpha = 0.92f))
+            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(999.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LauncherControlButton(Icons.Default.GridView, "Open App Library", onOpenDrawer)
+        LauncherControlButton(
+            if (isEditMode) Icons.Default.Check else Icons.Default.Edit,
+            if (isEditMode) "Finish editing" else "Edit Home",
+            onToggleEdit,
+            active = isEditMode
+        )
+        LauncherControlButton(Icons.Default.Settings, "Launcher Settings", onOpenSettings)
+    }
+}
+
+@Composable
+private fun LauncherControlButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    active: Boolean = false,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(if (active) CiyatoGold else CiyatoBgEl2)
+            .border(1.dp, if (active) CiyatoGold else CiyatoSubtleBorder, CircleShape)
+            .clickable(onClick = onClick)
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = if (active) CiyatoBg else CiyatoSec,
+            modifier = Modifier.size(21.dp)
         )
     }
-    CiyatoBottomNavBar(
-        items = navItems,
-        selectedIndex = -1,
-        onItemSelected = { idx ->
-            when (idx) {
-                0 -> onOpenDrawer()
-                1 -> onOpenFiles()
-                2 -> onOpenTheme()
-                3 -> onOpenSettings()
-            }
-        },
-        modifier = Modifier.padding(horizontal = 12.dp)
-    )
 }
 
 @Composable

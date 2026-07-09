@@ -136,7 +136,7 @@ tasks.whenTaskAdded {
     if (name == "assembleDebug") {
         doLast {
             val apkSrc = file("${layout.buildDirectory.get().asFile}/outputs/apk/debug/app-debug.apk")
-            val apkDst = file("${rootDir}/Ciyoto.apk")
+            val apkDst = file("${rootDir}/Ciyato.apk")
             if (apkSrc.exists()) { apkSrc.copyTo(apkDst, overwrite = true); println("✅ APK ready: ${apkDst.absolutePath}") }
         }
     }

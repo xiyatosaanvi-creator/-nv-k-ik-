@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.documentfile.provider.DocumentFile
 import com.ciyato.launcher.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,6 +39,8 @@ data class CiyatoFile(
     val sizeBytes: Long,
     val mimeType: String?,
     val lastModified: Long,
+    val isDirectory: Boolean = false,
+    val document: DocumentFile? = null,
 )
 
 data class FileCollectionInfo(
@@ -55,6 +58,8 @@ fun FileCollectionDetailScreen(
     collectionIcon: ImageVector,
     collectionColor: Color,
     initialFolderUri: Uri? = null,
+    onFolderSelected: (Uri) -> Unit = {},
+    onForgetFolder: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -63,10 +68,23 @@ fun FileCollectionDetailScreen(
     var selectedFolderUri by remember(initialFolderUri) { mutableStateOf(initialFolderUri) }
     var files by remember { mutableStateOf<List<CiyatoFile>>(emptyList()) }
     var isLoading by remember(initialFolderUri) { mutableStateOf(initialFolderUri != null) }
+    var folderStack by remember(initialFolderUri) { mutableStateOf<List<DocumentFile>>(emptyList()) }
+    val currentFolderName = folderStack.lastOrNull()?.name ?: collectionTitle
 
     LaunchedEffect(initialFolderUri) {
         if (initialFolderUri != null) {
-            files = loadFilesFromUri(context, initialFolderUri, collectionTitle)
+            val root = DocumentFile.fromTreeUri(context, initialFolderUri)
+            if (root != null) {
+                folderStack = listOf(root)
+                files = loadFilesFromDocument(root, collectionTitle)
+            } else {
+                folderStack = emptyList()
+                files = emptyList()
+            }
+            isLoading = false
+        } else {
+            folderStack = emptyList()
+            files = emptyList()
             isLoading = false
         }
     }
@@ -75,14 +93,24 @@ fun FileCollectionDetailScreen(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         if (uri != null) {
-            // Persist read permission
-            context.contentResolver.takePersistableUriPermission(
-                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            onFolderSelected(uri)
             selectedFolderUri = uri
             isLoading = true
             scope.launch {
-                files = loadFilesFromUri(context, uri, collectionTitle)
+                val root = DocumentFile.fromTreeUri(context, uri)
+                if (root != null) {
+                    folderStack = listOf(root)
+                    files = loadFilesFromDocument(root, collectionTitle)
+                } else {
+                    folderStack = emptyList()
+                    files = emptyList()
+                }
                 isLoading = false
             }
         }
@@ -110,7 +138,19 @@ fun FileCollectionDetailScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        if (folderStack.size > 1) {
+                            val previousStack = folderStack.dropLast(1)
+                            folderStack = previousStack
+                            isLoading = true
+                            scope.launch {
+                                files = loadFilesFromDocument(previousStack.last(), collectionTitle)
+                                isLoading = false
+                            }
+                        } else {
+                            onBack()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = CiyatoSec)
                     }
                 },
@@ -118,6 +158,14 @@ fun FileCollectionDetailScreen(
                     if (selectedFolderUri != null) {
                         IconButton(onClick = { folderPickerLauncher.launch(null) }) {
                             Icon(Icons.Default.FolderOpen, contentDescription = "Change folder", tint = CiyatoSec)
+                        }
+                        IconButton(onClick = {
+                            selectedFolderUri = null
+                            folderStack = emptyList()
+                            files = emptyList()
+                            onForgetFolder()
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Forget folder", tint = CiyatoSec)
                         }
                     }
                 },
@@ -174,7 +222,7 @@ fun FileCollectionDetailScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    "No files found in the selected folder.",
+                                    "No folders or files found in the selected folder.",
                                     color = CiyatoMuted,
                                     textAlign = TextAlign.Center,
                                 )
@@ -189,8 +237,15 @@ fun FileCollectionDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("${files.size} files", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
-                                Text("Sorted by date", color = CiyatoMuted, fontSize = 12.sp)
+                                Column {
+                                    Text(currentFolderName, color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "${files.count { it.isDirectory }} folders - ${files.count { !it.isDirectory }} files",
+                                        color = CiyatoMuted,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                Text("Folders first", color = CiyatoMuted, fontSize = 12.sp)
                             }
                         }
 
@@ -199,11 +254,21 @@ fun FileCollectionDetailScreen(
                                 file = file,
                                 accentColor = collectionColor,
                                 onTap = {
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(file.uri, file.mimeType ?: "*/*")
-                                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    if (file.isDirectory && file.document != null) {
+                                        val nextFolder = file.document
+                                        folderStack = folderStack + nextFolder
+                                        isLoading = true
+                                        scope.launch {
+                                            files = loadFilesFromDocument(nextFolder, collectionTitle)
+                                            isLoading = false
+                                        }
+                                    } else {
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(file.uri, file.mimeType ?: "*/*")
+                                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        }
+                                        try { context.startActivity(intent) } catch (e: Exception) { }
                                     }
-                                    try { context.startActivity(intent) } catch (e: Exception) { }
                                 },
                             )
                         }
@@ -296,11 +361,16 @@ private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit) {
                 .clip(RoundedCornerShape(10.dp))
                 .background(accentColor.copy(alpha = 0.14f)),
         ) {
-            Icon(fileIcon(file.mimeType), contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
+            Icon(
+                if (file.isDirectory) Icons.Default.Folder else fileIcon(file.mimeType),
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(file.name, color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-            Text(formatFileSize(file.sizeBytes), color = CiyatoMuted, fontSize = 11.sp)
+            Text(if (file.isDirectory) "Folder" else formatFileSize(file.sizeBytes), color = CiyatoMuted, fontSize = 11.sp)
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
     }
@@ -335,19 +405,28 @@ private suspend fun loadFilesFromUri(
     treeUri: Uri,
     collectionTitle: String,
 ): List<CiyatoFile> {
+    val docUri = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
+    return loadFilesFromDocument(docUri, collectionTitle)
+}
+
+private suspend fun loadFilesFromDocument(
+    folder: DocumentFile,
+    collectionTitle: String,
+): List<CiyatoFile> {
     return withContext(Dispatchers.IO) {
         val files = mutableListOf<CiyatoFile>()
         try {
-            val docUri = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, treeUri) ?: return@withContext files
-            docUri.listFiles().forEach { doc ->
-                if (doc.isFile && doc.name != null) {
+            folder.listFiles().forEach { doc ->
+                if ((doc.isFile || doc.isDirectory) && doc.name != null) {
                     files.add(
                         CiyatoFile(
                             name = doc.name!!,
                             uri = doc.uri,
-                            sizeBytes = doc.length(),
+                            sizeBytes = if (doc.isDirectory) 0L else doc.length(),
                             mimeType = doc.type,
                             lastModified = doc.lastModified(),
+                            isDirectory = doc.isDirectory,
+                            document = doc,
                         )
                     )
                 }
@@ -356,8 +435,12 @@ private suspend fun loadFilesFromUri(
             // Silently return empty on access error
         }
         files
-            .filter { matchesCollection(it, collectionTitle) }
-            .sortedByDescending { it.lastModified }
+            .filter { it.isDirectory || matchesCollection(it, collectionTitle) }
+            .sortedWith(
+                compareByDescending<CiyatoFile> { it.isDirectory }
+                    .thenByDescending { it.lastModified }
+                    .thenBy { it.name.lowercase() }
+            )
     }
 }
 

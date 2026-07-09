@@ -125,6 +125,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val page0Apps          = settings.page0Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val page2Apps          = settings.page2Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val filesRootUri       = settings.filesRootUri      .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val drawerStyle        = settings.drawerStyle       .stateIn(viewModelScope, SharingStarted.Eagerly, "smart")
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -164,8 +166,17 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setCustomCategories(v: String)     = viewModelScope.launch { settings.setCustomCategories(v) }
     fun setPage0Apps(v: String)            = viewModelScope.launch { settings.setPage0Apps(v) }
     fun setPage2Apps(v: String)            = viewModelScope.launch { settings.setPage2Apps(v) }
+    fun setFilesRootUri(v: String)         = viewModelScope.launch { settings.setFilesRootUri(v) }
+    fun clearFilesRootUri()                = viewModelScope.launch { settings.setFilesRootUri("") }
+    fun setDrawerStyle(v: String)          = viewModelScope.launch { settings.setDrawerStyle(v) }
 
     fun resetLayout() = viewModelScope.launch { settings.resetLayout() }
+    fun resetAllPreferences() = viewModelScope.launch {
+        settings.resetAllPreferences()
+        repo.setHiddenPackages("")
+        repo.setRemovedPackages("")
+        repo.loadApps()
+    }
 
     // ── Custom Category Customizers ───────────────────────────────────────────
 
@@ -535,11 +546,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val greeting: String by lazy {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         when {
-            hour < 5  -> "Good night \uD83C\uDF19"
-            hour < 12 -> "Good morning ☀\uFE0F"
-            hour < 17 -> "Good afternoon \uD83C\uDF1E"
-            hour < 21 -> "Good evening \uD83C\uDF07"
-            else      -> "Good night \uD83C\uDF19"
+            hour < 5  -> "Good night"
+            hour < 12 -> "Good morning"
+            hour < 17 -> "Good afternoon"
+            hour < 21 -> "Good evening"
+            else      -> "Good night"
         }
     }
 

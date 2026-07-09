@@ -53,7 +53,7 @@ fun DashboardScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Ciyoto", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Ciyato", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Text("Local beta", color = CiyatoGold, fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier

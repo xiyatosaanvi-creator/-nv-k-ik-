@@ -87,7 +87,6 @@ private sealed class LauncherDest {
     object FocusSession       : LauncherDest()   // Suggestion 75
     object PermissionAudit    : LauncherDest()   // Suggestion 139
     object AIOptimizer        : LauncherDest()
-    object Files              : LauncherDest()
 }
 
 // ── Root composable ───────────────────────────────────────────────────────────
@@ -130,8 +129,11 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
             onOpenSettings  = { dest = LauncherDest.Settings },
             onOpenSearch    = { dest = LauncherDest.Search },
             onOpenTheme     = { dest = LauncherDest.ThemeStudio },
+            onCategoryTap   = { category -> dest = LauncherDest.CategoryDetail(category) },
+            onWeatherTap    = { dest = LauncherDest.WeatherDetail },
+            onAgendaTap     = { dest = LauncherDest.Agenda },
+            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
             onOpenAIOptimizer = { dest = LauncherDest.AIOptimizer },
-            onOpenFiles     = { dest = LauncherDest.Files }
         )
 
         is LauncherDest.Drawer -> AppDrawerScreen(
@@ -208,10 +210,6 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
 
         is LauncherDest.AIOptimizer -> AIOptimizerScreen(
             viewModel = viewModel,
-            onBack    = { dest = LauncherDest.Home }
-        )
-
-        is LauncherDest.Files -> FilesScreen(
             onBack    = { dest = LauncherDest.Home }
         )
     }

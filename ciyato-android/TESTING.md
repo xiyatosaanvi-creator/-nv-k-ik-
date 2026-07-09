@@ -14,6 +14,7 @@ Expected result:
 - `BUILD SUCCESSFUL`
 - 9 `AppCategorizerTest` tests pass
 - APK at `app/build/outputs/apk/debug/app-debug.apk`
+- Convenience APK copy at `Ciyato.apk`
 
 The build has also been verified with `apksigner` using the Android debug certificate. A release build requires a production signing configuration.
 
@@ -30,7 +31,7 @@ If no device is connected, copy the APK to a test phone and install it from the 
 ### First launch and Home role
 
 - [ ] Open Ciyato from the app list.
-- [ ] Onboarding explains launcher behavior, local data, optional permissions, and switch-back.
+- [ ] Onboarding explains launcher behavior, local data, Files, Photos, Weather permission timing, and switch-back.
 - [ ] No location, files, photos, calendar, microphone, or notification permission appears automatically.
 - [ ] Tap **Set Ciyato as Home** and choose Ciyato.
 - [ ] Press Home and confirm `LauncherHomeActivity` opens.
@@ -49,6 +50,8 @@ If no device is connected, copy the APK to a test phone and install it from the 
 - [ ] Tap every Home category card.
 - [ ] Tap app preview icons directly.
 - [ ] Expand and collapse App Library sections.
+- [ ] Tap the drawer sort/filter button and confirm it cycles A-Z, most-used, and recently-installed sorting.
+- [ ] Tap **View all** in a large drawer section and confirm the full section expands.
 - [ ] Search inside a category.
 - [ ] Use Manage to rename a category.
 - [ ] Reopen Ciyato and confirm the rename persists.
@@ -59,9 +62,11 @@ If no device is connected, copy the APK to a test phone and install it from the 
 
 - [ ] Long-press an app and choose **Hide App**.
 - [ ] Confirm it disappears from Home, App Library, categories, and normal search.
+- [ ] Search within Hidden Apps and use **Restore all**.
 - [ ] Open Settings → Hidden Apps and restore it.
 - [ ] Long-press an app and choose **Remove from display**.
 - [ ] Confirm it disappears but remains installed.
+- [ ] Search within Removed Apps and use **Restore all**.
 - [ ] Open Settings → Removed Apps and restore it.
 - [ ] Confirm counts update after each action.
 
@@ -86,8 +91,8 @@ If no device is connected, copy the APK to a test phone and install it from the 
 - [ ] Search by package name.
 - [ ] Search by category phrase.
 - [ ] Launch an app result.
-- [ ] Test **Work apps**, **PDFs from yesterday**, **Payment screenshots**, and **Recent WhatsApp files**.
-- [ ] Confirm file/photo prompts open their permission-aware surfaces.
+- [ ] Test **Work apps**, **Social apps**, **Games**, and **Finance**.
+- [ ] Confirm file/photo semantic search is not presented as active.
 - [ ] Confirm recent search history stores complete actions, not every typed prefix.
 
 ### Weather
@@ -103,14 +108,16 @@ If no device is connected, copy the APK to a test phone and install it from the 
 ### Files
 
 - [ ] Open Files with no selected folder.
-- [ ] Confirm storage values are based on device storage, not static demo numbers.
-- [ ] Tap a category and cancel the Android folder picker.
-- [ ] Select a folder and confirm access is restored when returning to Files.
+- [ ] Confirm Ciyato asks the user to choose a folder before claiming file access.
+- [ ] Select a folder and confirm folders and files are listed.
+- [ ] Tap a folder and confirm it navigates inside the folder.
+- [ ] Use Back and confirm nested folder navigation steps back before closing Files.
 - [ ] Open real files with the system viewer.
-- [ ] Test empty categories and all ten Smart Collections.
-- [ ] Confirm collections filter by names, MIME types, or dates where possible.
-- [ ] Confirm cleanup, junk, and vault are labelled staged/disabled.
+- [ ] Confirm empty folders show a clear empty state.
+- [ ] Confirm cleanup, junk, vault, and broad-storage actions are not presented as active.
 - [ ] Confirm no file is automatically moved or deleted.
+- [ ] Reopen Files and confirm the selected folder is remembered.
+- [ ] Use Forget Folder in Files or Settings and confirm Ciyato returns to the choose-folder state.
 
 ### Photos
 
@@ -125,7 +132,9 @@ If no device is connected, copy the APK to a test phone and install it from the 
 ### Theme Studio and guidance
 
 - [ ] Switch dense/spacious layout and confirm Home columns change.
-- [ ] Switch gold/blue accent and confirm Home action accent and live preview change.
+- [ ] Switch silver/silver-blue accent and confirm Home action accent and live preview change.
+- [ ] Switch drawer style between smart, dense, and spacious and confirm App Library layout changes.
+- [ ] Change appearance, icon shape, font, and background blur controls and confirm they persist.
 - [ ] Recreate the activity and confirm settings persist.
 - [ ] Dismiss the Home tip and confirm it stays dismissed.
 - [ ] Reset Tips & Onboarding and confirm guidance returns.
@@ -154,4 +163,4 @@ Test every user-controlled permission flow with:
 
 ## Current environment limitation
 
-The configured `medium_phone` AVD was detected, but it remained offline during the latest automated run. Therefore full interaction and screenshot acceptance still require a healthy emulator or physical Android device. Build, unit tests, APK permission inspection, and APK signature verification are complete; real-device UX is not claimed complete.
+Per client instruction, this pass does not use an emulator or simulated phone runtime. Full interaction and screenshot acceptance still require a physical Android device. Build-only verification is acceptable for this handoff; real-device UX is not claimed complete until installed on a phone.

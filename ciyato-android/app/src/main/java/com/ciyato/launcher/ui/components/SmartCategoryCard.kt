@@ -32,6 +32,7 @@ fun SmartCategoryCard(
     displayName: String,
     apps: List<InstalledApp>,
     onTap: () -> Unit,
+    onAppTap: ((InstalledApp) -> Unit)? = null,
     modifier: Modifier = Modifier,
     tileSize: String = "medium", // "small" | "medium" | "large"
     isEditMode: Boolean = false,
@@ -72,7 +73,8 @@ fun SmartCategoryCard(
                 "large" -> 6
                 else -> 4
             }
-            val visibleApps = apps.take(maxVisible)
+            val hasOverflow = apps.size > maxVisible
+            val visibleApps = if (hasOverflow) apps.take(maxVisible - 1) else apps.take(maxVisible)
 
             if (visibleApps.isEmpty()) {
                 // Empty state indicator
@@ -85,7 +87,8 @@ fun SmartCategoryCard(
                 )
             } else {
                 val cols = 2
-                val rows = (visibleApps.size + cols - 1) / cols
+                val slotCount = visibleApps.size + if (hasOverflow) 1 else 0
+                val rows = (slotCount + cols - 1) / cols
                 Column(
                     verticalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -103,8 +106,28 @@ fun SmartCategoryCard(
                                     RealAppIcon(
                                         drawable = app.icon,
                                         size = iconMiniSize,
-                                        cornerRadius = 6.dp
+                                        cornerRadius = 6.dp,
+                                        modifier = if (onAppTap != null) {
+                                            Modifier.clickable { onAppTap(app) }
+                                        } else Modifier
                                     )
+                                } else if (hasOverflow && idx == visibleApps.size) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(iconMiniSize)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(CiyatoGold.copy(alpha = 0.18f))
+                                            .border(1.dp, CiyatoGold.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                            .clickable(onClick = onTap)
+                                    ) {
+                                        Text(
+                                            "+${apps.size - visibleApps.size}",
+                                            color = CiyatoGold,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }

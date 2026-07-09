@@ -4,12 +4,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ─── Ciyato Dark Premium Palette ─────────────────────────────────────────────
-val CiyatoBg          = Color(0xFF0B0F12)   // main launcher background (obsidian)
-val CiyatoBgEl        = Color(0xFF12171B)   // elevated surfaces / cards
-val CiyatoBgEl2       = Color(0xFF1A2028)   // second-level elevation
-val CiyatoBgEl3       = Color(0xFF222B35)   // third-level elevation
-val CiyatoActiveTab   = Color(0xFF1E2730)   // active tab state background
-val CiyatoCardHover   = Color(0xFF1C2530)   // card pressed/hover state
+val CiyatoBg          = Color(0xFF06080A)   // black reference background
+val CiyatoBgEl        = Color(0xFF101316)   // elevated glass cards
+val CiyatoBgEl2       = Color(0xFF191D21)   // second-level graphite
+val CiyatoBgEl3       = Color(0xFF242A30)   // third-level graphite
+val CiyatoActiveTab   = Color(0xFF252A2F)   // active tab state background
+val CiyatoCardHover   = Color(0xFF20262B)   // card pressed/hover state
 
 // Glass surfaces
 val CiyatoGlassCard   = Color(0x0FFFFFFF)   // rgba(255,255,255,0.06)
@@ -25,29 +25,29 @@ val CiyatoStrongBorder= Color(0x26FFFFFF)   // rgba(255,255,255,0.15)
 val CiyatoDivider     = Color(0x08FFFFFF)   // list dividers
 
 // Text
-val CiyatoWhite       = Color(0xFFF4F5F6)   // primary text
-val CiyatoSec         = Color(0xFFAEB4BA)   // secondary text
-val CiyatoMuted       = Color(0xFF727A82)   // muted / metadata
-val CiyatoDisabled    = Color(0xFF3D4550)   // disabled state
+val CiyatoWhite       = Color(0xFFF7F7F5)   // primary text
+val CiyatoSec         = Color(0xFFC6C8C8)   // secondary text
+val CiyatoMuted       = Color(0xFF8B9093)   // muted / metadata
+val CiyatoDisabled    = Color(0xFF4B5054)   // disabled state
 
 // Accents
-val CiyatoGold        = Color(0xFFC6A15B)   // gold accent (primary)
-val CiyatoGoldSoft    = Color(0xFFE2C37B)   // soft gold (highlight)
-val CiyatoGoldDark    = Color(0xFF8A6A2E)   // deep gold (gradient end)
-val CiyatoGoldDim     = Color(0x33C6A15B)   // gold at 20% opacity
-val CiyatoBlue        = Color(0xFF7DB7FF)   // blue accent
-val CiyatoBlueDark    = Color(0xFF4A8CF7)   // deeper blue
+val CiyatoGold        = Color(0xFFE8E8E4)   // silver accent (kept name for compatibility)
+val CiyatoGoldSoft    = Color(0xFFFFFFFF)   // white highlight
+val CiyatoGoldDark    = Color(0xFF7C807F)   // graphite gradient end
+val CiyatoGoldDim     = Color(0x33E8E8E4)   // silver at 20% opacity
+val CiyatoBlue        = Color(0xFFB9C7D6)   // cool silver-blue accent
+val CiyatoBlueDark    = Color(0xFF7F91A2)   // deeper silver-blue
 val CiyatoGreen       = Color(0xFF39C66A)   // green success
 val CiyatoGreenDark   = Color(0xFF27A355)   // deep green
 val CiyatoRed         = Color(0xFFEF5350)   // red warning/danger
 val CiyatoRedDark     = Color(0xFFD32F2F)   // deep red
 val CiyatoPurple      = Color(0xFF9C6AFF)   // AI/Magic accent
-val CiyatoAmber       = Color(0xFFFFB347)   // warning states
+val CiyatoAmber       = Color(0xFFD0C5AF)   // restrained warm neutral
 val CiyatoCyan        = Color(0xFF51C7A5)   // teal / finance
 val CiyatoRose        = Color(0xFFFF6B8C)   // social / entertainment
 val CiyatoPeach       = Color(0xFFFF7A45)   // education / college
 val CiyatoNeonBlue    = Color(0xFF00C6FF)   // neon highlight
-val CiyatoNeonGold    = Color(0xFFFFD700)   // neon gold highlight
+val CiyatoNeonGold    = Color(0xFFFFFFFF)   // white highlight
 val CiyatoAIGlow      = Color(0xFF9C6AFF)   // AI action glow color
 
 // State containers (filled backgrounds for state cards)
@@ -62,18 +62,18 @@ val CiyatoShimmer1    = Color(0xFF1A2028)
 val CiyatoShimmer2    = Color(0xFF22303D)
 
 // Category Accent Colors
-val CatWork          = Color(0xFF4A8CF7)   // Work = Blue
-val CatSocial        = Color(0xFFFF6B8C)   // Social = Rose
-val CatFinance       = Color(0xFF51C7A5)   // Finance = Cyan
-val CatEntertainment = Color(0xFF9C6AFF)   // Entertainment = Purple
-val CatCreativity    = Color(0xFFFF7A45)   // Creativity = Peach
-val CatUtilities     = Color(0xFF727A82)   // Utilities = Muted
-val CatHealth        = Color(0xFF39C66A)   // Health = Green
-val CatTravel        = Color(0xFF7DB7FF)   // Travel = Sky Blue
-val CatEducation     = Color(0xFFFFB347)   // Education = Amber
-val CatDaily         = Color(0xFFE2C37B)   // Daily = Soft Gold
-val CatGaming        = Color(0xFFFF6B8C)   // Gaming = Rose
-val CatShopping      = Color(0xFF51C7A5)   // Shopping = Cyan
+val CatWork          = Color(0xFF96A8BA)   // Work = silver blue
+val CatSocial        = Color(0xFFA8A8A8)   // Social = silver
+val CatFinance       = Color(0xFF9FB8AF)   // Finance = muted sage
+val CatEntertainment = Color(0xFFA7A0B8)   // Entertainment = muted lavender
+val CatCreativity    = Color(0xFFB7AA9D)   // Creativity = warm gray
+val CatUtilities     = Color(0xFF8E9498)   // Utilities = graphite
+val CatHealth        = Color(0xFF9FB8A4)   // Health = muted green
+val CatTravel        = Color(0xFFA8B4BD)   // Travel = pale steel
+val CatEducation     = Color(0xFFB8B1A4)   // Education = stone
+val CatDaily         = Color(0xFFC8C8C4)   // Daily = bright silver
+val CatGaming        = Color(0xFFA8A8A8)   // Gaming = silver
+val CatShopping      = Color(0xFFA0B0AA)   // Shopping = muted teal
 
 // ─── Light Mode (App Drawer) ──────────────────────────────────────────────────
 val CiyatoLightBg     = Color(0xFFF5F2EC)

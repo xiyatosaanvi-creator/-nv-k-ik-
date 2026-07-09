@@ -50,7 +50,7 @@ fun StorageVisualizationScreen(
         StorageCategory("Apps", 6.7f, Color(0xFF5E5CE6), "📱"),
         StorageCategory("Music", 4.1f, Color(0xFF1DB954), "🎵"),
         StorageCategory("Downloads", 2.9f, Color(0xFFFF9500), "⬇"),
-        StorageCategory("Documents", 1.8f, Color(0xFFC6A15B), "📄"),
+        StorageCategory("Documents", 1.8f, Color(0xFFC8C8C4), "📄"),
         StorageCategory("Other", 3.1f, Color(0xFF6E6E73), "📦"),
     )
     val usedGb = categories.sumOf { it.usedGb.toDouble() }.toFloat()

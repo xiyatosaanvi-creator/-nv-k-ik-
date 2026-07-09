@@ -29,7 +29,7 @@ import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 /**
- * WallpaperPickerScreen — Suggestion #93
+ * WallpaperPickerScreen - Suggestion #93
  * Browse gradient wallpapers or open system wallpaper picker.
  */
 
@@ -43,15 +43,15 @@ private val GRADIENT_PRESETS = listOf(
     GradientWallpaper("midnight", "Midnight", listOf(Color(0xFF0B0F12), Color(0xFF1A1F2E), Color(0xFF0B0F12))),
     GradientWallpaper("ocean", "Ocean Deep", listOf(Color(0xFF0A1628), Color(0xFF0D3B6E), Color(0xFF0A1628))),
     GradientWallpaper("aurora", "Aurora", listOf(Color(0xFF0D1B2A), Color(0xFF1B4332), Color(0xFF7C3AED))),
-    GradientWallpaper("sunset", "Sunset", listOf(Color(0xFF1A0A2E), Color(0xFF7C2D12), Color(0xFFEA580C))),
-    GradientWallpaper("rose", "Rose Gold", listOf(Color(0xFF1A0A0F), Color(0xFF7F1D1D), Color(0xFFB91C1C))),
+    GradientWallpaper("smoke", "Smoke Glass", listOf(Color(0xFF050607), Color(0xFF171A1D), Color(0xFF3D4247))),
+    GradientWallpaper("graphite", "Soft Graphite", listOf(Color(0xFF08090A), Color(0xFF23272B), Color(0xFF5F666C))),
     GradientWallpaper("forest", "Forest", listOf(Color(0xFF0A1B0D), Color(0xFF14532D), Color(0xFF15803D))),
     GradientWallpaper("galaxy", "Galaxy", listOf(Color(0xFF0C0A1E), Color(0xFF3B0764), Color(0xFF6D28D9))),
-    GradientWallpaper("gold", "Gold Rush", listOf(Color(0xFF1A1200), Color(0xFF713F12), Color(0xFFC6A15B))),
+    GradientWallpaper("silver", "Silver Trace", listOf(Color(0xFF050607), Color(0xFF2A2D30), Color(0xFFE8E8E4))),
     GradientWallpaper("ice", "Ice Blue", listOf(Color(0xFF0C1A2E), Color(0xFF1E3A5F), Color(0xFF7DB7FF))),
     GradientWallpaper("mono", "Monochrome", listOf(Color(0xFF000000), Color(0xFF1A1A1A), Color(0xFF2D2D2D))),
     GradientWallpaper("neon", "Neon Nights", listOf(Color(0xFF0A0014), Color(0xFF1A004F), Color(0xFF5E0082))),
-    GradientWallpaper("earth", "Earthy", listOf(Color(0xFF1C1208), Color(0xFF3D2B1F), Color(0xFF78350F))),
+    GradientWallpaper("stone", "Stone", listOf(Color(0xFF0D0D0D), Color(0xFF303235), Color(0xFFBFC1C1))),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

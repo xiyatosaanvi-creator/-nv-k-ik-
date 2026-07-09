@@ -84,7 +84,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable("files")   { FilesScreen(onBack = { navController.popBackStack() }) }
+                    composable("files")   { FilesScreen(viewModel = viewModel, onBack = { navController.popBackStack() }) }
                     composable("photos")  { PhotosScreen(onBack = { navController.popBackStack() }) }
 
                     composable("search") {
@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             viewModel = viewModel,
                             onBack = { navController.popBackStack() },
+                            onNavigateToFiles = { navController.navigate("files") },
                             onNavigateToTheme = { navController.navigate("theme") },
                             onNavigateToHiddenApps = { navController.navigate("hidden_apps") },
                             onNavigateToRemovedApps = { navController.navigate("removed_apps") },

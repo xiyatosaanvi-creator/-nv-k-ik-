@@ -33,14 +33,14 @@ import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
 // ── Light-mode palette (cream surface, matches reference) ─────────────────────
-private val DrawerBg        = Color(0xFFF5F2EC)   // warm cream
-private val DrawerCard      = Color(0xFFEFECE5)   // slightly darker cream for cards
-private val DrawerCardAlt   = Color(0xFFEAE7DF)   // alternate card
-private val DrawerBorder    = Color(0x14000000)   // very subtle dark border
-private val DrawerText      = Color(0xFF191B1F)   // primary dark text
-private val DrawerSec       = Color(0xFF5F646A)   // secondary grey
-private val DrawerMuted     = Color(0xFF9098A0)   // muted
-private val DrawerSearch    = Color(0xFFE8E5DE)   // search bar bg
+private val DrawerBg        = CiyatoBg
+private val DrawerCard      = CiyatoBgEl
+private val DrawerCardAlt   = CiyatoBgEl2
+private val DrawerBorder    = CiyatoSubtleBorder
+private val DrawerText      = CiyatoWhite
+private val DrawerSec       = CiyatoSec
+private val DrawerMuted     = CiyatoMuted
+private val DrawerSearch    = CiyatoBgEl2
 
 // ── Sections shown in the drawer (matches reference order) ────────────────────
 private data class DrawerSection(
@@ -91,9 +91,12 @@ fun AppDrawerScreen(
     val isLoading   by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+    val drawerStyle by viewModel.drawerStyle.collectAsState()
 
     // Active filter chip (null = All)
     var activeFilter by remember { mutableStateOf<AppCategory?>(null) }
+    var sortMode by remember { mutableStateOf("alpha") }
+    var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
 
     // Sections that have apps (avoid empty section cards)
     val populatedSections = remember(apps) {
@@ -125,7 +128,18 @@ fun AppDrawerScreen(
                 .padding(scaffoldPadding)
         ) {
             // ── 1. Header: Logo + Smart App Library Chip ──────────────────────
-            DrawerHeader(onBack = onBack)
+            DrawerHeader(
+                onBack = onBack,
+                sortMode = sortMode,
+                drawerStyle = drawerStyle,
+                onSortTap = {
+                    sortMode = when (sortMode) {
+                        "alpha" -> "frequent"
+                        "frequent" -> "recent"
+                        else -> "alpha"
+                    }
+                }
+            )
 
             // ── 2. Search Area ────────────────────────────────────────────────
             CiyatoSearchBar(
@@ -184,8 +198,9 @@ fun AppDrawerScreen(
             } else if (searchQuery.isNotBlank()) {
                 // Search results — flat grid
                 SearchResultsGrid(
-                    results  = searchResults,
+                    results  = sortDrawerApps(searchResults, sortMode, viewModel),
                     onAppTap = viewModel::launchApp,
+                    onAppLongTap = { contextMenuApp = it },
                 )
             } else {
                 // Section cards
@@ -204,6 +219,9 @@ fun AppDrawerScreen(
                             section  = section,
                             viewModel= viewModel,
                             apps     = apps,
+                            sortMode = sortMode,
+                            drawerStyle = drawerStyle,
+                            onAppLongTap = { contextMenuApp = it },
                         )
                     }
 
@@ -212,6 +230,7 @@ fun AppDrawerScreen(
                         DuplicateShortcutsDrawerCard(
                             apps        = viewModel.multiCategoryApps().take(6),
                             onAppTap    = viewModel::launchApp,
+                            onAppLongTap = { contextMenuApp = it },
                             onManageTap = onDuplicatesTap,
                         )
                     }
@@ -219,11 +238,58 @@ fun AppDrawerScreen(
             }
         }
     }
+
+    contextMenuApp?.let { app ->
+        AppContextMenu(
+            app = app,
+            viewModel = viewModel,
+            onDismiss = { contextMenuApp = null }
+        )
+    }
+}
+
+private fun sortDrawerApps(
+    apps: List<InstalledApp>,
+    sortMode: String,
+    viewModel: LauncherViewModel,
+): List<InstalledApp> {
+    return when (sortMode) {
+        "frequent" -> apps.sortedWith(
+            compareByDescending<InstalledApp> { viewModel.launchCount(it.packageName) }
+                .thenBy { it.label.lowercase() }
+        )
+        "recent" -> apps.sortedWith(
+            compareByDescending<InstalledApp> { it.installTime }
+                .thenBy { it.label.lowercase() }
+        )
+        else -> apps.sortedBy { it.label.lowercase() }
+    }
+}
+
+private fun sortModeLabel(sortMode: String): String {
+    return when (sortMode) {
+        "frequent" -> "Most used"
+        "recent" -> "Recently installed"
+        else -> "A to Z"
+    }
+}
+
+private fun drawerStyleLabel(drawerStyle: String): String {
+    return when (drawerStyle) {
+        "dense" -> "Dense Library"
+        "spacious" -> "Spacious Library"
+        else -> "Smart App Library"
+    }
 }
 
 // ── Header row ─────────────────────────────────────────────────────────────────
 @Composable
-private fun DrawerHeader(onBack: () -> Unit = {}) {
+private fun DrawerHeader(
+    onBack: () -> Unit = {},
+    sortMode: String,
+    drawerStyle: String,
+    onSortTap: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -260,7 +326,7 @@ private fun DrawerHeader(onBack: () -> Unit = {}) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Smart App Library",
+                drawerStyleLabel(drawerStyle),
                 color = CiyatoGold,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -277,11 +343,11 @@ private fun DrawerHeader(onBack: () -> Unit = {}) {
                     .clip(RoundedCornerShape(8.dp))
                     .background(DrawerCard)
                     .border(1.dp, DrawerBorder, RoundedCornerShape(8.dp))
-                    .clickable {},
+                    .clickable(onClick = onSortTap),
             ) {
                 Icon(
                     Icons.Default.FilterList,
-                    contentDescription = "Sort/Filter",
+                    contentDescription = "Sort apps: ${sortModeLabel(sortMode)}",
                     tint = DrawerSec,
                     modifier = Modifier.size(18.dp),
                 )
@@ -296,16 +362,21 @@ private fun DrawerSectionCard(
     section: DrawerSection,
     viewModel: LauncherViewModel,
     apps: List<InstalledApp>,
+    sortMode: String,
+    drawerStyle: String,
+    onAppLongTap: (InstalledApp) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(true) }
+    var showAll by remember(section.label) { mutableStateOf(false) }
 
     // Resolve apps for this section
-    val sectionApps = when (section.category) {
+    val rawSectionApps = when (section.category) {
         null                        -> viewModel.multiCategoryApps().take(8)
                                            .ifEmpty { apps.take(8) }  // "Suggested"
         AppCategory.RECENTLY_ADDED  -> viewModel.recentlyAdded()
         else                        -> viewModel.byCategory(section.category)
     }
+    val sectionApps = sortDrawerApps(rawSectionApps, sortMode, viewModel)
 
     if (sectionApps.isEmpty()) return
 
@@ -373,10 +444,22 @@ private fun DrawerSectionCard(
                 modifier  = Modifier.padding(horizontal = 16.dp),
             )
 
-            val rows = sectionApps.take(12).chunked(4)
+            val columns = if (drawerStyle == "spacious") 3 else 4
+            val visibleLimit = when (drawerStyle) {
+                "dense" -> 16
+                "spacious" -> 9
+                else -> 12
+            }
+            val iconSize = when (drawerStyle) {
+                "dense" -> 48.dp
+                "spacious" -> 62.dp
+                else -> 56.dp
+            }
+            val visibleApps = if (showAll) sectionApps else sectionApps.take(visibleLimit)
+            val rows = visibleApps.chunked(columns)
             Column(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (drawerStyle == "spacious") 12.dp else 8.dp),
             ) {
                 rows.forEach { rowApps ->
                     Row(
@@ -386,26 +469,28 @@ private fun DrawerSectionCard(
                         rowApps.forEach { app ->
                             AppIconTile(
                                 app        = app,
-                                iconSize   = 56.dp,
+                                iconSize   = iconSize,
                                 labelColor = DrawerSec,
                                 onClick    = { viewModel.launchApp(app) },
+                                onLongClick = { onAppLongTap(app) },
                                 modifier   = Modifier.weight(1f),
                             )
                         }
-                        repeat(4 - rowApps.size) { Spacer(Modifier.weight(1f)) }
+                        repeat(columns - rowApps.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
 
-            if (sectionApps.size > 12) {
+            if (sectionApps.size > visibleLimit) {
                 Text(
-                    "View all ${sectionApps.size} apps",
+                    if (showAll) "Show fewer" else "View all ${sectionApps.size} apps",
                     color = CiyatoGold,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .padding(start = 18.dp, top = 0.dp, end = 18.dp, bottom = 14.dp)
-                        .align(Alignment.End),
+                        .align(Alignment.End)
+                        .clickable { showAll = !showAll },
                 )
             }
         }
@@ -417,6 +502,7 @@ private fun DrawerSectionCard(
 private fun SearchResultsGrid(
     results: List<InstalledApp>,
     onAppTap: (InstalledApp) -> Unit,
+    onAppLongTap: (InstalledApp) -> Unit,
 ) {
     if (results.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
@@ -437,6 +523,7 @@ private fun SearchResultsGrid(
                         iconSize   = 54.dp,
                         labelColor = DrawerSec,
                         onClick    = { onAppTap(app) },
+                        onLongClick = { onAppLongTap(app) },
                         modifier   = Modifier.weight(1f),
                     )
                 }
@@ -451,6 +538,7 @@ private fun SearchResultsGrid(
 private fun DuplicateShortcutsDrawerCard(
     apps: List<InstalledApp>,
     onAppTap: (InstalledApp) -> Unit,
+    onAppLongTap: (InstalledApp) -> Unit,
     onManageTap: (() -> Unit)? = null,
 ) {
     if (apps.isEmpty()) return
@@ -515,6 +603,7 @@ private fun DuplicateShortcutsDrawerCard(
                     iconSize   = 54.dp,
                     labelColor = DrawerSec,
                     onClick    = { onAppTap(app) },
+                    onLongClick = { onAppLongTap(app) },
                 )
             }
             item {

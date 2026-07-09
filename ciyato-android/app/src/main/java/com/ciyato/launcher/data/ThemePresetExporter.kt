@@ -7,8 +7,8 @@ import android.content.Intent
 import org.json.JSONObject
 
 /**
- * ThemePresetExporter — Suggestion #97
- * Exports and imports theme presets (dark mode, gold accent, icon shape,
+ * ThemePresetExporter - Suggestion #97
+ * Exports and imports theme presets (dark mode, highlight accent, icon shape,
  * font, wallpaper blur, grid density) as a compact JSON string.
  * Shareable via clipboard or any Android share target.
  */
@@ -20,16 +20,16 @@ object ThemePresetExporter {
         val goldAccent: Boolean,
         val iconShape: String,       // "squircle" | "circle" | "rounded_rect" | "square"
         val font: String,            // "inter" | "poppins" | "mono" | "serif"
-        val wallpaperBlur: Int,      // 0–20
+        val wallpaperBlur: Int,      // 0-20
         val gridColumns: Int,        // 2 | 4 | 5 | 6
     )
 
     val BUILT_IN_PRESETS = listOf(
-        ThemePreset("Gold Classic",  "dark",  true,  "squircle",     "inter",   0,  4),
+        ThemePreset("Silver Classic","dark",  true,  "squircle",     "inter",   0,  4),
         ThemePreset("Minimal White", "light", false, "circle",       "inter",   0,  5),
         ThemePreset("Dark Glass",    "dark",  false, "rounded_rect", "poppins", 8,  4),
         ThemePreset("Monochrome",    "dark",  false, "square",       "mono",    0,  5),
-        ThemePreset("Warm Parchment","light", true,  "squircle",     "serif",   4,  4),
+        ThemePreset("Soft Graphite", "dark",  true,  "squircle",     "serif",   4,  4),
     )
 
     fun export(preset: ThemePreset): String {
