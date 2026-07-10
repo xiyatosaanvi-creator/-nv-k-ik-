@@ -227,7 +227,7 @@ private fun FooterNote() {
     ) {
         Text("About multi-placement", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
         Text(
-            "Category assignments are computed locally on-device using app package names and keywords. Full category editing will be available in a future update.",
+            "Category assignments are computed locally from app package names and keywords. Long-press an app in Home, App Library, or a category to change its category or restore the default.",
             color = CiyatoMuted,
             fontSize = 12.sp,
             lineHeight = 18.sp,

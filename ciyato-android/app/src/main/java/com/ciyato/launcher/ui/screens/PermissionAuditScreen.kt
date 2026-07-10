@@ -50,7 +50,7 @@ fun PermissionAuditScreen(
     val apps by viewModel.apps.collectAsState()
 
     var filterLevel: String by remember { mutableStateOf("All") }
-    val filters = listOf("All", "High Risk", "Medium", "Low")
+    val filters = listOf("All", "Sensitive", "Connectivity", "Other")
 
     val auditedApps = remember(apps) {
         apps.filter { !it.isSystemApp }.map { app ->
@@ -61,9 +61,9 @@ fun PermissionAuditScreen(
 
     val filtered = remember(auditedApps, filterLevel) {
         when (filterLevel) {
-            "High Risk" -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.HIGH }
-            "Medium"    -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.MEDIUM }
-            "Low"       -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.LOW }
+            "Sensitive"    -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.HIGH }
+            "Connectivity" -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.MEDIUM }
+            "Other"        -> auditedApps.filter { it.riskLevel == PermissionRiskLevel.LOW }
             else        -> auditedApps
         }
     }
@@ -72,8 +72,8 @@ fun PermissionAuditScreen(
         containerColor = CiyatoBg,
         topBar = {
             CiyatoTopBar(
-                title = "Permission Audit",
-                subtitle = "Security & Privacy Guardian",
+                title = "Permission Review",
+                subtitle = "Declared app permissions",
                 onBack = onBack
             )
         }
@@ -178,13 +178,21 @@ private fun PermissionSummaryBanner(audited: List<AuditedApp>) {
     val highCount = audited.count { it.riskLevel == PermissionRiskLevel.HIGH }
     val medCount  = audited.count { it.riskLevel == PermissionRiskLevel.MEDIUM }
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SummaryPill("${audited.size} apps scanned", CiyatoSec, Modifier.weight(1f))
-        SummaryPill("$highCount high risk", Color(0xFFEF4444), Modifier.weight(1f))
-        SummaryPill("$medCount medium", Color(0xFFF5C542), Modifier.weight(1f))
+        Text(
+            "Shows permissions declared by each app. Android controls whether access is currently granted.",
+            color = CiyatoMuted,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SummaryPill("${audited.size} reviewed", CiyatoSec, Modifier.weight(1f))
+            SummaryPill("$highCount sensitive", Color(0xFFEF4444), Modifier.weight(1f))
+            SummaryPill("$medCount connectivity", Color(0xFFF5C542), Modifier.weight(1f))
+        }
     }
 }
 
@@ -210,9 +218,9 @@ private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
         PermissionRiskLevel.LOW    -> Color(0xFF39C66A)
     }
     val riskLabel = when (audited.riskLevel) {
-        PermissionRiskLevel.HIGH   -> "High Risk"
-        PermissionRiskLevel.MEDIUM -> "Medium"
-        PermissionRiskLevel.LOW    -> "Low"
+        PermissionRiskLevel.HIGH   -> "Sensitive"
+        PermissionRiskLevel.MEDIUM -> "Connectivity"
+        PermissionRiskLevel.LOW    -> "Other"
     }
 
     var expanded by remember { mutableStateOf(false) }
@@ -248,13 +256,13 @@ private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
         if (expanded) {
             HorizontalDivider(color = CiyatoSubtleBorder)
             if (audited.highRisk.isNotEmpty()) {
-                Text("High-risk permissions:", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Sensitive declared permissions:", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 audited.highRisk.forEach { perm ->
                     Text("• ${perm.substringAfterLast(".")}", color = CiyatoSec, fontSize = 11.sp)
                 }
             }
             if (audited.medRisk.isNotEmpty()) {
-                Text("Network/connectivity:", color = Color(0xFFF5C542), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Connectivity declared permissions:", color = Color(0xFFF5C542), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 audited.medRisk.forEach { perm ->
                     Text("• ${perm.substringAfterLast(".")}", color = CiyatoMuted, fontSize = 11.sp)
                 }

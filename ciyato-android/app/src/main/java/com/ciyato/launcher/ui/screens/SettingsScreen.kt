@@ -38,9 +38,9 @@ import kotlinx.coroutines.launch
 /**
  * SettingsScreen — fully expanded with all configurable options.
  *
- * Suggestions covered: 1 (haptic), 7 (icon shape), 21 (temp unit),
+ * Suggestions covered: 1 (haptic), 21 (temp unit),
  * 23 (hide apps), 24 (category rename), 72 (time-aware), 74 (bedtime),
- * 97 (dark modes), 98 (font), 113 (debug), 138 (privacy mode),
+ * 113 (debug), 138 (privacy mode),
  * 139 (permission audit entry), 144 (crash report), 145 (screenshot block).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,13 +60,8 @@ fun SettingsScreen(
 
     // Collect all settings
     val denseLayout        by viewModel.denseLayout.collectAsState()
-    val goldAccent         by viewModel.goldAccent.collectAsState()
     val smartCategories    by viewModel.smartCategories.collectAsState()
     val duplicateShortcuts by viewModel.duplicateShortcuts.collectAsState()
-    val darkMode           by viewModel.darkMode.collectAsState()
-    val iconShape          by viewModel.iconShape.collectAsState()
-    val font               by viewModel.font.collectAsState()
-    val wallpaperBlur      by viewModel.wallpaperBlur.collectAsState()
     val tempUnit           by viewModel.tempUnit.collectAsState()
     val timeAwareLayout    by viewModel.timeAwareLayout.collectAsState()
     val bedtimeMode        by viewModel.bedtimeMode.collectAsState()
@@ -145,65 +140,11 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::setDenseLayout
                 )
             }
-            item {
-                CiyatoSettingSwitch(
-                    title = "Silver Highlights",
-                    subtitle = "Monochrome silver and white highlights",
-                    icon = Icons.Default.Star,
-                    checked = goldAccent,
-                    onCheckedChange = viewModel::setGoldAccent
-                )
-            }
-
-            // Dark mode picker (Suggestion 97)
-            item {
-                SettingsOptionRow(
-                    icon = Icons.Default.DarkMode,
-                    title = "Appearance",
-                    selected = darkMode,
-                    options = listOf("auto" to "Auto", "dark" to "Dark", "light" to "Light", "amoled" to "AMOLED"),
-                    onSelect = viewModel::setDarkMode,
-                )
-            }
-
-            // Icon shape picker (Suggestion 7)
-            item {
-                SettingsOptionRow(
-                    icon = Icons.Default.Widgets,
-                    title = "Icon Shape",
-                    selected = iconShape,
-                    options = listOf("squircle" to "Squircle", "circle" to "Circle", "rounded" to "Rounded", "raw" to "Raw"),
-                    onSelect = viewModel::setIconShape,
-                )
-            }
-
-            // Font picker (Suggestion 98)
-            item {
-                SettingsOptionRow(
-                    icon = Icons.Default.TextFields,
-                    title = "Font",
-                    selected = font,
-                    options = listOf("inter" to "Inter", "outfit" to "Outfit", "dm_sans" to "DM Sans", "syne" to "Syne", "geist" to "Geist"),
-                    onSelect = viewModel::setFont,
-                )
-            }
-
-            // Wallpaper blur (Suggestion 93)
-            item {
-                CiyatoSlider(
-                    value = wallpaperBlur.toFloat(),
-                    onValueChange = { blurVal -> viewModel.setWallpaperBlur(blurVal.toInt()) },
-                    valueRange = 0f..20f,
-                    label = "Background Blur",
-                    valueLabel = if (wallpaperBlur == 0) "Off" else "$wallpaperBlur"
-                )
-            }
-
             // Theme Studio item
             item {
                 CiyatoListCard(
                     title = "Theme Studio",
-                    subtitle = "Customize density, drawer style, colors, fonts, and blur",
+                    subtitle = "Customize Home density and App Library layout",
                     icon = Icons.Default.Palette,
                     iconColor = CiyatoGold,
                     onClick = { onNavigateToTheme?.invoke() }
@@ -553,7 +494,7 @@ fun SettingsScreen(
             title = { Text("Reset Layout", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This restores density, accents, drawer style, icon shape, font, and blur to Ciyato defaults.",
+                    "This restores Home density and App Library style to Ciyato defaults.",
                     color = CiyatoSec,
                     fontSize = 13.sp,
                     lineHeight = 20.sp

@@ -266,9 +266,9 @@ private fun sortModeLabel(sortMode: String): String {
 
 private fun drawerStyleLabel(drawerStyle: String): String {
     return when (drawerStyle) {
-        "dense" -> "Dense Library"
-        "spacious" -> "Spacious Library"
-        else -> "Smart App Library"
+        "dense" -> "Dense grid"
+        "spacious" -> "Spacious grid"
+        else -> "Standard grid"
     }
 }
 

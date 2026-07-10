@@ -8,12 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,7 +25,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.components.CiyatoSettingSwitch
-import com.ciyato.launcher.ui.components.CiyatoSlider
 import com.ciyato.launcher.ui.components.CiyatoTopBar
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -41,13 +36,8 @@ fun ThemeStudioScreen(
     onBack: () -> Unit,
 ) {
     val denseLayout by viewModel.denseLayout.collectAsState()
-    val goldAccent by viewModel.goldAccent.collectAsState()
-    val iconShape by viewModel.iconShape.collectAsState()
-    val selectedFont by viewModel.font.collectAsState()
-    val wallpaperBlur by viewModel.wallpaperBlur.collectAsState()
-    val darkMode by viewModel.darkMode.collectAsState()
     val drawerStyle by viewModel.drawerStyle.collectAsState()
-    val accent = if (goldAccent) CiyatoGold else CiyatoBlue
+    val accent = CiyatoGold
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -71,9 +61,6 @@ fun ThemeStudioScreen(
                 ThemePreviewCard(
                     denseLayout = denseLayout,
                     accent = accent,
-                    iconShape = iconShape,
-                    selectedFont = selectedFont,
-                    wallpaperBlur = wallpaperBlur,
                     drawerStyle = drawerStyle,
                 )
             }
@@ -100,57 +87,6 @@ fun ThemeStudioScreen(
                 )
             }
 
-            item { SectionTitle("Appearance") }
-            item {
-                CiyatoSettingSwitch(
-                    title = "Silver highlights",
-                    subtitle = "Use monochrome silver and white for highlights and controls",
-                    icon = Icons.Default.FormatPaint,
-                    checked = goldAccent,
-                    onCheckedChange = viewModel::setGoldAccent,
-                    accentColor = accent
-                )
-            }
-            item {
-                ThemeChoiceRow(
-                    icon = Icons.Default.DarkMode,
-                    title = "Appearance",
-                    selected = darkMode,
-                    options = listOf("auto" to "Auto", "dark" to "Dark", "light" to "Light", "amoled" to "AMOLED"),
-                    onSelect = viewModel::setDarkMode,
-                    accent = accent
-                )
-            }
-            item {
-                ThemeChoiceRow(
-                    icon = Icons.Default.Widgets,
-                    title = "Icon shape",
-                    selected = iconShape,
-                    options = listOf("squircle" to "Squircle", "circle" to "Circle", "rounded" to "Rounded", "raw" to "Raw"),
-                    onSelect = viewModel::setIconShape,
-                    accent = accent
-                )
-            }
-            item {
-                ThemeChoiceRow(
-                    icon = Icons.Default.TextFields,
-                    title = "Font",
-                    selected = selectedFont,
-                    options = listOf("inter" to "Inter", "outfit" to "Outfit", "dm_sans" to "DM Sans", "syne" to "Syne", "geist" to "Geist"),
-                    onSelect = viewModel::setFont,
-                    accent = accent
-                )
-            }
-            item {
-                CiyatoSlider(
-                    value = wallpaperBlur.toFloat(),
-                    onValueChange = { viewModel.setWallpaperBlur(it.toInt()) },
-                    valueRange = 0f..20f,
-                    label = "Background blur",
-                    valueLabel = if (wallpaperBlur == 0) "Off" else wallpaperBlur.toString()
-                )
-            }
-
             item {
                 OutlinedButton(
                     onClick = viewModel::resetLayout,
@@ -163,7 +99,7 @@ fun ThemeStudioScreen(
                 ) {
                     Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Reset launcher theme")
+                    Text("Reset home layout")
                 }
             }
         }
@@ -174,9 +110,6 @@ fun ThemeStudioScreen(
 private fun ThemePreviewCard(
     denseLayout: Boolean,
     accent: Color,
-    iconShape: String,
-    selectedFont: String,
-    wallpaperBlur: Int,
     drawerStyle: String,
 ) {
     Column(
@@ -192,7 +125,7 @@ private fun ThemePreviewCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Live launcher preview", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(
-                    "${if (denseLayout) "Dense" else "Spacious"} home - ${drawerStyle.labelize()} drawer - ${iconShape.labelize()} - Blur $wallpaperBlur",
+                    "${if (denseLayout) "Dense" else "Spacious"} home - ${drawerStyle.labelize()} App Library",
                     color = CiyatoMuted,
                     fontSize = 12.sp,
                     maxLines = 1,
@@ -246,7 +179,7 @@ private fun ThemePreviewCard(
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
-                                .clip(RoundedCornerShape(if (iconShape == "circle") 999.dp else 8.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(accent.copy(alpha = 0.35f))
                         )
                     }
