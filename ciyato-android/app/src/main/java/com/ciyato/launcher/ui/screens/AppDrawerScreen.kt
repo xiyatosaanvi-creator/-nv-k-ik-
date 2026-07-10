@@ -50,8 +50,6 @@ private data class DrawerSection(
 )
 
 private val DRAWER_SECTIONS = listOf(
-    DrawerSection(null,                         "Suggested",          isExpandable = false),
-    DrawerSection(AppCategory.RECENTLY_ADDED,   "Recently Added",     isExpandable = false),
     DrawerSection(AppCategory.WORK,             "Work"),
     DrawerSection(AppCategory.SOCIAL,           "Social"),
     DrawerSection(AppCategory.UTILITIES,        "Utilities"),
@@ -102,7 +100,7 @@ fun AppDrawerScreen(
     val populatedSections = remember(apps) {
         DRAWER_SECTIONS.filter { section ->
             when (section.category) {
-                null -> viewModel.multiCategoryApps().isNotEmpty() || apps.isNotEmpty()
+                null -> false
                 AppCategory.RECENTLY_ADDED -> viewModel.recentlyAdded().isNotEmpty()
                 else -> viewModel.byCategory(section.category).isNotEmpty()
             }
@@ -127,25 +125,17 @@ fun AppDrawerScreen(
                 .background(DrawerBg)
                 .padding(scaffoldPadding)
         ) {
-            // ── 1. Header: Logo + Smart App Library Chip ──────────────────────
+            // ── 1. Neutral drawer header ─────────────────────────────────────
             DrawerHeader(
                 onBack = onBack,
-                sortMode = sortMode,
                 drawerStyle = drawerStyle,
-                onSortTap = {
-                    sortMode = when (sortMode) {
-                        "alpha" -> "frequent"
-                        "frequent" -> "recent"
-                        else -> "alpha"
-                    }
-                }
             )
 
             // ── 2. Search Area ────────────────────────────────────────────────
             CiyatoSearchBar(
                 query           = searchQuery,
                 onQueryChange   = viewModel::setSearch,
-                placeholder     = "Search apps, files, contacts…",
+                placeholder     = "Search apps...",
                 backgroundColor = DrawerSearch,
                 borderColor     = DrawerBorder,
                 iconTint        = DrawerMuted,
@@ -286,9 +276,7 @@ private fun drawerStyleLabel(drawerStyle: String): String {
 @Composable
 private fun DrawerHeader(
     onBack: () -> Unit = {},
-    sortMode: String,
     drawerStyle: String,
-    onSortTap: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -297,30 +285,19 @@ private fun DrawerHeader(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp),
     ) {
-        // Ciyato logo + name
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // "C✦" badge
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(Color(0xFF0B0F12)),
-            ) {
-                Text("C✦", color = CiyatoGold, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
             Text(
-                "Ciyato",
+                "Apps",
                 color = DrawerText,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
             )
         }
 
-        // Right: "Smart App Library" chip + filter icon
+        // Right: current drawer mode label
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -336,22 +313,6 @@ private fun DrawerHeader(
                     .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(999.dp))
                     .padding(horizontal = 10.dp, vertical = 5.dp),
             )
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DrawerCard)
-                    .border(1.dp, DrawerBorder, RoundedCornerShape(8.dp))
-                    .clickable(onClick = onSortTap),
-            ) {
-                Icon(
-                    Icons.Default.FilterList,
-                    contentDescription = "Sort apps: ${sortModeLabel(sortMode)}",
-                    tint = DrawerSec,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
         }
     }
 }

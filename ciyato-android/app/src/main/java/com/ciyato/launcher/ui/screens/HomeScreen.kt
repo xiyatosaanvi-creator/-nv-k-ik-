@@ -410,26 +410,8 @@ fun HomeScreen(
                                             }
                                         }
                                     }
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (focusSession != null) {
-                                            FocusBadge(focusSession!!)
-                                        }
-                                        CiyatoAIButton(
-                                            icon = Icons.Default.AutoMode,
-                                            contentDescription = "Open AI Optimizer",
-                                            onClick = onOpenAIOptimizer,
-                                            size = 42.dp,
-                                        )
-                                        CiyatoIconButton(
-                                            icon = Icons.Default.AutoFixHigh,
-                                            contentDescription = "Open smart search",
-                                            onClick = onOpenSearch,
-                                            size = 42.dp,
-                                            tint = activeAccent,
-                                        )
+                                    if (focusSession != null) {
+                                        FocusBadge(focusSession!!)
                                     }
                                 }
                             }
@@ -467,33 +449,6 @@ fun HomeScreen(
                                     onAgendaTap  = onAgendaTap,
                                     modifier     = Modifier.fillMaxWidth(),
                                 )
-                            }
-
-                            // Premium Widgets Grid
-                            item {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        WorldClockWidget(modifier = Modifier.weight(1f))
-                                        BatteryStatusWidget(modifier = Modifier.weight(1f))
-                                    }
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        NewsHeadlineWidget(modifier = Modifier.weight(1f))
-                                        DailyAffirmationWidget(modifier = Modifier.weight(1f))
-                                    }
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        StockCryptoWidget(modifier = Modifier.weight(1f))
-                                        MediaControlsWidget(modifier = Modifier.weight(1f))
-                                    }
-                                }
                             }
 
                             // 5. Recently launched
@@ -895,7 +850,7 @@ private fun HomeSearchBar(isDense: Boolean, onClick: () -> Unit, modifier: Modif
         Row(modifier = Modifier.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Default.Search, null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
-            Text("Search apps, files, contacts…", color = CiyatoMuted, fontSize = if (isDense) 14.sp else 15.sp)
+            Text("Search apps...", color = CiyatoMuted, fontSize = if (isDense) 14.sp else 15.sp)
         }
     }
 }

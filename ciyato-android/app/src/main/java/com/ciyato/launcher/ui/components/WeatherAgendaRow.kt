@@ -37,12 +37,6 @@ import com.ciyato.launcher.ui.theme.*
  * onWeatherTap and onAgendaTap are required callbacks.
  */
 
-private val AGENDA_ITEMS = listOf(
-    Triple("10:00 AM", "Design Sync", "60m"),
-    Triple("02:30 PM", "Client Call", "45m"),
-    Triple("06:00 PM", "Gym Session", "60m"),
-)
-
 @Composable
 fun WeatherAgendaRow(
     isDense: Boolean = true,
@@ -143,7 +137,6 @@ private fun WeatherCardSuccess(
         ) {
             Text(ws.locationName, color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp, maxLines = 1)
             Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(CiyatoGreen))
-            Text("AQI 42", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
         }
     }
 }
@@ -174,20 +167,18 @@ private fun WeatherCardFallback(
         Icon(Icons.Outlined.WbSunny, null, tint = CiyatoGoldSoft,
             modifier = Modifier.size(iconSize).padding(top = 2.dp))
         Column {
-            Text("24°", color = CiyatoWhite, fontSize = tempSize,
+            Text("--°", color = CiyatoWhite, fontSize = tempSize,
                 fontWeight = FontWeight.Bold, lineHeight = tempSize * 1.05f)
-            Text("Partly sunny", color = CiyatoSec, fontSize = subtextSz)
+            Text("Set weather", color = CiyatoSec, fontSize = subtextSz)
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Feels like 26°", color = CiyatoMuted, fontSize = subtextSz)
+        Text("Allow approximate location", color = CiyatoMuted, fontSize = subtextSz)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("New York", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
-            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(CiyatoGreen))
-            Text("AQI 42", color = CiyatoMuted, fontSize = (subtextSz.value - 1).sp)
+            Text("Tap to enable", color = CiyatoBlue, fontSize = (subtextSz.value - 1).sp)
         }
     }
 }
@@ -234,37 +225,26 @@ fun AgendaCard(
 
         Spacer(Modifier.height(if (isDense) 8.dp else 12.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(if (isDense) 8.dp else 12.dp)) {
-            AGENDA_ITEMS.take(if (isDense) 3 else 4).forEachIndexed { index, (time, event, dur) ->
-                val stripColor = when (index) {
-                    0 -> CiyatoGold
-                    1 -> CiyatoBlue
-                    else -> CiyatoGoldSoft
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(3.dp)
-                            .height(if (isDense) 30.dp else 34.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(stripColor),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(time, color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
-                        Text(event, color = CiyatoWhite, fontSize = if (isDense) 12.sp else 13.sp,
-                            fontWeight = FontWeight.Medium)
-                    }
-                    Text(dur, color = CiyatoMuted, fontSize = if (isDense) 10.sp else 11.sp)
-                }
-            }
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                "No schedule connected",
+                color = CiyatoWhite,
+                fontSize = if (isDense) 12.sp else 13.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Tap to add or connect calendar",
+                color = CiyatoMuted,
+                fontSize = if (isDense) 10.sp else 11.sp,
+                lineHeight = if (isDense) 14.sp else 16.sp,
+            )
         }
 
-        Spacer(Modifier.weight(1f))
-        Text("View all", color = CiyatoBlue, fontSize = if (isDense) 11.sp else 12.sp,
+        Text("Open", color = CiyatoBlue, fontSize = if (isDense) 11.sp else 12.sp,
             modifier = Modifier.align(Alignment.End))
     }
 }

@@ -30,7 +30,7 @@ import com.ciyato.launcher.ui.theme.*
 fun CiyatoSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String = "Search apps, files, contacts…",
+    placeholder: String = "Search apps...",
     backgroundColor: Color = Color(0xFFECE9E3),   // warm cream for light drawer
     borderColor: Color = Color(0x18000000),         // very subtle dark border on light
     iconTint: Color = CiyatoLightSec,

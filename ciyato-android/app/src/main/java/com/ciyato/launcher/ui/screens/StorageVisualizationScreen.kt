@@ -131,10 +131,10 @@ fun StorageVisualizationScreen(
                 StorageCategoryRow(cat = cat, totalGb = totalGb, animProgress = animProgress.value)
             }
 
-            // ── Cleanup suggestion ─────────────────────────────────────────────
+            // ── Cleanup status ────────────────────────────────────────────────
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E3A2F)),
+                    colors = CardDefaults.cardColors(containerColor = CiyatoBgEl),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -143,15 +143,12 @@ fun StorageVisualizationScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("✨", fontSize = 24.sp)
+                        Text("•", fontSize = 24.sp, color = CiyatoSec)
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("AI suggests freeing 4.3 GB",
-                                color = Color(0xFF39C66A), fontWeight = FontWeight.SemiBold)
-                            Text("Delete duplicates and large unused files",
+                            Text("Cleanup is off by default",
+                                color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                            Text("No files are suggested or deleted until a real folder-based cleanup flow is connected.",
                                 color = CiyatoMuted, fontSize = 12.sp)
-                        }
-                        TextButton(onClick = {}) {
-                            Text("Clean", color = Color(0xFF39C66A))
                         }
                     }
                 }

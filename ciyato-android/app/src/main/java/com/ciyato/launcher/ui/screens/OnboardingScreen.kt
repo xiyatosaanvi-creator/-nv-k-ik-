@@ -104,7 +104,7 @@ private val pages = listOf(
             "A private organizer that stays on your device.",
         ),
         panels = listOf(
-            OnboardingPanel(Icons.Default.Home, "Home first", "Your launcher opens to greeting, search, weather, agenda, categories, shortcuts, and dock."),
+            OnboardingPanel(Icons.Default.Home, "Home first", "Your launcher opens to greeting, search, honest setup cards, categories, shortcuts, and dock."),
             OnboardingPanel(Icons.Default.Apps, "Organized apps", "Work, Social, Finance, Daily, Creativity, Utilities, Travel, and more stay easy to scan."),
             OnboardingPanel(Icons.Default.Search, "Fast access", "Search focuses on installed apps now, with files and photos staged for permission-backed indexing."),
         ),
@@ -140,7 +140,7 @@ private val pages = listOf(
         panels = listOf(
             OnboardingPanel(Icons.Default.Search, "Search apps", "Type a name and launch the matching installed app directly."),
             OnboardingPanel(Icons.Default.KeyboardArrowRight, "Open categories", "Category cards expand and individual preview icons launch their apps."),
-            OnboardingPanel(Icons.Default.Palette, "Change layout", "Theme Studio controls the home density, drawer style, accents, icon shape, font, and blur."),
+            OnboardingPanel(Icons.Default.Palette, "Edit by long press", "Long-press the launcher to shape the home screen. Deeper visual controls live inside the Ciyato app."),
         ),
     ),
     OnboardingPage(
@@ -270,30 +270,12 @@ private fun BrandHeader() {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Brush.verticalGradient(listOf(CiyatoBgEl2, CiyatoBg)))
-                    .border(1.dp, CiyatoStrongBorder, RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("C*", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 19.sp)
-            }
             Column {
                 Text("Ciyato", color = CiyatoWhite, fontSize = 23.sp, fontWeight = FontWeight.Bold)
                 Text("AI Phone Organizer for Android", color = CiyatoSec, fontSize = 11.sp)
             }
         }
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(CiyatoBgEl2.copy(alpha = 0.78f))
-                .border(1.dp, CiyatoBorder, RoundedCornerShape(999.dp))
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-        ) {
-            Text("Private beta", color = CiyatoSec, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        }
+        Text("Setup guide", color = CiyatoSec, fontSize = 11.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -310,7 +292,6 @@ private fun OnboardingPageContent(page: OnboardingPage, pageIndex: Int) {
         page.panels.forEach { panel ->
             GuidancePanel(panel = panel)
         }
-        ControlSummary()
     }
 }
 
@@ -412,8 +393,8 @@ private fun MiniPhonePreview(pageIndex: Int) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            PreviewWidget("24°", "Partly sunny", Modifier.weight(1f))
-            PreviewWidget("Today", "Design sync\nClient call", Modifier.weight(1f))
+            PreviewWidget("Weather", "Allow location or set city", Modifier.weight(1f))
+            PreviewWidget("Today", "Connect calendar or add item", Modifier.weight(1f))
         }
 
         Text("Smart categories", color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -581,7 +562,7 @@ private fun previewSubtitle(pageIndex: Int): String = when (pageIndex) {
 private fun previewSearch(pageIndex: Int): String = when (pageIndex) {
     2 -> "Search apps..."
     3 -> "Search files, folders..."
-    else -> "Search apps, files, contacts..."
+    else -> "Search apps..."
 }
 
 /** Request HOME role via RoleManager (API 29+) or open Default Apps settings. */
