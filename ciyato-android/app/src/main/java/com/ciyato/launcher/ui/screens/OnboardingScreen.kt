@@ -455,7 +455,7 @@ private fun PreviewCategory(index: Int, modifier: Modifier = Modifier) {
     ) {
         Column {
             Text(labels[index], color = CiyatoWhite, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text("${6 + index} apps", color = CiyatoMuted, fontSize = 9.sp)
+            Text("Organized apps", color = CiyatoMuted, fontSize = 9.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             repeat(3) { dot ->
@@ -556,12 +556,12 @@ private fun previewSubtitle(pageIndex: Int): String = when (pageIndex) {
     2 -> "Search, sort, categories, and actions"
     3 -> "Folders, files, selected access"
     4 -> "On-device, reversible, secure"
-    else -> "One place for everything"
+    else -> "A clearer home screen"
 }
 
 private fun previewSearch(pageIndex: Int): String = when (pageIndex) {
     2 -> "Search apps..."
-    3 -> "Search files, folders..."
+    3 -> "Choose a folder first"
     else -> "Search apps..."
 }
 

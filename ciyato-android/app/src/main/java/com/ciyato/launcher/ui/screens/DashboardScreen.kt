@@ -54,7 +54,7 @@ fun DashboardScreen(
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Ciyato", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("Local beta", color = CiyatoGold, fontSize = 11.sp,
+                        Text("Control center", color = CiyatoGold, fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
@@ -96,7 +96,7 @@ fun DashboardScreen(
                 Column {
                     Text(greetingStr, color = CiyatoWhite,
                         fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("Your phone is organized.", color = CiyatoSec, fontSize = 13.sp)
+                    Text("Choose what Ciyato can access.", color = CiyatoSec, fontSize = 13.sp)
                 }
             }
 
@@ -111,7 +111,7 @@ fun DashboardScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Phone Storage", color = CiyatoWhite,
+                            Text("Ciyato local storage", color = CiyatoWhite,
                                 fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                             Text("${formatStorage(storage.first)} used of ${formatStorage(storage.second)}", color = CiyatoSec,
                                 fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
@@ -131,7 +131,7 @@ fun DashboardScreen(
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    Text("Cleanup is disabled until a review-safe flow is implemented.", color = CiyatoMuted, fontSize = 12.sp)
+                    Text("This is Ciyato's own app storage. Ciyato does not scan or clean your phone automatically.", color = CiyatoMuted, fontSize = 12.sp)
                 }
             }
 
@@ -143,7 +143,7 @@ fun DashboardScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     QuickAction(Icons.Default.AutoFixHigh, "Smart Search", CiyatoGold, onOpenSearch, Modifier.weight(1f))
                     QuickAction(Icons.Default.Folder, "Files", CiyatoBlue, onOpenFiles, Modifier.weight(1f))
-                    QuickAction(Icons.Default.CopyAll, "Duplicates",
+                    QuickAction(Icons.Default.FolderOpen, "Browse files",
                         MaterialTheme.colorScheme.error, onOpenFiles, Modifier.weight(1f))
                     QuickAction(Icons.Default.PhotoAlbum, "Photos", CiyatoGreen, onOpenPhotos, Modifier.weight(1f))
                 }
@@ -151,15 +151,15 @@ fun DashboardScreen(
 
             // Recent activity
             item {
-                Text("Recent", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text("Privacy at a glance", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        Triple(Icons.Default.Apps, "$totalApps visible launcher apps loaded", "Live"),
-                        Triple(Icons.Default.FolderOpen, "File access is requested only when you choose a folder", "Private"),
+                        Triple(Icons.Default.Apps, "$totalApps installed apps available to organize", "Available"),
+                        Triple(Icons.Default.FolderOpen, "File access begins only after you choose a folder", "Your choice"),
                         Triple(Icons.Default.PhotoLibrary, "Photos use Android Photo Picker", "Selected only"),
-                        Triple(Icons.Default.DeleteOutline, "No automatic cleanup or deletion", "Safe"),
+                        Triple(Icons.Default.DeleteOutline, "Ciyato never deletes files automatically", "Protected"),
                     ).forEach { (icon, label, time) ->
                         ActivityRow(icon = icon, label = label, time = time)
                     }
@@ -173,11 +173,11 @@ fun DashboardScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeatureRow(Icons.Default.Folder, "Ciyato Files",
-                        "All your files, organized.", CiyatoBlue, onOpenFiles)
+                        "Browse a folder you choose.", CiyatoBlue, onOpenFiles)
                     FeatureRow(Icons.Default.Photo, "Ciyato Photos",
-                        "AI-sorted moments and media.", CiyatoGoldSoft, onOpenPhotos)
+                        "View only the photos you select.", CiyatoGoldSoft, onOpenPhotos)
                     FeatureRow(Icons.Default.Search, "AI Search",
-                        "Find anything instantly.", CiyatoGold, onOpenSearch)
+                        "Search installed apps and categories.", CiyatoGold, onOpenSearch)
                     FeatureRow(Icons.Default.Palette, "Theme Studio",
                         "Customize your launcher.", CiyatoGreen, onOpenTheme)
                     FeatureRow(Icons.Default.Settings, "Settings",

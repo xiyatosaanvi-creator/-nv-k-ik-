@@ -79,7 +79,6 @@ fun HomeScreen(
     onWeatherTap: () -> Unit = {},
     onAgendaTap: () -> Unit = {},
     onDuplicatesTap: () -> Unit = {},
-    onOpenAIOptimizer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val apps              by viewModel.apps.collectAsState()

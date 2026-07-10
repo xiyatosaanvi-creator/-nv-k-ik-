@@ -42,6 +42,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     val repo     = LauncherRepository(app)
     val settings = LauncherSettingsRepository(app)
+    // Retained only for a legacy screen that is compiled but no longer reachable.
     val aiOptimizer = AIOptimizerManager(app)
 
     fun optimizeSystem() {
@@ -49,7 +50,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             aiOptimizer.optimizeSystem(this@LauncherViewModel)
         }
     }
-
     // ── App list ──────────────────────────────────────────────────────────────
 
     val apps      get() = repo.apps
