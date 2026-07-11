@@ -65,6 +65,7 @@ fun AppContextMenu(
     val isPinned by remember { derivedStateOf { viewModel.isPinned(app) } }
     val isHidden by remember { derivedStateOf { viewModel.isHidden(app) } }
     var showCategorySelector by remember { mutableStateOf(false) }
+    var confirmRemoveFromDisplay by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -137,9 +138,7 @@ fun AppContextMenu(
                         label = "Remove from display",
                         color = CiyatoSec,
                         action = {
-                            viewModel.removeAppFromDisplay(app.packageName)
-                            onAction(ContextAction.RemoveFromDisplay)
-                            onDismiss()
+                            confirmRemoveFromDisplay = true
                         }
                     ))
                     add(ContextMenuItem(
@@ -183,6 +182,35 @@ fun AppContextMenu(
                 Spacer(Modifier.height(4.dp))
             }
         }
+    }
+
+    if (confirmRemoveFromDisplay) {
+        AlertDialog(
+            onDismissRequest = { confirmRemoveFromDisplay = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Remove from display?", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
+            text = {
+                Text(
+                    "${app.label} will stay installed. You can restore it later from Ciyato Settings.",
+                    color = CiyatoSec,
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemoveFromDisplay = false }) {
+                    Text("Cancel", color = CiyatoSec)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeAppFromDisplay(app.packageName)
+                    onAction(ContextAction.RemoveFromDisplay)
+                    confirmRemoveFromDisplay = false
+                    onDismiss()
+                }) {
+                    Text("Remove", color = CiyatoRed)
+                }
+            },
+        )
     }
 
     val customCats by viewModel.customCategories.collectAsState()

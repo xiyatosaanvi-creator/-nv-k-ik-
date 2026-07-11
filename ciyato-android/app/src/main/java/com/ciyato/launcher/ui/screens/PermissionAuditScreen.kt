@@ -135,6 +135,7 @@ private val HIGH_RISK_PERMS = setOf(
     "android.permission.ACCESS_BACKGROUND_LOCATION",
     "android.permission.READ_CONTACTS",
     "android.permission.WRITE_CONTACTS",
+    "android.permission.READ_CALENDAR",
     "android.permission.CAMERA",
     "android.permission.RECORD_AUDIO",
     "android.permission.READ_SMS",

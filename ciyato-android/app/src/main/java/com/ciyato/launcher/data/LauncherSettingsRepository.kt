@@ -142,8 +142,11 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_CATEGORY_ORDER         = stringPreferencesKey("category_order")
         val KEY_CATEGORY_TILES_SIZES   = stringPreferencesKey("category_tiles_sizes")
         val KEY_CUSTOM_CATEGORIES     = stringPreferencesKey("custom_categories")
+        val KEY_CUSTOM_CATEGORY_ICONS = stringPreferencesKey("custom_category_icons")
         val KEY_PAGE_0_APPS            = stringPreferencesKey("page_0_apps")
         val KEY_PAGE_2_APPS            = stringPreferencesKey("page_2_apps")
+        val KEY_WORKSPACE_COUNT        = intPreferencesKey("workspace_count")
+        val KEY_WORKSPACE_APPS         = stringPreferencesKey("workspace_apps")
         val KEY_FILES_ROOT_URI         = stringPreferencesKey("files_root_uri")
         val KEY_DRAWER_STYLE           = stringPreferencesKey("drawer_style")       // smart | dense | spacious
     }
@@ -225,8 +228,11 @@ class LauncherSettingsRepository(private val context: Context) {
     val categoryOrder:          Flow<String>  = pref(KEY_CATEGORY_ORDER,         "")
     val categoryTilesSizes:     Flow<String>  = pref(KEY_CATEGORY_TILES_SIZES,     "{}")
     val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
+    val customCategoryIcons:    Flow<String>  = pref(KEY_CUSTOM_CATEGORY_ICONS,   "{}")
     val page0Apps:              Flow<String>  = pref(KEY_PAGE_0_APPS,             "")
     val page2Apps:              Flow<String>  = pref(KEY_PAGE_2_APPS,             "")
+    val workspaceCount:         Flow<Int>     = pref(KEY_WORKSPACE_COUNT,          3)
+    val workspaceApps:          Flow<String>  = pref(KEY_WORKSPACE_APPS,           "{}")
     val filesRootUri:           Flow<String>  = pref(KEY_FILES_ROOT_URI,          "")
     val drawerStyle:            Flow<String>  = pref(KEY_DRAWER_STYLE,            "smart")
 
@@ -310,8 +316,11 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setCategoryOrder(v: String)            = set(KEY_CATEGORY_ORDER,           v)
     suspend fun setCategoryTilesSizes(v: String)        = set(KEY_CATEGORY_TILES_SIZES,       v)
     suspend fun setCustomCategories(v: String)          = set(KEY_CUSTOM_CATEGORIES,         v)
+    suspend fun setCustomCategoryIcons(v: String)       = set(KEY_CUSTOM_CATEGORY_ICONS,     v)
     suspend fun setPage0Apps(v: String)                = set(KEY_PAGE_0_APPS,              v)
     suspend fun setPage2Apps(v: String)                = set(KEY_PAGE_2_APPS,              v)
+    suspend fun setWorkspaceCount(v: Int)              = set(KEY_WORKSPACE_COUNT,          v.coerceIn(3, 10))
+    suspend fun setWorkspaceApps(v: String)            = set(KEY_WORKSPACE_APPS,           v)
     suspend fun setFilesRootUri(v: String)             = set(KEY_FILES_ROOT_URI,           v)
     suspend fun setDrawerStyle(v: String)              = set(KEY_DRAWER_STYLE,             v)
 

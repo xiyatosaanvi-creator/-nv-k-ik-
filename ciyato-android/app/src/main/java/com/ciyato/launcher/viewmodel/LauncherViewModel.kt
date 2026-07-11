@@ -123,8 +123,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val categoryOrder      = settings.categoryOrder     .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryTilesSizes = settings.categoryTilesSizes.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val customCategoryIcons = settings.customCategoryIcons.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val page0Apps          = settings.page0Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val page2Apps          = settings.page2Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val workspaceCount     = settings.workspaceCount    .stateIn(viewModelScope, SharingStarted.Eagerly, 3)
+    val workspaceApps      = settings.workspaceApps     .stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val filesRootUri       = settings.filesRootUri      .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val drawerStyle        = settings.drawerStyle       .stateIn(viewModelScope, SharingStarted.Eagerly, "smart")
 
@@ -205,8 +208,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         }
         toRemove.forEach { overrides.remove(it) }
         settings.setAppCategoryOverrides(overrides.toString())
+        val icons = try { JSONObject(customCategoryIcons.value) } catch (_: Exception) { JSONObject() }
+        icons.remove(name)
+        settings.setCustomCategoryIcons(icons.toString())
         repo.loadApps()
     }
+
+    fun setCustomCategoryIcon(name: String, icon: String) = viewModelScope.launch {
+        val icons = try { JSONObject(customCategoryIcons.value) } catch (_: Exception) { JSONObject() }
+        icons.put(name, icon)
+        settings.setCustomCategoryIcons(icons.toString())
+    }
+
+    fun getCustomCategoryIcon(name: String): String =
+        try { JSONObject(customCategoryIcons.value).optString(name, "folder") }
+        catch (_: Exception) { "folder" }
 
     fun setAppCustomCategoryOverride(packageName: String, customName: String?) = viewModelScope.launch {
         val map = try { JSONObject(appCategoryOverrides.value) } catch (_: Exception) { JSONObject() }
@@ -235,29 +251,56 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     // ── Multi-Page Custom Apps ───────────────────────────────────────────────
 
     fun addAppToPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
-        val flow = if (pageIndex == 0) settings.page0Apps else settings.page2Apps
-        val current = parsePackageCsv(flow.first()).toMutableList()
+        val current = parsePackageCsv(workspacePackages(pageIndex)).toMutableList()
         if (pkg !in current) {
             current.add(pkg)
-            if (pageIndex == 0) settings.setPage0Apps(current.joinToString(","))
-            else settings.setPage2Apps(current.joinToString(","))
+            setWorkspacePackages(pageIndex, current.joinToString(","))
         }
     }
 
     fun removeAppFromPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
-        val flow = if (pageIndex == 0) settings.page0Apps else settings.page2Apps
-        val current = parsePackageCsv(flow.first()).toMutableList()
+        val current = parsePackageCsv(workspacePackages(pageIndex)).toMutableList()
         if (current.remove(pkg)) {
-            if (pageIndex == 0) settings.setPage0Apps(current.joinToString(","))
-            else settings.setPage2Apps(current.joinToString(","))
+            setWorkspacePackages(pageIndex, current.joinToString(","))
         }
     }
 
     fun getAppsForPage(pageIndex: Int): List<InstalledApp> {
-        val csv = if (pageIndex == 0) page0Apps.value else page2Apps.value
+        val csv = workspacePackages(pageIndex)
         val pkgs = parsePackageCsv(csv)
         val byPkg = apps.value.associateBy { it.packageName }
         return pkgs.mapNotNull { byPkg[it] }
+    }
+
+    fun addWorkspace() = viewModelScope.launch {
+        if (workspaceCount.value < 10) settings.setWorkspaceCount(workspaceCount.value + 1)
+    }
+
+    fun removeLastWorkspace() = viewModelScope.launch {
+        val lastIndex = workspaceCount.value - 1
+        if (lastIndex < 3) return@launch
+        val pages = try { JSONObject(workspaceApps.value) } catch (_: Exception) { JSONObject() }
+        pages.remove(lastIndex.toString())
+        settings.setWorkspaceApps(pages.toString())
+        settings.setWorkspaceCount(lastIndex)
+    }
+
+    private fun workspacePackages(pageIndex: Int): String = when (pageIndex) {
+        0 -> page0Apps.value
+        2 -> page2Apps.value
+        else -> try { JSONObject(workspaceApps.value).optString(pageIndex.toString(), "") } catch (_: Exception) { "" }
+    }
+
+    private suspend fun setWorkspacePackages(pageIndex: Int, csv: String) {
+        when (pageIndex) {
+            0 -> settings.setPage0Apps(csv)
+            2 -> settings.setPage2Apps(csv)
+            else -> {
+                val pages = try { JSONObject(workspaceApps.value) } catch (_: Exception) { JSONObject() }
+                pages.put(pageIndex.toString(), csv)
+                settings.setWorkspaceApps(pages.toString())
+            }
+        }
     }
 
     // ── Screenshot blocking (Suggestion 145) ──────────────────────────────────

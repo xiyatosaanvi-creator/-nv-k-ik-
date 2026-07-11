@@ -5,6 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,7 +37,7 @@ fun SmartCategoryCard(
     displayName: String,
     apps: List<InstalledApp>,
     onTap: () -> Unit,
-    onAppTap: ((InstalledApp) -> Unit)? = null,
+    customIcon: String = "folder",
     modifier: Modifier = Modifier,
     tileSize: String = "medium", // "small" | "medium" | "large"
     isEditMode: Boolean = false,
@@ -68,6 +73,25 @@ fun SmartCategoryCard(
                 .clickable(onClick = onTap)
                 .padding(if (tileSize == "small") 8.dp else 12.dp)
         ) {
+            if (category == AppCategory.CUSTOM) {
+                val icon = when (customIcon) {
+                    "bookmark" -> Icons.Default.Bookmark
+                    "star" -> Icons.Default.Star
+                    else -> Icons.Default.Folder
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(CiyatoBgEl3)
+                        .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(7.dp)),
+                ) {
+                    Icon(icon, contentDescription = null, tint = CiyatoSec, modifier = Modifier.size(14.dp))
+                }
+            }
+
             // Draw a grid of miniature app icons
             val maxVisible = when (tileSize) {
                 "large" -> 6
@@ -107,9 +131,9 @@ fun SmartCategoryCard(
                                         drawable = app.icon,
                                         size = iconMiniSize,
                                         cornerRadius = 6.dp,
-                                        modifier = if (onAppTap != null) {
-                                            Modifier.clickable { onAppTap(app) }
-                                        } else Modifier
+                                        // Closed-category previews are decorative. The card itself opens
+                                        // the category; launchable shortcuts belong to the expanded view.
+                                        modifier = Modifier
                                     )
                                 } else if (hasOverflow && idx == visibleApps.size) {
                                     Box(

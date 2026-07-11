@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,6 +64,14 @@ fun CalendarAgendaScreen(
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED)
     }
     var events by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
+    val addEvent: () -> Unit = {
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_INSERT).apply {
+                data = CalendarContract.Events.CONTENT_URI
+            })
+        }
+        Unit
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -86,6 +95,11 @@ fun CalendarAgendaScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = CiyatoWhite)
                     }
                 },
+                actions = {
+                    IconButton(onClick = addEvent) {
+                        Icon(Icons.Default.Add, contentDescription = "Add event", tint = CiyatoGold)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CiyatoBg),
             )
         }
@@ -101,7 +115,7 @@ fun CalendarAgendaScreen(
                 Text("Calendar Access Required", color = CiyatoWhite, fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
-                Text("Allow Ciyato to read your calendar events to show your agenda on the home screen.",
+                Text("Allow access only if you want Ciyato to read real calendar events for your agenda. You can still add events with your calendar app without connecting it.",
                     color = CiyatoMuted, fontSize = 14.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 Spacer(Modifier.height(24.dp))
@@ -110,6 +124,9 @@ fun CalendarAgendaScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold),
                 ) {
                     Text("Grant Access", color = Color.Black)
+                }
+                TextButton(onClick = addEvent) {
+                    Text("Add in Calendar", color = CiyatoSec)
                 }
             }
             return@Scaffold
@@ -126,7 +143,10 @@ fun CalendarAgendaScreen(
                     Spacer(Modifier.height(12.dp))
                     Text("No upcoming events", color = CiyatoWhite, fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold)
-                    Text("Your schedule is clear!", color = CiyatoMuted, fontSize = 14.sp)
+                    Text("Your calendar has no upcoming events.", color = CiyatoMuted, fontSize = 14.sp)
+                    TextButton(onClick = addEvent) {
+                        Text("Add in Calendar", color = CiyatoGold)
+                    }
                 }
             }
             return@Scaffold

@@ -6,15 +6,27 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PeopleOutline
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Scaffold
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.LocationHelper
+import com.ciyato.launcher.ui.components.CiyatoBottomNavBar
+import com.ciyato.launcher.ui.components.CiyatoNavItem
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -32,7 +44,6 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
  *   theme                   →  Theme Studio
  *   settings                →  Settings
  *   category_detail/{name}  →  Category detail (real apps)
- *   duplicate_shortcuts     →  Duplicate shortcuts management
  *   weather_detail          →  Live weather (Open-Meteo)
  *   agenda                  →  Agenda / Today
  */
@@ -62,7 +73,39 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                NavHost(navController = navController, startDestination = startDest) {
+                val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                val activeRoute = currentBackStackEntry?.destination?.route
+                val tabRoutes = listOf("dashboard", "files", "search", "shared", "settings")
+                val tabItems = listOf(
+                    CiyatoNavItem(Icons.Default.Home, "Home"),
+                    CiyatoNavItem(Icons.Default.FolderOpen, "Files"),
+                    CiyatoNavItem(Icons.Default.Search, "Search"),
+                    CiyatoNavItem(Icons.Default.PeopleOutline, "Shared"),
+                    CiyatoNavItem(Icons.Default.Settings, "Settings"),
+                )
+                val selectedTab = tabRoutes.indexOf(activeRoute).coerceAtLeast(0)
+
+                Scaffold(
+                    bottomBar = {
+                        if (activeRoute in tabRoutes) {
+                            CiyatoBottomNavBar(
+                                items = tabItems,
+                                selectedIndex = selectedTab,
+                                onItemSelected = { index ->
+                                    val target = tabRoutes[index]
+                                    if (target != activeRoute) {
+                                        navController.navigate(target) { launchSingleTop = true }
+                                    }
+                                },
+                            )
+                        }
+                    },
+                ) { contentPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDest,
+                        modifier = Modifier.padding(contentPadding),
+                    ) {
 
                     composable("onboarding") {
                         OnboardingScreen(onDone = {
@@ -106,12 +149,18 @@ class MainActivity : ComponentActivity() {
                             viewModel = viewModel,
                             onBack = { navController.popBackStack() },
                             onNavigateToFiles = { navController.navigate("files") },
+                            onNavigateToPhotos = { navController.navigate("photos") },
+                            onNavigateToAgenda = { navController.navigate("agenda") },
                             onNavigateToTheme = { navController.navigate("theme") },
                             onNavigateToHiddenApps = { navController.navigate("hidden_apps") },
                             onNavigateToRemovedApps = { navController.navigate("removed_apps") },
                             onNavigateToPermissionAudit = { navController.navigate("permission_audit") },
                             onNavigateToFocus = { navController.navigate("focus") },
                         )
+                    }
+
+                    composable("shared") {
+                        SharedScreen()
                     }
 
                     composable("permission_audit") {
@@ -163,10 +212,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    composable("duplicate_shortcuts") {
-                        DuplicateShortcutsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
-                    }
-
                     composable("weather_detail") {
                         // Shares viewModel.weatherState with home screen WeatherCard
                         WeatherDetailScreen(
@@ -176,8 +221,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("agenda") {
-                        AgendaScreen(onBack = { navController.popBackStack() })
+                        CalendarAgendaScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
+                }
                 }
             }
         }

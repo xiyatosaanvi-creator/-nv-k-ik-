@@ -51,6 +51,8 @@ fun SettingsScreen(
     onNavigateToPermissionAudit: (() -> Unit)? = null,
     onNavigateToFocus: (() -> Unit)? = null,
     onNavigateToFiles: (() -> Unit)? = null,
+    onNavigateToPhotos: (() -> Unit)? = null,
+    onNavigateToAgenda: (() -> Unit)? = null,
     onNavigateToTheme: (() -> Unit)? = null,
     onNavigateToHiddenApps: (() -> Unit)? = null,
     onNavigateToRemovedApps: (() -> Unit)? = null,
@@ -61,7 +63,6 @@ fun SettingsScreen(
     // Collect all settings
     val denseLayout        by viewModel.denseLayout.collectAsState()
     val smartCategories    by viewModel.smartCategories.collectAsState()
-    val duplicateShortcuts by viewModel.duplicateShortcuts.collectAsState()
     val tempUnit           by viewModel.tempUnit.collectAsState()
     val timeAwareLayout    by viewModel.timeAwareLayout.collectAsState()
     val bedtimeMode        by viewModel.bedtimeMode.collectAsState()
@@ -203,16 +204,6 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::setSmartCategories
                 )
             }
-            item {
-                CiyatoSettingSwitch(
-                    title = "Duplicate Shortcuts",
-                    subtitle = "Show apps in multiple contexts",
-                    icon = Icons.Default.ContentCopy,
-                    checked = duplicateShortcuts,
-                    onCheckedChange = viewModel::setDuplicateShortcuts
-                )
-            }
-
             // ── Weather ───────────────────────────────────────────────────────
             item { SectionHeader("Weather") }
             item {
@@ -252,7 +243,16 @@ fun SettingsScreen(
                     subtitle = "Uses Android Photo Picker; no full-gallery permission is requested.",
                     icon = Icons.Default.PhotoLibrary,
                     iconColor = CiyatoBlue,
-                    onClick = { openAppSettings(context) }
+                    onClick = { onNavigateToPhotos?.invoke() ?: openAppSettings(context) }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Calendar Access",
+                    subtitle = "Connect only when you want Ciyato to show real upcoming events.",
+                    icon = Icons.Default.CalendarToday,
+                    iconColor = CiyatoSec,
+                    onClick = { onNavigateToAgenda?.invoke() ?: openAppSettings(context) }
                 )
             }
             item {

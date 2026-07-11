@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +24,6 @@ import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.InstalledApp
 import com.ciyato.launcher.ui.components.AppIconTile
 import com.ciyato.launcher.ui.components.CiyatoSearchBar
-import com.ciyato.launcher.ui.components.RealAppIcon
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -35,7 +31,6 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
 // ── Light-mode palette (cream surface, matches reference) ─────────────────────
 private val DrawerBg        = CiyatoBg
 private val DrawerCard      = CiyatoBgEl
-private val DrawerCardAlt   = CiyatoBgEl2
 private val DrawerBorder    = CiyatoSubtleBorder
 private val DrawerText      = CiyatoWhite
 private val DrawerSec       = CiyatoSec
@@ -83,7 +78,6 @@ private val FILTER_CHIPS = listOf(
 fun AppDrawerScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
-    onDuplicatesTap: (() -> Unit)? = null,
 ) {
     val apps        by viewModel.apps.collectAsState()
     val isLoading   by viewModel.isLoading.collectAsState()
@@ -168,14 +162,6 @@ fun AppDrawerScreen(
             Spacer(Modifier.height(8.dp))
 
             // ── 4. Pagination Indicator ───────────────────────────────────────
-            CiyatoStepIndicator(
-                totalSteps = 3,
-                currentStep = 1,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp)
-            )
-
-            Spacer(Modifier.height(8.dp))
-
             // ── 5. Main content: search results OR section cards ─────────────────
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -208,7 +194,6 @@ fun AppDrawerScreen(
                         DrawerSectionCard(
                             section  = section,
                             viewModel= viewModel,
-                            apps     = apps,
                             sortMode = sortMode,
                             drawerStyle = drawerStyle,
                             onAppLongTap = { contextMenuApp = it },
@@ -216,14 +201,6 @@ fun AppDrawerScreen(
                     }
 
                     // ── 6. Duplicate Shortcuts Area ───────────────────────────
-                    item {
-                        DuplicateShortcutsDrawerCard(
-                            apps        = viewModel.multiCategoryApps().take(6),
-                            onAppTap    = viewModel::launchApp,
-                            onAppLongTap = { contextMenuApp = it },
-                            onManageTap = onDuplicatesTap,
-                        )
-                    }
                 }
             }
         }
@@ -322,26 +299,22 @@ private fun DrawerHeader(
 private fun DrawerSectionCard(
     section: DrawerSection,
     viewModel: LauncherViewModel,
-    apps: List<InstalledApp>,
     sortMode: String,
     drawerStyle: String,
     onAppLongTap: (InstalledApp) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     var showAll by remember(section.label) { mutableStateOf(false) }
 
     // Resolve apps for this section
-    val rawSectionApps = when (section.category) {
-        null                        -> viewModel.multiCategoryApps().take(8)
-                                           .ifEmpty { apps.take(8) }  // "Suggested"
-        AppCategory.RECENTLY_ADDED  -> viewModel.recentlyAdded()
-        else                        -> viewModel.byCategory(section.category)
+    val category = section.category ?: return
+    val rawSectionApps = when (category) {
+        AppCategory.RECENTLY_ADDED -> viewModel.recentlyAdded()
+        else -> viewModel.byCategory(category)
     }
     val sectionApps = sortDrawerApps(rawSectionApps, sortMode, viewModel)
 
     if (sectionApps.isEmpty()) return
-
-    val previewIcons = sectionApps.take(4)
 
     Column(
         modifier = Modifier
@@ -373,19 +346,12 @@ private fun DrawerSectionCard(
                 modifier = Modifier.padding(end = 12.dp),
             )
 
-            // Preview strip
-            Row(horizontalArrangement = Arrangement.spacedBy((-10).dp)) {
-                previewIcons.take(3).forEach { app ->
-                    RealAppIcon(
-                        drawable     = app.icon,
-                        size         = 30.dp,
-                        cornerRadius = 9.dp,
-                        modifier     = Modifier
-                            .border(2.dp, DrawerBg, RoundedCornerShape(9.dp))
-                            .clickable { viewModel.launchApp(app) },
-                    )
-                }
-            }
+            Icon(
+                Icons.Default.FolderOpen,
+                contentDescription = null,
+                tint = DrawerMuted,
+                modifier = Modifier.size(20.dp),
+            )
 
             if (section.isExpandable) {
                 Spacer(Modifier.width(10.dp))
@@ -495,99 +461,3 @@ private fun SearchResultsGrid(
 }
 
 // ── Duplicate Smart Shortcuts card — now fully clickable ──────────────────────
-@Composable
-private fun DuplicateShortcutsDrawerCard(
-    apps: List<InstalledApp>,
-    onAppTap: (InstalledApp) -> Unit,
-    onAppLongTap: (InstalledApp) -> Unit,
-    onManageTap: (() -> Unit)? = null,
-) {
-    if (apps.isEmpty()) return
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(CiyatoGold.copy(alpha = 0.08f))
-            .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(22.dp))
-            .then(
-                if (onManageTap != null) Modifier.clickable(onClick = onManageTap)
-                else Modifier
-            )
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-    ) {
-        // Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CiyatoGold.copy(alpha = 0.18f)),
-            ) {
-                Icon(Icons.Default.AutoFixHigh, contentDescription = null,
-                    tint = CiyatoGold, modifier = Modifier.size(18.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Duplicate smart shortcuts",
-                    color = DrawerText,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                )
-                Text(
-                    "One app, multiple places.",
-                    color = DrawerSec,
-                    fontSize = 12.sp,
-                )
-            }
-            if (onManageTap != null) {
-                Text(
-                    "Manage",
-                    color = CiyatoGold,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-
-        // Icon row
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            items(apps) { app ->
-                AppIconTile(
-                    app        = app,
-                    iconSize   = 54.dp,
-                    labelColor = DrawerSec,
-                    onClick    = { onAppTap(app) },
-                    onLongClick = { onAppLongTap(app) },
-                )
-            }
-            item {
-                // "+" slot
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(DrawerCardAlt)
-                            .border(1.dp, DrawerBorder, RoundedCornerShape(15.dp))
-                            .then(if (onManageTap != null) Modifier.clickable(onClick = onManageTap) else Modifier),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Manage",
-                            tint = DrawerSec, modifier = Modifier.size(22.dp))
-                    }
-                    Text("More", color = DrawerMuted, fontSize = 11.sp)
-                }
-            }
-        }
-    }
-}

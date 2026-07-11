@@ -81,7 +81,6 @@ private sealed class LauncherDest {
     object HiddenApps         : LauncherDest()
     object RemovedApps        : LauncherDest()
     data class CategoryDetail(val category: AppCategory) : LauncherDest()
-    object DuplicateShortcuts : LauncherDest()
     object WeatherDetail      : LauncherDest()
     object Agenda             : LauncherDest()
     object FocusSession       : LauncherDest()   // Suggestion 75
@@ -125,19 +124,15 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
         is LauncherDest.Home -> HomeScreen(
             viewModel       = viewModel,
             onOpenDrawer    = { dest = LauncherDest.Drawer },
-            onOpenSettings  = { dest = LauncherDest.Settings },
             onOpenSearch    = { dest = LauncherDest.Search },
-            onOpenTheme     = { dest = LauncherDest.ThemeStudio },
             onCategoryTap   = { category -> dest = LauncherDest.CategoryDetail(category) },
             onWeatherTap    = { dest = LauncherDest.WeatherDetail },
             onAgendaTap     = { dest = LauncherDest.Agenda },
-            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
         )
 
         is LauncherDest.Drawer -> AppDrawerScreen(
             viewModel       = viewModel,
             onBack          = { dest = LauncherDest.Home },
-            onDuplicatesTap = { dest = LauncherDest.DuplicateShortcuts },
         )
 
         is LauncherDest.Settings -> SettingsScreen(
@@ -182,17 +177,13 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
             onBack    = { dest = LauncherDest.Home },
         )
 
-        is LauncherDest.DuplicateShortcuts -> DuplicateShortcutsScreen(
-            viewModel = viewModel,
-            onBack    = { dest = LauncherDest.Home },
-        )
-
         is LauncherDest.WeatherDetail -> WeatherDetailScreen(
             viewModel = viewModel,
             onBack    = { dest = LauncherDest.Home },
         )
 
-        is LauncherDest.Agenda -> AgendaScreen(
+        is LauncherDest.Agenda -> CalendarAgendaScreen(
+            viewModel = viewModel,
             onBack = { dest = LauncherDest.Home },
         )
 
