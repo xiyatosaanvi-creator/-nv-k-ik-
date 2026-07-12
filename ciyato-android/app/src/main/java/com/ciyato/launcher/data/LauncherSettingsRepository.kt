@@ -50,8 +50,12 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_HOME_TIP_DISMISSED     = booleanPreferencesKey("home_tip_dismissed")
         val KEY_SHOW_HOME_GREETING     = booleanPreferencesKey("show_home_greeting")
         val KEY_SHOW_HOME_SEARCH       = booleanPreferencesKey("show_home_search")
+        val KEY_SHOW_HOME_WEATHER      = booleanPreferencesKey("show_home_weather")
         val KEY_SHOW_HOME_AGENDA       = booleanPreferencesKey("show_home_agenda")
+        val KEY_SHOW_APP_DRAWER        = booleanPreferencesKey("show_app_drawer")
+        val KEY_HIDDEN_HOME_CATEGORIES = stringPreferencesKey("hidden_home_categories")
         val KEY_DENSE_LAYOUT           = booleanPreferencesKey("dense_layout")
+        val KEY_HOME_LAYOUT_MODE       = stringPreferencesKey("home_layout_mode") // smart | dense | spacious
         val KEY_DARK_MODE              = stringPreferencesKey("dark_mode")          // auto | dark | light | amoled
         val KEY_GOLD_ACCENT            = booleanPreferencesKey("gold_accent")
         val KEY_SMART_CATEGORIES       = booleanPreferencesKey("smart_categories")
@@ -162,8 +166,12 @@ class LauncherSettingsRepository(private val context: Context) {
     val homeTipDismissed:       Flow<Boolean> = pref(KEY_HOME_TIP_DISMISSED,      false)
     val showHomeGreeting:       Flow<Boolean> = pref(KEY_SHOW_HOME_GREETING,      true)
     val showHomeSearch:         Flow<Boolean> = pref(KEY_SHOW_HOME_SEARCH,        true)
+    val showHomeWeather:        Flow<Boolean> = pref(KEY_SHOW_HOME_WEATHER,       true)
     val showHomeAgenda:         Flow<Boolean> = pref(KEY_SHOW_HOME_AGENDA,        true)
-    val denseLayout:            Flow<Boolean> = pref(KEY_DENSE_LAYOUT,            true)
+    val showAppDrawer:          Flow<Boolean> = pref(KEY_SHOW_APP_DRAWER,         true)
+    val hiddenHomeCategories:   Flow<String>  = pref(KEY_HIDDEN_HOME_CATEGORIES,  "")
+    val denseLayout:            Flow<Boolean> = pref(KEY_DENSE_LAYOUT,            false)
+    val homeLayoutMode:         Flow<String>  = pref(KEY_HOME_LAYOUT_MODE,        "spacious")
     val darkMode:               Flow<String>  = pref(KEY_DARK_MODE,               "auto")
     val goldAccent:             Flow<Boolean> = pref(KEY_GOLD_ACCENT,             true)
     val smartCategories:        Flow<Boolean> = pref(KEY_SMART_CATEGORIES,        true)
@@ -252,8 +260,12 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setHomeTipDismissed(v: Boolean)        = set(KEY_HOME_TIP_DISMISSED,       v)
     suspend fun setShowHomeGreeting(v: Boolean)        = set(KEY_SHOW_HOME_GREETING,       v)
     suspend fun setShowHomeSearch(v: Boolean)          = set(KEY_SHOW_HOME_SEARCH,         v)
+    suspend fun setShowHomeWeather(v: Boolean)         = set(KEY_SHOW_HOME_WEATHER,        v)
     suspend fun setShowHomeAgenda(v: Boolean)          = set(KEY_SHOW_HOME_AGENDA,         v)
+    suspend fun setShowAppDrawer(v: Boolean)           = set(KEY_SHOW_APP_DRAWER,          v)
+    suspend fun setHiddenHomeCategories(v: String)     = set(KEY_HIDDEN_HOME_CATEGORIES,  v)
     suspend fun setDenseLayout(v: Boolean)             = set(KEY_DENSE_LAYOUT,             v)
+    suspend fun setHomeLayoutMode(v: String)           = set(KEY_HOME_LAYOUT_MODE,         v)
     suspend fun setDarkMode(v: String)                 = set(KEY_DARK_MODE,                v)
     suspend fun setGoldAccent(v: Boolean)              = set(KEY_GOLD_ACCENT,              v)
     suspend fun setSmartCategories(v: Boolean)         = set(KEY_SMART_CATEGORIES,         v)
@@ -341,10 +353,14 @@ class LauncherSettingsRepository(private val context: Context) {
 
     suspend fun resetLayout() {
         context.dataStore.edit { p ->
-            p[KEY_DENSE_LAYOUT]        = true
+            p[KEY_DENSE_LAYOUT]        = false
+            p[KEY_HOME_LAYOUT_MODE]    = "spacious"
             p[KEY_SHOW_HOME_GREETING]  = true
             p[KEY_SHOW_HOME_SEARCH]    = true
+            p[KEY_SHOW_HOME_WEATHER]   = true
             p[KEY_SHOW_HOME_AGENDA]    = true
+            p[KEY_SHOW_APP_DRAWER]     = true
+            p[KEY_HIDDEN_HOME_CATEGORIES] = ""
             p[KEY_WORKSPACE_TRANSITION] = "slide"
             p[KEY_DARK_MODE]           = "auto"
             p[KEY_GOLD_ACCENT]         = true

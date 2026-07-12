@@ -117,6 +117,7 @@ object AppCategorizer {
         "com.overcast.podcasts"                to AppCategory.ENTERTAINMENT,
         "com.amazon.kindle"                    to AppCategory.PRODUCTIVITY,
         "com.goodreads.mobile"                 to AppCategory.PRODUCTIVITY,
+        "com.android.vending"                  to AppCategory.UTILITIES,       // Google Play Store
         // Travel
         "com.airbnb.android"                   to AppCategory.TRAVEL,
         "com.ubercab"                          to AppCategory.TRAVEL,
@@ -200,8 +201,9 @@ object AppCategorizer {
         Regex("(?i)social|friend|network|connect|community|dating|tinder|bumble|hinge")         to AppCategory.SOCIAL,
         Regex("(?i)chat|message|talk|call|voice|meet|video call|video chat|sms|text|whats|telegr|signal")       to AppCategory.COMMUNICATION,
         Regex("(?i)\\bwork\\b|office|mail|email|calendar|task|todo|note|doc|sheet|drive|cloud|meeting|project") to AppCategory.WORK,
+        Regex("(?i)video\\s*(edit|maker|enhanc|cut)|(?:edit|enhanc)\\s*video|reel maker|film maker") to AppCategory.CREATIVITY,
         Regex("(?i)music|radio|podcast|audio|sound|stream|listen|spotify|youtube|yt music")     to AppCategory.ENTERTAINMENT,
-        Regex("(?i)\\bgame\\b|gaming|play|puzzle|quest|battle|word|chess|arena|clash|royale")   to AppCategory.GAMES,
+        Regex("(?i)\\bgame\\b|gaming|puzzle|quest|battle|word|chess|arena|clash|royale")        to AppCategory.GAMES,
         Regex("(?i)travel|map|\\bride\\b|hotel|flight|trip|nav|uber|lyft|airbnb|booking|transit") to AppCategory.TRAVEL,
         Regex("(?i)shop|store|buy|market|amazon|ebay|order|cart|checkout|retail")               to AppCategory.SHOPPING,
         Regex("(?i)photo|camera|gallery|album|picture|image|film|snap|lightroom|vsco|edit|retouch") to AppCategory.CREATIVITY,

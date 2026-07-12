@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ZoomOutMap
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -93,10 +96,7 @@ fun SmartCategoryCard(
             }
 
             // Draw a grid of miniature app icons
-            val maxVisible = when (tileSize) {
-                "large" -> 6
-                else -> 4
-            }
+            val maxVisible = 6
             val hasOverflow = apps.size > maxVisible
             val visibleApps = if (hasOverflow) apps.take(maxVisible - 1) else apps.take(maxVisible)
 
@@ -110,7 +110,7 @@ fun SmartCategoryCard(
                         .align(Alignment.Center)
                 )
             } else {
-                val cols = 2
+                val cols = 3
                 val slotCount = visibleApps.size + if (hasOverflow) 1 else 0
                 val rows = (slotCount + cols - 1) / cols
                 Column(
@@ -166,41 +166,18 @@ fun SmartCategoryCard(
                         .fillMaxSize()
                         .background(CiyatoBg.copy(alpha = 0.65f))
                 ) {
-                    // Actions row
+                    // The category itself is moved with a long press and drag. Keep the
+                    // edit affordances visual and compact rather than exposing arrow controls.
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (onMoveLeft != null) {
-                            Text(
-                                "◀",
-                                color = CiyatoWhite,
-                                fontSize = 12.sp,
-                                modifier = Modifier
-                                    .clickable(onClick = onMoveLeft)
-                                    .padding(4.dp)
-                            )
-                        }
-                        Text(
-                            tileSize.first().uppercase(),
-                            color = CiyatoGold,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clickable(onClick = onToggleSize ?: {})
-                                .border(1.dp, CiyatoGold, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                        if (onMoveRight != null) {
-                            Text(
-                                "▶",
-                                color = CiyatoWhite,
-                                fontSize = 12.sp,
-                                modifier = Modifier
-                                    .clickable(onClick = onMoveRight)
-                                    .padding(4.dp)
-                            )
+                        Icon(Icons.Default.DragIndicator, contentDescription = "Drag to move", tint = CiyatoWhite, modifier = Modifier.size(20.dp))
+                        if (onToggleSize != null) {
+                            IconButton(onClick = onToggleSize, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.ZoomOutMap, contentDescription = "Change category size", tint = CiyatoGold, modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
 

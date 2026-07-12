@@ -91,8 +91,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val homeTipDismissed   = settings.homeTipDismissed  .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val showHomeGreeting   = settings.showHomeGreeting  .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showHomeSearch     = settings.showHomeSearch    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val showHomeWeather    = settings.showHomeWeather   .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showHomeAgenda     = settings.showHomeAgenda    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
-    val denseLayout        = settings.denseLayout        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val showAppDrawer      = settings.showAppDrawer     .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val hiddenHomeCategories = settings.hiddenHomeCategories.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val denseLayout        = settings.denseLayout        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val homeLayoutMode     = settings.homeLayoutMode     .stateIn(viewModelScope, SharingStarted.Eagerly, "spacious")
     val darkMode           = settings.darkMode           .stateIn(viewModelScope, SharingStarted.Eagerly, "auto")
     val goldAccent         = settings.goldAccent         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val smartCategories    = settings.smartCategories    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -143,12 +147,31 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun dismissHomeTip()                  = viewModelScope.launch { settings.setHomeTipDismissed(true) }
     fun setShowHomeGreeting(v: Boolean)   = viewModelScope.launch { settings.setShowHomeGreeting(v) }
     fun setShowHomeSearch(v: Boolean)     = viewModelScope.launch { settings.setShowHomeSearch(v) }
+    fun setShowHomeWeather(v: Boolean)    = viewModelScope.launch { settings.setShowHomeWeather(v) }
     fun setShowHomeAgenda(v: Boolean)     = viewModelScope.launch { settings.setShowHomeAgenda(v) }
+    fun setShowAppDrawer(v: Boolean)      = viewModelScope.launch { settings.setShowAppDrawer(v) }
+    fun removeCategoryFromHome(categoryKey: String) = viewModelScope.launch {
+        val hidden = parsePackageCsv(settings.hiddenHomeCategories.first()).toMutableSet()
+        hidden.add(categoryKey)
+        settings.setHiddenHomeCategories(hidden.joinToString(","))
+    }
+    fun restoreCategoryToHome(categoryKey: String) = viewModelScope.launch {
+        val hidden = parsePackageCsv(settings.hiddenHomeCategories.first()).toMutableSet()
+        hidden.remove(categoryKey)
+        settings.setHiddenHomeCategories(hidden.joinToString(","))
+    }
     fun resetGuidance()                   = viewModelScope.launch {
         settings.setHomeTipDismissed(false)
         settings.setOnboardingDone(false)
     }
-    fun setDenseLayout(v: Boolean)        = viewModelScope.launch { settings.setDenseLayout(v) }
+    fun setDenseLayout(v: Boolean)        = viewModelScope.launch {
+        settings.setDenseLayout(v)
+        settings.setHomeLayoutMode(if (v) "dense" else "spacious")
+    }
+    fun setHomeLayoutMode(v: String)      = viewModelScope.launch {
+        settings.setHomeLayoutMode(v)
+        settings.setDenseLayout(v == "dense")
+    }
     fun setDarkMode(v: String)            = viewModelScope.launch { settings.setDarkMode(v) }
     fun setGoldAccent(v: Boolean)         = viewModelScope.launch { settings.setGoldAccent(v) }
     fun setSmartCategories(v: Boolean)    = viewModelScope.launch { settings.setSmartCategories(v) }
@@ -313,6 +336,28 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             categories.removeAt(from)
             categories.add(to, categoryKey)
             setWorkspaceCategories(pageIndex, categories)
+        }
+    }
+
+    fun moveCategoryBetweenWorkspaces(fromPage: Int, toPage: Int, categoryKey: String) = viewModelScope.launch {
+        if (fromPage == toPage) return@launch
+        val from = getCategoriesForWorkspace(fromPage).toMutableList()
+        val to = getCategoriesForWorkspace(toPage).toMutableList()
+        if (from.remove(categoryKey)) {
+            if (categoryKey !in to) to.add(categoryKey)
+            setWorkspaceCategories(fromPage, from)
+            setWorkspaceCategories(toPage, to)
+        }
+    }
+
+    fun moveAppBetweenWorkspaces(fromPage: Int, toPage: Int, packageName: String) = viewModelScope.launch {
+        if (fromPage == toPage) return@launch
+        val from = parsePackageCsv(workspacePackages(fromPage)).toMutableList()
+        val to = parsePackageCsv(workspacePackages(toPage)).toMutableList()
+        if (from.remove(packageName)) {
+            if (packageName !in to) to.add(packageName)
+            setWorkspacePackages(fromPage, from.joinToString(","))
+            setWorkspacePackages(toPage, to.joinToString(","))
         }
     }
 

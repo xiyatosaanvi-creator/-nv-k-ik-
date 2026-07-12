@@ -65,9 +65,9 @@ fun WeatherDetailScreen(
     val useFahrenheit = tempUnit == "F"
 
     val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (LocationHelper.hasPermission(context)) {
             if (viewModel != null) viewModel.fetchWeather(context)
             else {
                 localState = WeatherState.Loading
@@ -136,7 +136,14 @@ fun WeatherDetailScreen(
                 ) {
                     when (state) {
                         is WeatherState.NoPermission -> item {
-                            WeatherPermissionCard { permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
+                            WeatherPermissionCard {
+                                permLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    )
+                                )
+                            }
                         }
                         is WeatherState.Loading -> item { WeatherLoadingCard() }
                         is WeatherState.NoLocation -> item {
@@ -190,10 +197,10 @@ private fun WeatherPermissionCard(onEnable: () -> Unit) {
             }
             Column {
                 Text("Enable Local Weather", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Approximate location only", color = CiyatoGold, fontSize = 12.sp)
+                Text("Precise location available", color = CiyatoGold, fontSize = 12.sp)
             }
         }
-        Text("Ciyato uses Open-Meteo — a 100% free service — to show local conditions. Your coordinates are never stored or uploaded.",
+        Text("Ciyato uses Open-Meteo to show local conditions. Android lets you choose precise or approximate foreground access; your choice is respected.",
             color = CiyatoSec, fontSize = 13.sp, lineHeight = 20.sp)
         Button(onClick = onEnable, modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CiyatoGold), shape = RoundedCornerShape(14.dp)) {
@@ -201,7 +208,7 @@ private fun WeatherPermissionCard(onEnable: () -> Unit) {
             Spacer(Modifier.width(8.dp))
             Text("Enable Local Weather", color = CiyatoBg, fontWeight = FontWeight.Bold)
         }
-        Text("Foreground location only · No background tracking · Open-Meteo (no API key)",
+        Text("Foreground location only · No background tracking · Open-Meteo",
             color = CiyatoMuted, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     }
 }

@@ -13,20 +13,21 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /**
- * LocationHelper — returns the device's current coarse location.
+ * LocationHelper — returns the device's current foreground location.
  *
- * Requires ACCESS_COARSE_LOCATION (already in Manifest) and must only
- * be called AFTER the user has explicitly granted that permission.
+ * The weather screen requests FINE and COARSE together, as Android requires on
+ * Android 12+. The person may still choose approximate location; this helper
+ * works in either case and uses GPS only when precise access was granted.
  *
  * Strategy (no Play Services required):
- *   1. Try NETWORK provider last-known location (fast, ~city-level accuracy).
- *   2. If unavailable, try GPS last-known.
- *   3. If still nothing, request a fresh NETWORK update and wait up to 8 s.
+ *   1. Prefer a recent GPS fix when precise access is available.
+ *   2. Fall back to the network provider and choose the best recent fix.
+ *   3. If still nothing, request a fresh single update and wait up to 8 s.
  *   4. Return null only if all three steps fail.
  */
 object LocationHelper {
 
-    data class LatLon(val lat: Double, val lon: Double)
+    data class LatLon(val lat: Double, val lon: Double, val accuracyMeters: Float? = null)
 
     /**
      * Returns a [LatLon] or null.
@@ -38,21 +39,25 @@ object LocationHelper {
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             ?: return null
 
-        // 1. Fast path — last known from NETWORK provider
+        // Prefer GPS only when the user opted in to precise location.
         bestOf(
+            if (hasPrecisePermission(context)) lm.getLastKnownSafe(LocationManager.GPS_PROVIDER) else null,
             lm.getLastKnownSafe(LocationManager.NETWORK_PROVIDER),
-            lm.getLastKnownSafe(LocationManager.GPS_PROVIDER),
         )?.let { return it.toLatLon() }
 
-        // 2. Request a fresh NETWORK fix with an 8-second timeout
+        // Request a fresh fix with an 8-second timeout.
         return withTimeoutOrNull(8_000L) {
-            requestSingleUpdate(lm)
+            requestSingleUpdate(lm, hasPrecisePermission(context))
         }?.toLatLon()
     }
 
     fun hasPermission(context: Context): Boolean =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    fun hasPrecisePermission(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -61,12 +66,17 @@ object LocationHelper {
         runCatching { getLastKnownLocation(provider) }.getOrNull()
 
     private fun bestOf(vararg locations: Location?): Location? =
-        locations.filterNotNull().maxByOrNull { it.time }
+        locations.filterNotNull().minWithOrNull(
+            compareBy<Location> { agePenalty(it) }.thenBy { it.accuracy }
+        )
 
-    private fun Location.toLatLon() = LatLon(latitude, longitude)
+    private fun agePenalty(location: Location): Long =
+        (System.currentTimeMillis() - location.time).coerceAtLeast(0L) / 60_000L
+
+    private fun Location.toLatLon() = LatLon(latitude, longitude, accuracy)
 
     @Suppress("MissingPermission")
-    private suspend fun requestSingleUpdate(lm: LocationManager): Location? =
+    private suspend fun requestSingleUpdate(lm: LocationManager, preferGps: Boolean): Location? =
         suspendCancellableCoroutine { cont ->
             val listener = object : LocationListener {
                 override fun onLocationChanged(loc: Location) {
@@ -83,7 +93,11 @@ object LocationHelper {
 
             runCatching {
                 lm.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
+                    if (preferGps && lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        LocationManager.GPS_PROVIDER
+                    } else {
+                        LocationManager.NETWORK_PROVIDER
+                    },
                     0L,    // minTimeMs
                     0f,    // minDistanceM
                     listener,

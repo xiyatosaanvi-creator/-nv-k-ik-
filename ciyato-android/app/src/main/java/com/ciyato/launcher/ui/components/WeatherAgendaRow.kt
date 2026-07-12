@@ -41,26 +41,61 @@ import com.ciyato.launcher.ui.theme.*
 fun WeatherAgendaRow(
     isDense: Boolean = true,
     weatherState: WeatherState? = null,
+    showWeather: Boolean = true,
+    showAgenda: Boolean = true,
+    isEditMode: Boolean = false,
     onWeatherTap: () -> Unit = {},
     onAgendaTap: () -> Unit = {},
+    onRemoveWeather: () -> Unit = {},
+    onRemoveAgenda: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    if (!showWeather && !showAgenda) return
     val height = if (isDense) 160.dp else 190.dp
     Row(
         modifier = modifier.height(height),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        WeatherCard(
-            isDense      = isDense,
-            weatherState = weatherState,
-            onTap        = onWeatherTap,
-            modifier     = Modifier.weight(1f).fillMaxHeight(),
-        )
-        AgendaCard(
-            isDense  = isDense,
-            onTap    = onAgendaTap,
-            modifier = Modifier.weight(1.35f).fillMaxHeight(),
-        )
+        if (showWeather) {
+            Box(
+                modifier = if (showAgenda) Modifier.weight(1f).fillMaxHeight() else Modifier.fillMaxSize(),
+            ) {
+                WeatherCard(
+                    isDense = isDense,
+                    weatherState = weatherState,
+                    onTap = onWeatherTap,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (isEditMode) HomeWidgetRemoveButton(onClick = onRemoveWeather)
+            }
+        }
+        if (showAgenda) {
+            Box(
+                modifier = if (showWeather) Modifier.weight(1.35f).fillMaxHeight() else Modifier.fillMaxSize(),
+            ) {
+                AgendaCard(
+                    isDense = isDense,
+                    onTap = onAgendaTap,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (isEditMode) HomeWidgetRemoveButton(onClick = onRemoveAgenda)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.HomeWidgetRemoveButton(onClick: () -> Unit) {
+    androidx.compose.material3.IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(6.dp)
+            .size(28.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(CiyatoBg.copy(alpha = 0.84f)),
+    ) {
+        Icon(Icons.Default.Close, contentDescription = "Remove from Home", tint = CiyatoRed, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -173,7 +208,7 @@ private fun WeatherCardFallback(
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Allow approximate location", color = CiyatoMuted, fontSize = subtextSz)
+        Text("Use precise or approximate location", color = CiyatoMuted, fontSize = subtextSz)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)

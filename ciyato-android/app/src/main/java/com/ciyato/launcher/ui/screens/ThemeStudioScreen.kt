@@ -39,7 +39,8 @@ fun ThemeStudioScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
 ) {
-    val denseLayout by viewModel.denseLayout.collectAsState()
+    val homeLayoutMode by viewModel.homeLayoutMode.collectAsState()
+    val denseLayout = homeLayoutMode == "dense"
     val drawerStyle by viewModel.drawerStyle.collectAsState()
     val darkMode by viewModel.darkMode.collectAsState()
     val font by viewModel.font.collectAsState()
@@ -85,13 +86,13 @@ fun ThemeStudioScreen(
                 )
             }
             item {
-                CiyatoSettingSwitch(
-                    title = if (denseLayout) "Dense Home" else "Spacious Home",
-                    subtitle = if (denseLayout) "More apps and categories fit on screen" else "Larger cards with more breathing room",
+                ThemeChoiceRow(
                     icon = Icons.Default.GridView,
-                    checked = denseLayout,
-                    onCheckedChange = viewModel::setDenseLayout,
-                    accentColor = accent
+                    title = "Home layout",
+                    selected = homeLayoutMode,
+                    options = listOf("spacious" to "Spacious", "smart" to "Smart", "dense" to "Dense"),
+                    onSelect = viewModel::setHomeLayoutMode,
+                    accent = accent,
                 )
             }
 

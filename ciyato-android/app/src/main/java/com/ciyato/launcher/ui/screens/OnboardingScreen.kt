@@ -115,7 +115,7 @@ private data class OnboardingPage(
 // Page 8 (Screenshot 06): Permission gates — SAF, Photo Picker, location.
 // Page 9 (Screenshot 07): Final handoff — set as home, configure, or skip.
 
-private val pages = listOf(
+private val detailedPages = listOf(
     // ── Slide 0 (Page 3): Product purpose with ONE home preview ──
     OnboardingPage(
         icon = Icons.Default.AutoAwesome,
@@ -235,6 +235,42 @@ private val pages = listOf(
             OnboardingPanel(Icons.Default.Restore, "Reversible", "Hidden and removed apps are display states, not uninstall actions."),
             OnboardingPanel(Icons.Default.Home, "Switch back", "Android's Home app picker is always available from Ciyato Settings."),
         ),
+        visual = OnboardingVisual.HANDOFF,
+    ),
+)
+
+// The full copy above remains as design reference. First-run onboarding is intentionally
+// compressed into three visual screens so people can reach their home screen quickly.
+private val pages = listOf(
+    OnboardingPage(
+        icon = Icons.Default.AutoAwesome,
+        eyebrow = "CIYATO HOME",
+        title = "A calm start.",
+        subtitle = "Your apps, easier to reach.",
+        body = "Ciyato gives your real Android apps a clearer home, a five-app dock, and an organized App Library.",
+        bullets = listOf("Swipe up or tap Apps to open everything.", "Long-press Home to arrange it."),
+        panels = emptyList(),
+        showHomePreview = true,
+        visual = OnboardingVisual.HOME,
+    ),
+    OnboardingPage(
+        icon = Icons.Default.ViewModule,
+        eyebrow = "MAKE IT YOURS",
+        title = "Organize in seconds.",
+        subtitle = "Suggestions first. Your choices always win.",
+        body = "Create categories, move shortcuts, and keep only the sections that matter. Every display change is reversible.",
+        bullets = listOf("Edit, hide, or remove from display.", "Your layout stays on this device."),
+        panels = emptyList(),
+        visual = OnboardingVisual.ORGANIZE,
+    ),
+    OnboardingPage(
+        icon = Icons.Default.Lock,
+        eyebrow = "READY WHEN YOU ARE",
+        title = "Set up with care.",
+        subtitle = "Permissions are asked only when a feature needs them.",
+        body = "Files use Android's folder picker. Photos use the Photo Picker. Weather asks for foreground location and lets you choose precise or approximate access.",
+        bullets = listOf("No background location.", "You can set Ciyato as Home now or skip."),
+        panels = emptyList(),
         visual = OnboardingVisual.HANDOFF,
     ),
 )
