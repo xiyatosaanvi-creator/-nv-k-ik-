@@ -89,6 +89,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     val onboardingDone     = settings.onboardingDone    .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val homeTipDismissed   = settings.homeTipDismissed  .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val showHomeGreeting   = settings.showHomeGreeting  .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val showHomeSearch     = settings.showHomeSearch    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val showHomeAgenda     = settings.showHomeAgenda    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val denseLayout        = settings.denseLayout        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val darkMode           = settings.darkMode           .stateIn(viewModelScope, SharingStarted.Eagerly, "auto")
     val goldAccent         = settings.goldAccent         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -97,6 +100,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val iconStyle          = settings.iconStyle          .stateIn(viewModelScope, SharingStarted.Eagerly, "real")
     val iconShape          = settings.iconShape          .stateIn(viewModelScope, SharingStarted.Eagerly, "squircle")
     val font               = settings.font               .stateIn(viewModelScope, SharingStarted.Eagerly, "inter")
+    val materialYou        = settings.materialYou        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val wallpaperBlur      = settings.wallpaperBlur      .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
     val tempUnit           = settings.tempUnit           .stateIn(viewModelScope, SharingStarted.Eagerly, "C")
     val hiddenApps         = settings.hiddenApps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
@@ -128,6 +132,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val page2Apps          = settings.page2Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val workspaceCount     = settings.workspaceCount    .stateIn(viewModelScope, SharingStarted.Eagerly, 3)
     val workspaceApps      = settings.workspaceApps     .stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val workspaceCategories = settings.workspaceCategories.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val workspaceTransition = settings.workspaceTransition.stateIn(viewModelScope, SharingStarted.Eagerly, "slide")
     val filesRootUri       = settings.filesRootUri      .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val drawerStyle        = settings.drawerStyle       .stateIn(viewModelScope, SharingStarted.Eagerly, "smart")
 
@@ -135,6 +141,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setOnboardingDone()               = viewModelScope.launch { settings.setOnboardingDone(true) }
     fun dismissHomeTip()                  = viewModelScope.launch { settings.setHomeTipDismissed(true) }
+    fun setShowHomeGreeting(v: Boolean)   = viewModelScope.launch { settings.setShowHomeGreeting(v) }
+    fun setShowHomeSearch(v: Boolean)     = viewModelScope.launch { settings.setShowHomeSearch(v) }
+    fun setShowHomeAgenda(v: Boolean)     = viewModelScope.launch { settings.setShowHomeAgenda(v) }
     fun resetGuidance()                   = viewModelScope.launch {
         settings.setHomeTipDismissed(false)
         settings.setOnboardingDone(false)
@@ -147,6 +156,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setIconStyle(v: String)           = viewModelScope.launch { settings.setIconStyle(v) }
     fun setIconShape(v: String)           = viewModelScope.launch { settings.setIconShape(v) }
     fun setFont(v: String)                = viewModelScope.launch { settings.setFont(v) }
+    fun setMaterialYou(v: Boolean)        = viewModelScope.launch { settings.setMaterialYou(v) }
     fun setWallpaperBlur(v: Int)          = viewModelScope.launch { settings.setWallpaperBlur(v) }
     fun setTempUnit(v: String)            = viewModelScope.launch { settings.setTempUnit(v) }
     fun setTimeAwareLayout(v: Boolean)    = viewModelScope.launch { settings.setTimeAwareLayout(v) }
@@ -172,6 +182,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setFilesRootUri(v: String)         = viewModelScope.launch { settings.setFilesRootUri(v) }
     fun clearFilesRootUri()                = viewModelScope.launch { settings.setFilesRootUri("") }
     fun setDrawerStyle(v: String)          = viewModelScope.launch { settings.setDrawerStyle(v) }
+    fun setWorkspaceTransition(v: String)  = viewModelScope.launch { settings.setWorkspaceTransition(v) }
 
     fun resetLayout() = viewModelScope.launch { settings.resetLayout() }
     fun resetAllPreferences() = viewModelScope.launch {
@@ -272,6 +283,39 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         return pkgs.mapNotNull { byPkg[it] }
     }
 
+    fun getCategoriesForWorkspace(pageIndex: Int): List<String> {
+        return try {
+            parsePackageCsv(JSONObject(workspaceCategories.value).optString(pageIndex.toString(), ""))
+                .toList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addCategoryToWorkspace(pageIndex: Int, categoryKey: String) = viewModelScope.launch {
+        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
+        if (categoryKey !in categories) {
+            categories.add(categoryKey)
+            setWorkspaceCategories(pageIndex, categories)
+        }
+    }
+
+    fun removeCategoryFromWorkspace(pageIndex: Int, categoryKey: String) = viewModelScope.launch {
+        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
+        if (categories.remove(categoryKey)) setWorkspaceCategories(pageIndex, categories)
+    }
+
+    fun moveCategoryInWorkspace(pageIndex: Int, categoryKey: String, shift: Int) = viewModelScope.launch {
+        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
+        val from = categories.indexOf(categoryKey)
+        val to = (from + shift).coerceIn(0, categories.lastIndex)
+        if (from >= 0 && from != to) {
+            categories.removeAt(from)
+            categories.add(to, categoryKey)
+            setWorkspaceCategories(pageIndex, categories)
+        }
+    }
+
     fun addWorkspace() = viewModelScope.launch {
         if (workspaceCount.value < 10) settings.setWorkspaceCount(workspaceCount.value + 1)
     }
@@ -282,6 +326,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         val pages = try { JSONObject(workspaceApps.value) } catch (_: Exception) { JSONObject() }
         pages.remove(lastIndex.toString())
         settings.setWorkspaceApps(pages.toString())
+        val categories = try { JSONObject(workspaceCategories.value) } catch (_: Exception) { JSONObject() }
+        categories.remove(lastIndex.toString())
+        settings.setWorkspaceCategories(categories.toString())
         settings.setWorkspaceCount(lastIndex)
     }
 
@@ -301,6 +348,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 settings.setWorkspaceApps(pages.toString())
             }
         }
+    }
+
+    private suspend fun setWorkspaceCategories(pageIndex: Int, categories: List<String>) {
+        val pages = try { JSONObject(workspaceCategories.value) } catch (_: Exception) { JSONObject() }
+        pages.put(pageIndex.toString(), categories.joinToString(","))
+        settings.setWorkspaceCategories(pages.toString())
     }
 
     // ── Screenshot blocking (Suggestion 145) ──────────────────────────────────

@@ -49,6 +49,10 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
  */
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        const val EXTRA_START_DESTINATION = "start_destination"
+    }
+
     private val viewModel: LauncherViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,11 +64,18 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            CiyatoTheme {
+            val darkMode by viewModel.darkMode.collectAsState()
+            val font by viewModel.font.collectAsState()
+            val materialYou by viewModel.materialYou.collectAsState()
+            CiyatoTheme(darkMode = darkMode, font = font, dynamicColor = materialYou) {
                 val context           = LocalContext.current
                 val onboardingDone by viewModel.onboardingDone.collectAsState()
                 val navController     = rememberNavController()
-                val startDest         = if (onboardingDone) "dashboard" else "onboarding"
+                val requestedDestination = intent.getStringExtra(EXTRA_START_DESTINATION)
+                val startDest = when (requestedDestination) {
+                    "dashboard", "files", "photos", "search", "shared", "settings" -> requestedDestination
+                    else -> if (onboardingDone) "dashboard" else "onboarding"
+                }
 
                 // Auto-fetch weather if permission already granted
                 LaunchedEffect(Unit) {

@@ -1,5 +1,6 @@
 package com.ciyato.launcher.ui.screens
 
+import android.os.Environment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,9 +37,8 @@ fun DashboardScreen(
 ) {
     val apps by viewModel.apps.collectAsState()
     val totalApps = remember(apps) { apps.size }
-    val context = LocalContext.current
     val storage = remember {
-        android.os.StatFs(context.filesDir.absolutePath).let { stats ->
+        android.os.StatFs(Environment.getDataDirectory().absolutePath).let { stats ->
             val total = stats.totalBytes.coerceAtLeast(1L)
             val used = (total - stats.availableBytes).coerceAtLeast(0L)
             Triple(used, total, (used.toFloat() / total.toFloat()).coerceIn(0f, 1f))
@@ -111,7 +110,7 @@ fun DashboardScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Ciyato local storage", color = CiyatoWhite,
+                            Text("Device storage", color = CiyatoWhite,
                                 fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                             Text("${formatStorage(storage.first)} used of ${formatStorage(storage.second)}", color = CiyatoSec,
                                 fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
@@ -131,7 +130,7 @@ fun DashboardScreen(
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    Text("This is Ciyato's own app storage. Ciyato does not scan or clean your phone automatically.", color = CiyatoMuted, fontSize = 12.sp)
+                    Text("Storage is reported by Android. Ciyato can clean its own cache and review files only in folders you choose.", color = CiyatoMuted, fontSize = 12.sp)
                 }
             }
 

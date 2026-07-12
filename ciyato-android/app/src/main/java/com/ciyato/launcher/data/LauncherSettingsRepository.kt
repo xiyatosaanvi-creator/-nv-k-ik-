@@ -48,6 +48,9 @@ class LauncherSettingsRepository(private val context: Context) {
         // ── Core ─────────────────────────────────────────────────────────────
         val KEY_ONBOARDING_DONE        = booleanPreferencesKey("onboarding_done")
         val KEY_HOME_TIP_DISMISSED     = booleanPreferencesKey("home_tip_dismissed")
+        val KEY_SHOW_HOME_GREETING     = booleanPreferencesKey("show_home_greeting")
+        val KEY_SHOW_HOME_SEARCH       = booleanPreferencesKey("show_home_search")
+        val KEY_SHOW_HOME_AGENDA       = booleanPreferencesKey("show_home_agenda")
         val KEY_DENSE_LAYOUT           = booleanPreferencesKey("dense_layout")
         val KEY_DARK_MODE              = stringPreferencesKey("dark_mode")          // auto | dark | light | amoled
         val KEY_GOLD_ACCENT            = booleanPreferencesKey("gold_accent")
@@ -147,6 +150,8 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_PAGE_2_APPS            = stringPreferencesKey("page_2_apps")
         val KEY_WORKSPACE_COUNT        = intPreferencesKey("workspace_count")
         val KEY_WORKSPACE_APPS         = stringPreferencesKey("workspace_apps")
+        val KEY_WORKSPACE_CATEGORIES   = stringPreferencesKey("workspace_categories")
+        val KEY_WORKSPACE_TRANSITION   = stringPreferencesKey("workspace_transition")
         val KEY_FILES_ROOT_URI         = stringPreferencesKey("files_root_uri")
         val KEY_DRAWER_STYLE           = stringPreferencesKey("drawer_style")       // smart | dense | spacious
     }
@@ -155,6 +160,9 @@ class LauncherSettingsRepository(private val context: Context) {
 
     val onboardingDone:         Flow<Boolean> = pref(KEY_ONBOARDING_DONE,         false)
     val homeTipDismissed:       Flow<Boolean> = pref(KEY_HOME_TIP_DISMISSED,      false)
+    val showHomeGreeting:       Flow<Boolean> = pref(KEY_SHOW_HOME_GREETING,      true)
+    val showHomeSearch:         Flow<Boolean> = pref(KEY_SHOW_HOME_SEARCH,        true)
+    val showHomeAgenda:         Flow<Boolean> = pref(KEY_SHOW_HOME_AGENDA,        true)
     val denseLayout:            Flow<Boolean> = pref(KEY_DENSE_LAYOUT,            true)
     val darkMode:               Flow<String>  = pref(KEY_DARK_MODE,               "auto")
     val goldAccent:             Flow<Boolean> = pref(KEY_GOLD_ACCENT,             true)
@@ -233,6 +241,8 @@ class LauncherSettingsRepository(private val context: Context) {
     val page2Apps:              Flow<String>  = pref(KEY_PAGE_2_APPS,             "")
     val workspaceCount:         Flow<Int>     = pref(KEY_WORKSPACE_COUNT,          3)
     val workspaceApps:          Flow<String>  = pref(KEY_WORKSPACE_APPS,           "{}")
+    val workspaceCategories:    Flow<String>  = pref(KEY_WORKSPACE_CATEGORIES,     "{}")
+    val workspaceTransition:    Flow<String>  = pref(KEY_WORKSPACE_TRANSITION,     "slide")
     val filesRootUri:           Flow<String>  = pref(KEY_FILES_ROOT_URI,          "")
     val drawerStyle:            Flow<String>  = pref(KEY_DRAWER_STYLE,            "smart")
 
@@ -240,6 +250,9 @@ class LauncherSettingsRepository(private val context: Context) {
 
     suspend fun setOnboardingDone(v: Boolean)          = set(KEY_ONBOARDING_DONE,          v)
     suspend fun setHomeTipDismissed(v: Boolean)        = set(KEY_HOME_TIP_DISMISSED,       v)
+    suspend fun setShowHomeGreeting(v: Boolean)        = set(KEY_SHOW_HOME_GREETING,       v)
+    suspend fun setShowHomeSearch(v: Boolean)          = set(KEY_SHOW_HOME_SEARCH,         v)
+    suspend fun setShowHomeAgenda(v: Boolean)          = set(KEY_SHOW_HOME_AGENDA,         v)
     suspend fun setDenseLayout(v: Boolean)             = set(KEY_DENSE_LAYOUT,             v)
     suspend fun setDarkMode(v: String)                 = set(KEY_DARK_MODE,                v)
     suspend fun setGoldAccent(v: Boolean)              = set(KEY_GOLD_ACCENT,              v)
@@ -321,12 +334,18 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setPage2Apps(v: String)                = set(KEY_PAGE_2_APPS,              v)
     suspend fun setWorkspaceCount(v: Int)              = set(KEY_WORKSPACE_COUNT,          v.coerceIn(3, 10))
     suspend fun setWorkspaceApps(v: String)            = set(KEY_WORKSPACE_APPS,           v)
+    suspend fun setWorkspaceCategories(v: String)      = set(KEY_WORKSPACE_CATEGORIES,     v)
+    suspend fun setWorkspaceTransition(v: String)      = set(KEY_WORKSPACE_TRANSITION,     v)
     suspend fun setFilesRootUri(v: String)             = set(KEY_FILES_ROOT_URI,           v)
     suspend fun setDrawerStyle(v: String)              = set(KEY_DRAWER_STYLE,             v)
 
     suspend fun resetLayout() {
         context.dataStore.edit { p ->
             p[KEY_DENSE_LAYOUT]        = true
+            p[KEY_SHOW_HOME_GREETING]  = true
+            p[KEY_SHOW_HOME_SEARCH]    = true
+            p[KEY_SHOW_HOME_AGENDA]    = true
+            p[KEY_WORKSPACE_TRANSITION] = "slide"
             p[KEY_DARK_MODE]           = "auto"
             p[KEY_GOLD_ACCENT]         = true
             p[KEY_SMART_CATEGORIES]    = true

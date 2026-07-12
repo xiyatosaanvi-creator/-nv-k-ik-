@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,11 +27,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +54,7 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 private val ALL_HOME_CATEGORIES = listOf(
     AppCategory.WORK,
@@ -67,6 +73,8 @@ fun HomeScreen(
     viewModel: LauncherViewModel,
     onOpenDrawer: () -> Unit,
     onOpenSearch: () -> Unit = {},
+    onOpenSystemWallpaper: () -> Unit = {},
+    onOpenOrganizerSettings: () -> Unit = {},
     onCategoryTap: (AppCategory) -> Unit = {},
     onWeatherTap: () -> Unit = {},
     onAgendaTap: () -> Unit = {},
@@ -83,11 +91,16 @@ fun HomeScreen(
     val page2Apps by viewModel.page2Apps.collectAsState()
     val workspaceCount by viewModel.workspaceCount.collectAsState()
     val workspaceApps by viewModel.workspaceApps.collectAsState()
+    val workspaceCategories by viewModel.workspaceCategories.collectAsState()
     val toastEvent        by viewModel.toastEvent.collectAsState()
     val weatherState      by viewModel.weatherState.collectAsState()
     val timeAwareLayout   by viewModel.timeAwareLayout.collectAsState()
     val hapticEnabled     by viewModel.hapticFeedback.collectAsState()
     val showRecentLaunched by viewModel.showRecentlyLaunched.collectAsState()
+    val showHomeGreeting by viewModel.showHomeGreeting.collectAsState()
+    val showHomeSearch by viewModel.showHomeSearch.collectAsState()
+    val showHomeAgenda by viewModel.showHomeAgenda.collectAsState()
+    val workspaceTransition by viewModel.workspaceTransition.collectAsState()
     val privacyMode       by viewModel.privacyMode.collectAsState()
     val screenshotBlocked by viewModel.screenshotBlocked.collectAsState()
     val focusSession      by FocusSessionManager.activeSession.collectAsState()
@@ -98,6 +111,9 @@ fun HomeScreen(
 
     var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
     var isEditMode by remember { mutableStateOf(false) }
+    var showLauncherControls by remember { mutableStateOf(false) }
+    var draggingCategory by remember { mutableStateOf<String?>(null) }
+    var categoryDragOffset by remember { mutableStateOf(Offset.Zero) }
     var selectedCustomCategory by remember { mutableStateOf<String?>(null) }
     var categoryPendingDelete by remember { mutableStateOf<String?>(null) }
     var upwardDrag by remember { mutableFloatStateOf(0f) }
@@ -120,6 +136,9 @@ fun HomeScreen(
     // Dialog state for picking apps for custom pages
     var showPageAppPicker by remember { mutableStateOf(false) }
     var pickerPageIndex by remember { mutableStateOf(0) }
+    var showWorkspaceCategoryPicker by remember { mutableStateOf(false) }
+    var workspaceCategoryPickerIndex by remember { mutableStateOf(0) }
+    var workspaceForNewCategory by remember { mutableStateOf<Int?>(null) }
 
     // ── Live clock ─────────────────────────────────────────────────────────────
     var liveClock by remember { mutableStateOf(currentTimeString()) }
@@ -189,6 +208,7 @@ fun HomeScreen(
     // ── Layout variables ───────────────────────────────────────────────────────
     val columns        = if (denseLayout) 3 else 2
     val cardHeight: Dp = if (denseLayout) 114.dp else 142.dp
+    val categoryMoveThresholdPx = with(LocalDensity.current) { cardHeight.toPx() * 0.52f }
     val spacing        = if (denseLayout) 14.dp else 22.dp
     val topPad         = if (denseLayout) 20.dp else 36.dp
     val greetingSize   = if (denseLayout) 22.sp else 28.sp
@@ -262,11 +282,27 @@ fun HomeScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
+                val pageOffset = (pagerState.currentPage - page).toFloat()
+                val workspaceTransitionModifier = when (workspaceTransition) {
+                    "fade" -> Modifier.graphicsLayer {
+                        alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.55f
+                    }
+                    "scale" -> Modifier.graphicsLayer {
+                        val scale = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.06f
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.25f
+                    }
+                    else -> Modifier
+                }
                 when (page) {
                     0, 2, 3, 4, 5, 6, 7, 8, 9 -> {
                         val pageIndex = page
                         val pageApps = remember(apps, pageIndex, page0Apps, page2Apps, workspaceApps) {
                             viewModel.getAppsForPage(pageIndex)
+                        }
+                        val pageCategoryKeys = remember(pageIndex, workspaceCategories) {
+                            viewModel.getCategoriesForWorkspace(pageIndex)
                         }
 
                         LazyColumn(
@@ -278,11 +314,12 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier
                                 .fillMaxSize()
+                                .then(workspaceTransitionModifier)
                                 .combinedClickable(
                                     onClick = {},
                                     onLongClick = {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        isEditMode = true
+                                        showLauncherControls = true
                                     }
                                 )
                         ) {
@@ -312,6 +349,14 @@ fun HomeScreen(
                                             }
                                             TextButton(
                                                 onClick = {
+                                                    workspaceCategoryPickerIndex = pageIndex
+                                                    showWorkspaceCategoryPicker = true
+                                                }
+                                            ) {
+                                                Text("+ Category", color = CiyatoSec, fontSize = 12.sp)
+                                            }
+                                            TextButton(
+                                                onClick = {
                                                     pickerPageIndex = pageIndex
                                                     showPageAppPicker = true
                                                 }
@@ -323,7 +368,51 @@ fun HomeScreen(
                                 }
                             }
 
-                            if (pageApps.isEmpty()) {
+                            if (pageCategoryKeys.isNotEmpty()) {
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text("Categories", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            items(pageCategoryKeys, key = { it }) { categoryKey ->
+                                                val standardCategory = runCatching { AppCategory.valueOf(categoryKey) }.getOrNull()
+                                                val categoryApps = if (standardCategory != null) {
+                                                    viewModel.byCategory(standardCategory)
+                                                } else {
+                                                    viewModel.byCustomCategory(categoryKey)
+                                                }
+                                                SmartCategoryCard(
+                                                    category = standardCategory ?: AppCategory.CUSTOM,
+                                                    displayName = standardCategory?.let(viewModel::getCategoryDisplayName) ?: categoryKey,
+                                                    apps = categoryApps,
+                                                    onTap = {
+                                                        if (standardCategory != null) onCategoryTap(standardCategory)
+                                                        else selectedCustomCategory = categoryKey
+                                                    },
+                                                    customIcon = if (standardCategory == null) {
+                                                        viewModel.getCustomCategoryIcon(categoryKey)
+                                                    } else {
+                                                        "folder"
+                                                    },
+                                                    tileSize = "small",
+                                                    isEditMode = isEditMode,
+                                                    onMoveLeft = {
+                                                        viewModel.moveCategoryInWorkspace(pageIndex, categoryKey, -1)
+                                                    },
+                                                    onMoveRight = {
+                                                        viewModel.moveCategoryInWorkspace(pageIndex, categoryKey, 1)
+                                                    },
+                                                    onDelete = {
+                                                        viewModel.removeCategoryFromWorkspace(pageIndex, categoryKey)
+                                                    },
+                                                    modifier = Modifier.width(132.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (pageApps.isEmpty() && pageCategoryKeys.isEmpty()) {
                                 item {
                                     Box(
                                         contentAlignment = Alignment.Center,
@@ -401,17 +490,18 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(spacing),
                             modifier = Modifier
                                 .fillMaxSize()
+                                .then(workspaceTransitionModifier)
                                 .combinedClickable(
                                     onClick = {},
                                     onLongClick = {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        isEditMode = true
+                                        showLauncherControls = true
                                     }
                                 ),
                         ) {
 
                             // 1. Clock + Greeting
-                            item {
+                            if (showHomeGreeting) item {
                                 Row(modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween) {
@@ -440,7 +530,7 @@ fun HomeScreen(
                             }
 
                             // 2. Search bar
-                            item {
+                            if (showHomeSearch) item {
                                 HomeSearchBar(
                                     isDense = denseLayout,
                                     onClick = onOpenSearch,
@@ -461,7 +551,7 @@ fun HomeScreen(
                             }
 
                             // 4. Weather + Agenda row
-                            item {
+                            if (showHomeAgenda) item {
                                 WeatherAgendaRow(
                                     isDense      = denseLayout,
                                     weatherState = if (privacyMode) null else weatherState,
@@ -587,7 +677,63 @@ fun HomeScreen(
                                                             "large" -> 2f
                                                             else -> 1f
                                                         }
+                                                        var categoryCardWidth by remember(catKey) { mutableFloatStateOf(0f) }
+                                                        val isCategoryDragging = draggingCategory == catKey
 
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(cardWeight)
+                                                                .onSizeChanged { categoryCardWidth = it.width.toFloat() }
+                                                                .graphicsLayer {
+                                                                    if (isCategoryDragging) {
+                                                                        translationX = categoryDragOffset.x
+                                                                        translationY = categoryDragOffset.y
+                                                                        alpha = 0.9f
+                                                                        scaleX = 1.03f
+                                                                        scaleY = 1.03f
+                                                                    }
+                                                                }
+                                                                .pointerInput(catKey, isEditMode, orderedCategories, columns, categoryCardWidth) {
+                                                                    if (isEditMode) {
+                                                                        detectDragGesturesAfterLongPress(
+                                                                            onDragStart = {
+                                                                                draggingCategory = catKey
+                                                                                categoryDragOffset = Offset.Zero
+                                                                            },
+                                                                            onDragCancel = {
+                                                                                draggingCategory = null
+                                                                                categoryDragOffset = Offset.Zero
+                                                                            },
+                                                                            onDragEnd = {
+                                                                                draggingCategory = null
+                                                                                categoryDragOffset = Offset.Zero
+                                                                            },
+                                                                            onDrag = { _, dragAmount ->
+                                                                                categoryDragOffset += dragAmount
+                                                                                val horizontalThreshold = maxOf(categoryCardWidth * 0.45f, categoryMoveThresholdPx * 0.7f)
+                                                                                val shift = when {
+                                                                                    categoryDragOffset.x > horizontalThreshold -> 1
+                                                                                    categoryDragOffset.x < -horizontalThreshold -> -1
+                                                                                    categoryDragOffset.y > categoryMoveThresholdPx -> columns
+                                                                                    categoryDragOffset.y < -categoryMoveThresholdPx -> -columns
+                                                                                    else -> 0
+                                                                                }
+                                                                                if (shift != 0) {
+                                                                                    val from = orderedCategories.indexOf(catKey)
+                                                                                    val to = (from + shift).coerceIn(0, orderedCategories.lastIndex)
+                                                                                    if (from != to) {
+                                                                                        val updated = orderedCategories.toMutableList()
+                                                                                        updated.removeAt(from)
+                                                                                        updated.add(to, catKey)
+                                                                                        viewModel.setCategoryOrder(updated.joinToString(","))
+                                                                                    }
+                                                                                    categoryDragOffset = Offset.Zero
+                                                                                }
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                },
+                                                        ) {
                                                         SmartCategoryCard(
                                                             category = standardCat ?: AppCategory.CUSTOM,
                                                             displayName = displayName,
@@ -640,8 +786,9 @@ fun HomeScreen(
                                                             onDelete = if (standardCat == null) {
                                                                 { categoryPendingDelete = catKey }
                                                             } else null,
-                                                            modifier = Modifier.weight(cardWeight),
+                                                            modifier = Modifier.fillMaxWidth(),
                                                         )
+                                                        }
                                                     }
                                                     repeat(columns - rowCats.size) { Spacer(Modifier.weight(1f)) }
                                                 }
@@ -806,10 +953,14 @@ fun HomeScreen(
                             if (name.isNotBlank()) {
                                 viewModel.addCustomCategory(name)
                                 viewModel.setCustomCategoryIcon(name, newCategoryIcon)
+                                workspaceForNewCategory?.let { workspaceIndex ->
+                                    viewModel.addCategoryToWorkspace(workspaceIndex, name)
+                                }
                             }
                             showCreateCategoryDialog = false
                             newCategoryName = ""
                             newCategoryIcon = "folder"
+                            workspaceForNewCategory = null
                         },
                         enabled = newCategoryName.isNotBlank()
                     ) {
@@ -817,10 +968,57 @@ fun HomeScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showCreateCategoryDialog = false }) {
+                    TextButton(onClick = {
+                        showCreateCategoryDialog = false
+                        workspaceForNewCategory = null
+                    }) {
                         Text("Cancel", color = CiyatoSec)
                     }
                 }
+            )
+        }
+
+        if (showWorkspaceCategoryPicker) {
+            val categoryChoices = (ALL_HOME_CATEGORIES.map { it.name } + customCatsList).distinct()
+            AlertDialog(
+                onDismissRequest = { showWorkspaceCategoryPicker = false },
+                containerColor = CiyatoBgEl,
+                title = { Text("Add category to workspace", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        categoryChoices.forEach { categoryKey ->
+                            val standardCategory = runCatching { AppCategory.valueOf(categoryKey) }.getOrNull()
+                            TextButton(
+                                onClick = {
+                                    viewModel.addCategoryToWorkspace(workspaceCategoryPickerIndex, categoryKey)
+                                    showWorkspaceCategoryPicker = false
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    standardCategory?.let(viewModel::getCategoryDisplayName) ?: categoryKey,
+                                    color = CiyatoSec,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showWorkspaceCategoryPicker = false
+                        workspaceForNewCategory = workspaceCategoryPickerIndex
+                        showCreateCategoryDialog = true
+                    }) {
+                        Text("New custom category", color = CiyatoGold)
+                    }
+                },
             )
         }
 
@@ -860,6 +1058,152 @@ fun HomeScreen(
                 confirmButton = {}
             )
         }
+
+        if (showLauncherControls) {
+            LauncherControlSheet(
+                isEditMode = isEditMode,
+                showGreeting = showHomeGreeting,
+                showSearch = showHomeSearch,
+                showAgenda = showHomeAgenda,
+                showRecent = showRecentLaunched,
+                showCategories = showSmartCategories,
+                workspaceTransition = workspaceTransition,
+                onDismiss = { showLauncherControls = false },
+                onEditLayout = {
+                    isEditMode = true
+                    showLauncherControls = false
+                },
+                onOpenWallpaper = {
+                    showLauncherControls = false
+                    onOpenSystemWallpaper()
+                },
+                onOpenSettings = {
+                    showLauncherControls = false
+                    onOpenOrganizerSettings()
+                },
+                onShowGreetingChanged = viewModel::setShowHomeGreeting,
+                onShowSearchChanged = viewModel::setShowHomeSearch,
+                onShowAgendaChanged = viewModel::setShowHomeAgenda,
+                onShowRecentChanged = viewModel::setShowRecentlyLaunched,
+                onShowCategoriesChanged = viewModel::setSmartCategories,
+                onTransitionChanged = viewModel::setWorkspaceTransition,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherControlSheet(
+    isEditMode: Boolean,
+    showGreeting: Boolean,
+    showSearch: Boolean,
+    showAgenda: Boolean,
+    showRecent: Boolean,
+    showCategories: Boolean,
+    workspaceTransition: String,
+    onDismiss: () -> Unit,
+    onEditLayout: () -> Unit,
+    onOpenWallpaper: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onShowGreetingChanged: (Boolean) -> Unit,
+    onShowSearchChanged: (Boolean) -> Unit,
+    onShowAgendaChanged: (Boolean) -> Unit,
+    onShowRecentChanged: (Boolean) -> Unit,
+    onShowCategoriesChanged: (Boolean) -> Unit,
+    onTransitionChanged: (String) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = CiyatoBgEl,
+        contentColor = CiyatoWhite,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("Home controls", color = CiyatoWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Changes are saved to this launcher. System wallpaper is managed by Android.", color = CiyatoMuted, fontSize = 12.sp)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                HomeControlAction(
+                    icon = Icons.Default.Edit,
+                    label = if (isEditMode) "Edit layout" else "Arrange home",
+                    onClick = onEditLayout,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeControlAction(
+                    icon = Icons.Default.Wallpaper,
+                    label = "Wallpaper",
+                    onClick = onOpenWallpaper,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeControlAction(
+                    icon = Icons.Default.Settings,
+                    label = "Settings",
+                    onClick = onOpenSettings,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Text("Home sections", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            HomeControlToggle("Greeting and clock", showGreeting, onShowGreetingChanged)
+            HomeControlToggle("Search", showSearch, onShowSearchChanged)
+            HomeControlToggle("Weather and agenda", showAgenda, onShowAgendaChanged)
+            HomeControlToggle("Recently used", showRecent, onShowRecentChanged)
+            HomeControlToggle("Categories", showCategories, onShowCategoriesChanged)
+
+            Text("Workspace transition", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf("slide" to "Slide", "fade" to "Fade", "scale" to "Scale").forEach { (value, label) ->
+                    val selected = workspaceTransition == value
+                    TextButton(
+                        onClick = { onTransitionChanged(value) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) CiyatoGold.copy(alpha = 0.16f) else CiyatoBgEl2),
+                    ) {
+                        Text(label, color = if (selected) CiyatoGold else CiyatoSec, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeControlAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(CiyatoBgEl2)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, contentDescription = label, tint = CiyatoSec, modifier = Modifier.size(20.dp))
+        Text(label, color = CiyatoWhite, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun HomeControlToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = CiyatoWhite, fontSize = 14.sp)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

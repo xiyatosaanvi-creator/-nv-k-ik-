@@ -145,7 +145,7 @@ fun SettingsScreen(
             item {
                 CiyatoListCard(
                     title = "Theme Studio",
-                    subtitle = "Customize Home density and App Library layout",
+                    subtitle = "Color mode, font, wallpaper, home, and App Library layout",
                     icon = Icons.Default.Palette,
                     iconColor = CiyatoGold,
                     onClick = { onNavigateToTheme?.invoke() }

@@ -8,8 +8,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,6 +41,10 @@ fun ThemeStudioScreen(
 ) {
     val denseLayout by viewModel.denseLayout.collectAsState()
     val drawerStyle by viewModel.drawerStyle.collectAsState()
+    val darkMode by viewModel.darkMode.collectAsState()
+    val font by viewModel.font.collectAsState()
+    val materialYou by viewModel.materialYou.collectAsState()
+    val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
     val accent = CiyatoGold
 
     Scaffold(
@@ -84,6 +92,48 @@ fun ThemeStudioScreen(
                     checked = denseLayout,
                     onCheckedChange = viewModel::setDenseLayout,
                     accentColor = accent
+                )
+            }
+
+            item { SectionTitle("Appearance") }
+            item {
+                ThemeChoiceRow(
+                    icon = Icons.Default.DarkMode,
+                    title = "Color mode",
+                    selected = darkMode,
+                    options = listOf("auto" to "System", "dark" to "Dark", "light" to "Light"),
+                    onSelect = viewModel::setDarkMode,
+                    accent = accent,
+                )
+            }
+            item {
+                ThemeChoiceRow(
+                    icon = Icons.Default.TextFields,
+                    title = "Typeface",
+                    selected = font,
+                    options = listOf("sans" to "Sans", "serif" to "Serif", "mono" to "Mono"),
+                    onSelect = viewModel::setFont,
+                    accent = accent,
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Use system colors",
+                    subtitle = "Use your Android wallpaper colors where the device supports them",
+                    icon = Icons.Default.Palette,
+                    checked = materialYou,
+                    onCheckedChange = viewModel::setMaterialYou,
+                    accentColor = accent,
+                )
+            }
+            item {
+                CiyatoSettingSwitch(
+                    title = "Use system wallpaper",
+                    subtitle = "Let your Android wallpaper show behind the launcher",
+                    icon = Icons.Default.Wallpaper,
+                    checked = useSystemWallpaper,
+                    onCheckedChange = viewModel::setUseSystemWallpaper,
+                    accentColor = accent,
                 )
             }
 

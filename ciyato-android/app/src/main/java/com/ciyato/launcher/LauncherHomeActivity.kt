@@ -1,6 +1,9 @@
 package com.ciyato.launcher
 
 import android.os.Bundle
+import android.app.WallpaperManager
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
@@ -57,7 +60,10 @@ class LauncherHomeActivity : ComponentActivity() {
         })
 
         setContent {
-            CiyatoTheme {
+            val darkMode by viewModel.darkMode.collectAsState()
+            val font by viewModel.font.collectAsState()
+            val materialYou by viewModel.materialYou.collectAsState()
+            CiyatoTheme(darkMode = darkMode, font = font, dynamicColor = materialYou) {
                 LauncherRoot(viewModel = viewModel, activity = this@LauncherHomeActivity)
             }
         }
@@ -125,6 +131,18 @@ private fun LauncherRoot(viewModel: LauncherViewModel, activity: LauncherHomeAct
             viewModel       = viewModel,
             onOpenDrawer    = { dest = LauncherDest.Drawer },
             onOpenSearch    = { dest = LauncherDest.Search },
+            onOpenSystemWallpaper = {
+                val wallpaperIntent = Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)
+                runCatching { context.startActivity(wallpaperIntent) }
+                    .getOrElse { context.startActivity(Intent("android.settings.WALLPAPER_SETTINGS")) }
+            },
+            onOpenOrganizerSettings = {
+                context.startActivity(
+                    Intent(context, MainActivity::class.java).apply {
+                        putExtra(MainActivity.EXTRA_START_DESTINATION, "settings")
+                    }
+                )
+            },
             onCategoryTap   = { category -> dest = LauncherDest.CategoryDetail(category) },
             onWeatherTap    = { dest = LauncherDest.WeatherDetail },
             onAgendaTap     = { dest = LauncherDest.Agenda },

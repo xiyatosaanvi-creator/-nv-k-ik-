@@ -69,7 +69,14 @@ fun FileCollectionDetailScreen(
     var files by remember { mutableStateOf<List<CiyatoFile>>(emptyList()) }
     var isLoading by remember(initialFolderUri) { mutableStateOf(initialFolderUri != null) }
     var folderStack by remember(initialFolderUri) { mutableStateOf<List<DocumentFile>>(emptyList()) }
+    var pendingDeletion by remember { mutableStateOf<CiyatoFile?>(null) }
+    var cacheBytes by remember { mutableStateOf(0L) }
+    var isClearingCache by remember { mutableStateOf(false) }
     val currentFolderName = folderStack.lastOrNull()?.name ?: collectionTitle
+
+    LaunchedEffect(Unit) {
+        cacheBytes = withContext(Dispatchers.IO) { directorySize(context.cacheDir) }
+    }
 
     LaunchedEffect(initialFolderUri) {
         if (initialFolderUri != null) {
@@ -96,7 +103,7 @@ fun FileCollectionDetailScreen(
             runCatching {
                 context.contentResolver.takePersistableUriPermission(
                     uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
             }
             onFolderSelected(uri)
@@ -249,6 +256,23 @@ fun FileCollectionDetailScreen(
                             }
                         }
 
+                        item {
+                            FileMaintenanceCard(
+                                cacheBytes = cacheBytes,
+                                isClearing = isClearingCache,
+                                onClearCache = {
+                                    scope.launch {
+                                        isClearingCache = true
+                                        withContext(Dispatchers.IO) {
+                                            context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+                                        }
+                                        cacheBytes = 0L
+                                        isClearingCache = false
+                                    }
+                                },
+                            )
+                        }
+
                         items(files) { file ->
                             FileRow(
                                 file = file,
@@ -270,11 +294,43 @@ fun FileCollectionDetailScreen(
                                         try { context.startActivity(intent) } catch (e: Exception) { }
                                     }
                                 },
+                                onDelete = { pendingDeletion = file },
                             )
                         }
                     }
                 }
             }
+        }
+
+        pendingDeletion?.let { file ->
+            AlertDialog(
+                onDismissRequest = { pendingDeletion = null },
+                containerColor = CiyatoBgEl,
+                title = { Text("Delete ${if (file.isDirectory) "folder" else "file"}?", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Text(
+                        "${file.name} will be permanently deleted from the folder you selected. This cannot be undone.",
+                        color = CiyatoSec,
+                    )
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeletion = null }) { Text("Cancel", color = CiyatoSec) }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val activeFolder = folderStack.lastOrNull()
+                        pendingDeletion = null
+                        if (file.document != null && activeFolder != null) {
+                            isLoading = true
+                            scope.launch {
+                                withContext(Dispatchers.IO) { file.document.delete() }
+                                files = loadFilesFromDocument(activeFolder, collectionTitle)
+                                isLoading = false
+                            }
+                        }
+                    }) { Text("Delete", color = CiyatoRed) }
+                },
+            )
         }
     }
 }
@@ -342,7 +398,46 @@ private fun SafExplainerCard() {
 }
 
 @Composable
-private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit) {
+private fun FileMaintenanceCard(
+    cacheBytes: Long,
+    isClearing: Boolean,
+    onClearCache: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(CiyatoBgEl)
+            .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.AutoDelete, contentDescription = null, tint = CiyatoSec, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Ciyato cache", color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(
+                    if (cacheBytes > 0L) "${formatFileSize(cacheBytes)} stored by Ciyato" else "No Ciyato cache to clean",
+                    color = CiyatoMuted,
+                    fontSize = 11.sp,
+                )
+            }
+            TextButton(onClick = onClearCache, enabled = cacheBytes > 0L && !isClearing) {
+                Text(if (isClearing) "Cleaning" else "Clear", color = CiyatoGold)
+            }
+        }
+        Text(
+            "Android does not let Ciyato clear other apps' caches. Review and delete files you selected below instead.",
+            color = CiyatoMuted,
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+        )
+    }
+}
+
+@Composable
+private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -372,6 +467,9 @@ private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit) {
             Text(file.name, color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             Text(if (file.isDirectory) "Folder" else formatFileSize(file.sizeBytes), color = CiyatoMuted, fontSize = 11.sp)
         }
+        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete ${file.name}", tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+        }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
     }
 }
@@ -398,6 +496,12 @@ private fun formatFileSize(bytes: Long): String {
         bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
         else -> "${bytes / (1024 * 1024 * 1024)} GB"
     }
+}
+
+private fun directorySize(directory: java.io.File): Long {
+    return directory.listFiles()?.sumOf { file ->
+        if (file.isDirectory) directorySize(file) else file.length()
+    } ?: 0L
 }
 
 private suspend fun loadFilesFromUri(
