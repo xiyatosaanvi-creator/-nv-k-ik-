@@ -1,5 +1,11 @@
 package com.ciyato.launcher.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,9 +18,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -151,12 +159,36 @@ private fun WeatherCardSuccess(
         ws.weatherCode in 51..99 -> CiyatoBlue
         else -> CiyatoSec
     }
+    val weatherMotion = rememberInfiniteTransition(label = "weather_icon_motion")
+    val iconRotation by weatherMotion.animateFloat(
+        initialValue = 0f,
+        targetValue = if (ws.weatherCode == 0 && ws.isDay) 360f else 0f,
+        animationSpec = infiniteRepeatable(tween(12_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "weather_sun_rotation",
+    )
+    val weatherBob by weatherMotion.animateFloat(
+        initialValue = -2f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(tween(1_200), RepeatMode.Reverse),
+        label = "weather_rain_bob",
+    )
 
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(icon, null, tint = iconTint, modifier = Modifier.size(iconSize).padding(top = 2.dp))
+        Icon(
+            icon,
+            null,
+            tint = iconTint,
+            modifier = Modifier
+                .size(iconSize)
+                .padding(top = 2.dp)
+                .graphicsLayer {
+                    rotationZ = iconRotation
+                    translationY = if (ws.weatherCode in 51..99) weatherBob else 0f
+                },
+        )
         Column {
             Text("${ws.tempC}°", color = CiyatoWhite, fontSize = tempSize,
                 fontWeight = FontWeight.Bold, lineHeight = tempSize * 1.05f)

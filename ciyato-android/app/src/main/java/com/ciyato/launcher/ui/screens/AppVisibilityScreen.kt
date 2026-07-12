@@ -180,7 +180,7 @@ private fun VisibilityAppRow(app: InstalledApp, onRestore: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RealAppIcon(drawable = app.icon, size = 44.dp, cornerRadius = 12.dp)
+        RealAppIcon(drawable = app.icon, size = 44.dp, cornerRadius = 12.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
         Column(modifier = Modifier.weight(1f)) {
             Text(app.label, color = CiyatoWhite, fontWeight = FontWeight.Medium, maxLines = 1)
             Text(app.packageName, color = CiyatoMuted, fontSize = 10.sp, maxLines = 1)

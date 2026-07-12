@@ -131,6 +131,9 @@ fun SmartCategoryCard(
                                         drawable = app.icon,
                                         size = iconMiniSize,
                                         cornerRadius = 6.dp,
+                                        scale = app.iconScale,
+                                        rotation = app.iconRotation,
+                                        accentHex = app.iconAccent,
                                         // Closed-category previews are decorative. The card itself opens
                                         // the category; launchable shortcuts belong to the expanded view.
                                         modifier = Modifier

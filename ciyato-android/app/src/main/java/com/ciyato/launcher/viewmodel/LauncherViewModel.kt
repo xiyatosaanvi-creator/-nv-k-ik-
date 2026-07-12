@@ -112,6 +112,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val dockPackages       = settings.dockPackages       .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryRenames    = settings.categoryRenames    .stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val appCategoryOverrides = settings.appCategoryOverrides.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val appLabelOverrides    = settings.appLabelOverrides.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val appVisualOverrides   = settings.appVisualOverrides.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val showRecentlyLaunched= settings.showRecentlyLaunched.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val timeAwareLayout    = settings.timeAwareLayout    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val bedtimeMode        = settings.bedtimeMode        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -266,6 +268,37 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             map.put(packageName, customName)
         }
         settings.setAppCategoryOverrides(map.toString())
+        repo.loadApps()
+    }
+
+    fun updateAppAppearance(
+        packageName: String,
+        label: String,
+        originalLabel: String,
+        scale: Float,
+        rotation: Float,
+        accent: String?,
+    ) = viewModelScope.launch {
+        val labelMap = try { JSONObject(appLabelOverrides.value) } catch (_: Exception) { JSONObject() }
+        if (label.trim().isBlank() || label.trim() == originalLabel) {
+            labelMap.remove(packageName)
+        } else {
+            labelMap.put(packageName, label.trim().take(40))
+        }
+        settings.setAppLabelOverrides(labelMap.toString())
+
+        val visualMap = try { JSONObject(appVisualOverrides.value) } catch (_: Exception) { JSONObject() }
+        val isDefault = scale == 1f && rotation == 0f && accent.isNullOrBlank()
+        if (isDefault) {
+            visualMap.remove(packageName)
+        } else {
+            visualMap.put(packageName, JSONObject().apply {
+                put("scale", scale.toDouble())
+                put("rotation", rotation.toDouble())
+                put("accent", accent ?: "")
+            })
+        }
+        settings.setAppVisualOverrides(visualMap.toString())
         repo.loadApps()
     }
 

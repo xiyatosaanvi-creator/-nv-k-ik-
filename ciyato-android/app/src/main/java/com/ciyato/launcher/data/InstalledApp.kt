@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 data class InstalledApp(
     val id: String,                   // packageName + activityName
     val label: String,
+    val originalLabel: String = label,
     val packageName: String,
     val activityName: String,
     val icon: Drawable,
@@ -18,6 +19,9 @@ data class InstalledApp(
     val installTime: Long = 0L,
     val lastUpdateTime: Long = 0L,
     val customCategoryName: String? = null,
+    val iconScale: Float = 1f,
+    val iconRotation: Float = 0f,
+    val iconAccent: String? = null,
 )
 
 enum class AppCategory(val displayName: String) {
@@ -35,6 +39,9 @@ enum class AppCategory(val displayName: String) {
     SHOPPING("Shopping"),
     DAILY("Daily"),
     GAMES("Games"),
+    AI("AI"),
+    VIDEO_EDITING("Video Editing"),
+    CONTACTS("Contacts"),
     HIDDEN("Hidden"),
     CUSTOM("Custom"),
     OTHER("Other"),

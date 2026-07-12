@@ -65,6 +65,7 @@ fun AppContextMenu(
     val isPinned by remember { derivedStateOf { viewModel.isPinned(app) } }
     val isHidden by remember { derivedStateOf { viewModel.isHidden(app) } }
     var showCategorySelector by remember { mutableStateOf(false) }
+    var showAppearanceEditor by remember { mutableStateOf(false) }
     var confirmRemoveFromDisplay by remember { mutableStateOf(false) }
 
     Dialog(
@@ -150,6 +151,12 @@ fun AppContextMenu(
                         }
                     ))
                     add(ContextMenuItem(
+                        icon = Icons.Default.Palette,
+                        label = "Customize appearance",
+                        color = CiyatoGold,
+                        action = { showAppearanceEditor = true },
+                    ))
+                    add(ContextMenuItem(
                         icon = Icons.Default.Info,
                         label = "App Info",
                         color = CiyatoSec,
@@ -213,6 +220,102 @@ fun AppContextMenu(
         )
     }
 
+    if (showAppearanceEditor) {
+        var displayName by remember(app.packageName) { mutableStateOf(app.label) }
+        var iconScale by remember(app.packageName) { mutableFloatStateOf(app.iconScale) }
+        var iconRotation by remember(app.packageName) { mutableFloatStateOf(app.iconRotation) }
+        var accent by remember(app.packageName) { mutableStateOf(app.iconAccent) }
+        val accentChoices = listOf(
+            null to "None",
+            "#6D8498" to "Steel",
+            "#80765F" to "Stone",
+            "#596F64" to "Sage",
+            "#725F7C" to "Violet",
+        )
+        AlertDialog(
+            onDismissRequest = { showAppearanceEditor = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Customize ${app.originalLabel}", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    RealAppIcon(
+                        drawable = app.icon,
+                        size = 56.dp,
+                        scale = iconScale,
+                        rotation = iconRotation,
+                        accentHex = accent,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it.take(40) },
+                        singleLine = true,
+                        label = { Text("Display name") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text("Icon size", color = CiyatoSec, fontSize = 13.sp)
+                    Slider(
+                        value = iconScale,
+                        onValueChange = { iconScale = it },
+                        valueRange = 0.8f..1.2f,
+                        steps = 3,
+                        colors = SliderDefaults.colors(
+                            thumbColor = CiyatoGold,
+                            activeTrackColor = CiyatoGold,
+                        ),
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Orientation", color = CiyatoSec, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        listOf(-8f to "-", 0f to "0", 8f to "+").forEach { (value, label) ->
+                            TextButton(
+                                onClick = { iconRotation = value },
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (iconRotation == value) CiyatoGold.copy(alpha = 0.16f) else CiyatoBgEl2),
+                            ) { Text(label, color = if (iconRotation == value) CiyatoGold else CiyatoSec) }
+                        }
+                    }
+                    Text("Icon accent", color = CiyatoSec, fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        accentChoices.forEach { (value, _) ->
+                            val color = value?.let { Color(android.graphics.Color.parseColor(it)) } ?: CiyatoBgEl2
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(color)
+                                    .border(2.dp, if (accent == value) CiyatoWhite else CiyatoSubtleBorder, RoundedCornerShape(10.dp))
+                                    .clickable { accent = value },
+                            )
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    displayName = app.originalLabel
+                    iconScale = 1f
+                    iconRotation = 0f
+                    accent = null
+                }) { Text("Reset", color = CiyatoSec) }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateAppAppearance(
+                        packageName = app.packageName,
+                        label = displayName,
+                        originalLabel = app.originalLabel,
+                        scale = iconScale,
+                        rotation = iconRotation,
+                        accent = accent,
+                    )
+                    showAppearanceEditor = false
+                    onDismiss()
+                }) { Text("Apply", color = CiyatoGold) }
+            },
+        )
+    }
+
     val customCats by viewModel.customCategories.collectAsState()
     val customCatsList = remember(customCats) {
         customCats.split(",").map(String::trim).filter(String::isNotEmpty)
@@ -266,6 +369,9 @@ fun AppContextMenu(
                         AppCategory.SHOPPING,
                         AppCategory.DAILY,
                         AppCategory.GAMES,
+                        AppCategory.AI,
+                        AppCategory.VIDEO_EDITING,
+                        AppCategory.CONTACTS,
                         AppCategory.OTHER
                     )
 

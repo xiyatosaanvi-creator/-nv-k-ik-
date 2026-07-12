@@ -73,15 +73,22 @@ class AppCategorizerTest {
     }
 
     @Test
-    fun `AI assistants are treated as productivity tools`() {
+    fun `AI assistants use their own category`() {
         assertEquals(
-            AppCategory.PRODUCTIVITY,
+            AppCategory.AI,
             AppCategorizer.categorize("com.openai.chatgpt", "ChatGPT"),
         )
         assertEquals(
-            AppCategory.PRODUCTIVITY,
+            AppCategory.AI,
             AppCategorizer.categorize("com.example.assistant", "AI Assistant"),
         )
+    }
+
+    @Test
+    fun `store contacts and video editors avoid entertainment`() {
+        assertEquals(AppCategory.UTILITIES, AppCategorizer.categorize("com.android.vending", "Play Store"))
+        assertEquals(AppCategory.CONTACTS, AppCategorizer.categorize("com.google.android.contacts", "Contacts"))
+        assertEquals(AppCategory.VIDEO_EDITING, AppCategorizer.categorize("com.example.editor", "AI Video Enhancer"))
     }
 
     @Test
@@ -89,6 +96,8 @@ class AppCategorizerTest {
         assertEquals(AppCategory.ENTERTAINMENT, AppCategorizer.detectQueryIntent("open a music app"))
         assertEquals(AppCategory.COMMUNICATION, AppCategorizer.detectQueryIntent("send a message"))
         assertEquals(AppCategory.FINANCE, AppCategorizer.detectQueryIntent("show payment apps"))
+        assertEquals(AppCategory.AI, AppCategorizer.detectQueryIntent("open an AI app"))
+        assertEquals(AppCategory.VIDEO_EDITING, AppCategorizer.detectQueryIntent("open a video editor"))
     }
 
     @Test

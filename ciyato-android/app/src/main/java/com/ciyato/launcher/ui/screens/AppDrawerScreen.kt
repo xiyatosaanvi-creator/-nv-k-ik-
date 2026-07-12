@@ -53,6 +53,9 @@ private val DRAWER_SECTIONS = listOf(
     DrawerSection(AppCategory.TRAVEL,           "Travel"),
     DrawerSection(AppCategory.FINANCE,          "Finance"),
     DrawerSection(AppCategory.COMMUNICATION,    "Communication"),
+    DrawerSection(AppCategory.CONTACTS,         "Contacts"),
+    DrawerSection(AppCategory.AI,               "AI"),
+    DrawerSection(AppCategory.VIDEO_EDITING,    "Video Editing"),
 )
 
 // Filter chips at the top
@@ -65,6 +68,8 @@ private val FILTER_CHIPS = listOf(
     AppCategory.ENTERTAINMENT to "Entertainment",
     AppCategory.FINANCE to "Finance",
     AppCategory.TRAVEL to "Travel",
+    AppCategory.AI to "AI",
+    AppCategory.VIDEO_EDITING to "Video Editing",
 )
 
 /**

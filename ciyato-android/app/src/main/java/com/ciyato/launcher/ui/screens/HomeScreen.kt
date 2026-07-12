@@ -71,6 +71,9 @@ private val ALL_HOME_CATEGORIES = listOf(
     AppCategory.GAMES,
     AppCategory.TRAVEL,
     AppCategory.SHOPPING,
+    AppCategory.AI,
+    AppCategory.VIDEO_EDITING,
+    AppCategory.CONTACTS,
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -559,7 +562,14 @@ fun HomeScreen(
                                                         )
                                                         .padding(8.dp)
                                                 ) {
-                                                    RealAppIcon(drawable = app.icon, size = 52.dp, cornerRadius = 14.dp)
+                                                    RealAppIcon(
+                                                        drawable = app.icon,
+                                                        size = 52.dp,
+                                                        cornerRadius = 14.dp,
+                                                        scale = app.iconScale,
+                                                        rotation = app.iconRotation,
+                                                        accentHex = app.iconAccent,
+                                                    )
                                                     Text(
                                                         text = app.label,
                                                         color = CiyatoWhite,
@@ -997,7 +1007,7 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    RealAppIcon(app.icon, size = 38.dp, cornerRadius = 10.dp)
+                                    RealAppIcon(app.icon, size = 38.dp, cornerRadius = 10.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(app.label, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                                         Text(app.packageName, color = CiyatoMuted, fontSize = 10.sp, maxLines = 1)
@@ -1234,7 +1244,7 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                RealAppIcon(app.icon, size = 36.dp, cornerRadius = 8.dp)
+                                RealAppIcon(app.icon, size = 36.dp, cornerRadius = 8.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
                                 Text(app.label, color = CiyatoWhite, fontSize = 14.sp)
                             }
                         }

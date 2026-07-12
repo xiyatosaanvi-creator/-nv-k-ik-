@@ -84,6 +84,8 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_RECENTLY_LAUNCHED      = stringPreferencesKey("recently_launched")  // JSON list (max 10)
         val KEY_SHOW_RECENTLY_LAUNCHED = booleanPreferencesKey("show_recently_launched")
         val KEY_APP_CATEGORY_OVERRIDES = stringPreferencesKey("app_category_overrides")
+        val KEY_APP_LABEL_OVERRIDES    = stringPreferencesKey("app_label_overrides")
+        val KEY_APP_VISUAL_OVERRIDES   = stringPreferencesKey("app_visual_overrides")
 
         // ── Search (#36) ─────────────────────────────────────────────────────
         val KEY_RECENT_SEARCHES        = stringPreferencesKey("recent_searches")    // JSON list (max 10)
@@ -199,6 +201,8 @@ class LauncherSettingsRepository(private val context: Context) {
 
     val recentSearches:         Flow<String>  = pref(KEY_RECENT_SEARCHES,         "[]")
     val appCategoryOverrides:   Flow<String>  = pref(KEY_APP_CATEGORY_OVERRIDES,   "{}")
+    val appLabelOverrides:      Flow<String>  = pref(KEY_APP_LABEL_OVERRIDES,      "{}")
+    val appVisualOverrides:     Flow<String>  = pref(KEY_APP_VISUAL_OVERRIDES,     "{}")
 
     val timeAwareLayout:        Flow<Boolean> = pref(KEY_TIME_AWARE_LAYOUT,       true)
     val bedtimeMode:            Flow<Boolean> = pref(KEY_BEDTIME_MODE,            false)
@@ -294,6 +298,8 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setRecentlyLaunched(json: String)      = set(KEY_RECENTLY_LAUNCHED,       json)
     suspend fun setShowRecentlyLaunched(v: Boolean)    = set(KEY_SHOW_RECENTLY_LAUNCHED,  v)
     suspend fun setAppCategoryOverrides(json: String)  = set(KEY_APP_CATEGORY_OVERRIDES,  json)
+    suspend fun setAppLabelOverrides(json: String)     = set(KEY_APP_LABEL_OVERRIDES,     json)
+    suspend fun setAppVisualOverrides(json: String)    = set(KEY_APP_VISUAL_OVERRIDES,    json)
 
     suspend fun setRecentSearches(json: String)        = set(KEY_RECENT_SEARCHES,         json)
 

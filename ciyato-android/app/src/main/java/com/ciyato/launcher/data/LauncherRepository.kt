@@ -69,6 +69,8 @@ class LauncherRepository(private val context: Context) {
             AppCategorizer.initialize(context)
             val settingsRepo = LauncherSettingsRepository(context)
             val overridesJson = settingsRepo.appCategoryOverrides.first()
+            val labelOverridesJson = settingsRepo.appLabelOverrides.first()
+            val visualOverridesJson = settingsRepo.appVisualOverrides.first()
             hiddenPackages.clear()
             hiddenPackages.addAll(parsePackageCsv(settingsRepo.hiddenApps.first()))
             removedPackages.clear()
@@ -81,6 +83,14 @@ class LauncherRepository(private val context: Context) {
                 }
                 map
             } catch (_: Exception) { emptyMap() }
+            val labelOverrides = try {
+                val obj = org.json.JSONObject(labelOverridesJson)
+                buildMap {
+                    obj.keys().forEach { key -> put(key, obj.optString(key)) }
+                }
+            } catch (_: Exception) { emptyMap() }
+            val visualOverrides = try { org.json.JSONObject(visualOverridesJson) }
+            catch (_: Exception) { org.json.JSONObject() }
 
             val pm = context.packageManager
             val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -96,7 +106,9 @@ class LauncherRepository(private val context: Context) {
                     val actInfo  = ri.activityInfo
                     val pkg      = actInfo.packageName
                     val activity = actInfo.name
-                    val label    = ri.loadLabel(pm).toString()
+                    val originalLabel = ri.loadLabel(pm).toString()
+                    val label = labelOverrides[pkg]?.takeIf { it.isNotBlank() } ?: originalLabel
+                    val visual = visualOverrides.optJSONObject(pkg)
 
                     // LRU-cached icon load (Suggestion 17)
                     val icon = iconCache.get(pkg) ?: ri.loadIcon(pm).also { iconCache.put(pkg, it) }
@@ -121,15 +133,16 @@ class LauncherRepository(private val context: Context) {
                             customName = overrideName
                         }
                     } else {
-                        primary = AppCategorizer.categorize(pkg, label)
+                        primary = AppCategorizer.categorize(pkg, originalLabel)
                         customName = null
                     }
 
-                    val secondary = if (primary == AppCategory.CUSTOM || overrideCat != null) emptyList() else AppCategorizer.secondaryCategories(pkg, label, primary)
+                    val secondary = if (primary == AppCategory.CUSTOM || overrideCat != null) emptyList() else AppCategorizer.secondaryCategories(pkg, originalLabel, primary)
 
                     InstalledApp(
                         id                  = "$pkg/$activity",
                         label               = label,
+                        originalLabel       = originalLabel,
                         packageName         = pkg,
                         activityName        = activity,
                         icon                = icon,
@@ -139,6 +152,9 @@ class LauncherRepository(private val context: Context) {
                         installTime         = installMs,
                         lastUpdateTime      = updateMs,
                         customCategoryName  = customName,
+                        iconScale           = visual?.optDouble("scale", 1.0)?.toFloat() ?: 1f,
+                        iconRotation        = visual?.optDouble("rotation", 0.0)?.toFloat() ?: 0f,
+                        iconAccent          = visual?.optString("accent")?.takeIf { it.isNotBlank() },
                     )
                 } catch (_: Exception) { null }
             }

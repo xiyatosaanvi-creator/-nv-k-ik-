@@ -237,7 +237,7 @@ private fun AuditAppCard(audited: AuditedApp, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RealAppIcon(drawable = audited.app.icon, size = 36.dp)
+            RealAppIcon(drawable = audited.app.icon, size = 36.dp, scale = audited.app.iconScale, rotation = audited.app.iconRotation, accentHex = audited.app.iconAccent)
             Column(modifier = Modifier.weight(1f)) {
                 Text(audited.app.label, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(audited.app.packageName.take(36), color = CiyatoMuted, fontSize = 10.sp)

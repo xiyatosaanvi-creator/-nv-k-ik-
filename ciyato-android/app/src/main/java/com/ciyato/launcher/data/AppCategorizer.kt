@@ -118,6 +118,20 @@ object AppCategorizer {
         "com.amazon.kindle"                    to AppCategory.PRODUCTIVITY,
         "com.goodreads.mobile"                 to AppCategory.PRODUCTIVITY,
         "com.android.vending"                  to AppCategory.UTILITIES,       // Google Play Store
+        // AI
+        "com.openai.chatgpt"                  to AppCategory.AI,
+        "com.google.android.apps.bard"        to AppCategory.AI,
+        "com.microsoft.copilot"               to AppCategory.AI,
+        "com.anthropic.claude"                to AppCategory.AI,
+        "com.deepseek.chat"                   to AppCategory.AI,
+        // Contacts
+        "com.google.android.contacts"         to AppCategory.CONTACTS,
+        "com.samsung.android.contacts"        to AppCategory.CONTACTS,
+        "com.android.contacts"                to AppCategory.CONTACTS,
+        // Video editing
+        "com.capcut.editor"                   to AppCategory.VIDEO_EDITING,
+        "com.lemon.lvoverseas"                to AppCategory.VIDEO_EDITING,
+        "com.videomaker.editor"               to AppCategory.VIDEO_EDITING,
         // Travel
         "com.airbnb.android"                   to AppCategory.TRAVEL,
         "com.ubercab"                          to AppCategory.TRAVEL,
@@ -201,7 +215,9 @@ object AppCategorizer {
         Regex("(?i)social|friend|network|connect|community|dating|tinder|bumble|hinge")         to AppCategory.SOCIAL,
         Regex("(?i)chat|message|talk|call|voice|meet|video call|video chat|sms|text|whats|telegr|signal")       to AppCategory.COMMUNICATION,
         Regex("(?i)\\bwork\\b|office|mail|email|calendar|task|todo|note|doc|sheet|drive|cloud|meeting|project") to AppCategory.WORK,
-        Regex("(?i)video\\s*(edit|maker|enhanc|cut)|(?:edit|enhanc)\\s*video|reel maker|film maker") to AppCategory.CREATIVITY,
+        Regex("(?i)ai assistant|ai chat|chatgpt|gemini|claude|copilot|deepseek|perplexity") to AppCategory.AI,
+        Regex("(?i)contacts?|address book|people") to AppCategory.CONTACTS,
+        Regex("(?i)video\\s*(edit|maker|enhanc|cut)|(?:edit|enhanc)\\s*video|reel maker|film maker") to AppCategory.VIDEO_EDITING,
         Regex("(?i)music|radio|podcast|audio|sound|stream|listen|spotify|youtube|yt music")     to AppCategory.ENTERTAINMENT,
         Regex("(?i)\\bgame\\b|gaming|puzzle|quest|battle|word|chess|arena|clash|royale")        to AppCategory.GAMES,
         Regex("(?i)travel|map|\\bride\\b|hotel|flight|trip|nav|uber|lyft|airbnb|booking|transit") to AppCategory.TRAVEL,
@@ -225,7 +241,10 @@ object AppCategorizer {
         Regex("(?i)fitness|health|workout|gym|run|strava|fitbit|calm|headspace") to AppCategory.DAILY,
         Regex("(?i)settings|tools|util|calc|clock|alarm|file|backup|cleaner")   to AppCategory.UTILITIES,
         Regex("(?i)office|gmail|calendar|drive|docs|notion|work|slack|zoom|teams|asana|trello") to AppCategory.WORK,
-        Regex("(?i)photo|camera|gallery|lightroom|vsco|adobe|kinemaster|inshot") to AppCategory.CREATIVITY,
+        Regex("(?i)chatgpt|openai|gemini|claude|copilot|deepseek|perplexity|\\.ai\\b") to AppCategory.AI,
+        Regex("(?i)contacts?|addressbook|people") to AppCategory.CONTACTS,
+        Regex("(?i)capcut|video.*edit|editor.*video|kinemaster|inshot") to AppCategory.VIDEO_EDITING,
+        Regex("(?i)photo|camera|gallery|lightroom|vsco|adobe") to AppCategory.CREATIVITY,
         Regex("(?i)news|kindle|read|book|learn|edu|duolingo|goodreads|pocket")   to AppCategory.PRODUCTIVITY,
     )
 
@@ -257,10 +276,10 @@ object AppCategorizer {
         val lowerLabel = label.lowercase()
         val lowerPkg = packageName.lowercase()
         if (lowerLabel.contains(Regex("gpt|deepseek|gemini|claude|copilot|ai assistant|ai chat"))) {
-            return AppCategory.PRODUCTIVITY
+            return AppCategory.AI
         }
         if (lowerPkg.contains(Regex("chatgpt|openai|deepseek|gemini|claude|copilot"))) {
-            return AppCategory.PRODUCTIVITY
+            return AppCategory.AI
         }
 
         dynamicallyLoadedApps[packageName]?.let { return it }
@@ -277,7 +296,11 @@ object AppCategorizer {
             if (primary != AppCategory.COMMUNICATION)  extras += AppCategory.COMMUNICATION
         }
         if (primary == AppCategory.WORK)     extras += AppCategory.PRODUCTIVITY
-        if (primary == AppCategory.SOCIAL)   extras += AppCategory.DAILY
+        if (primary == AppCategory.SOCIAL) {
+            extras += AppCategory.DAILY
+            extras += AppCategory.CONTACTS
+        }
+        if (primary == AppCategory.COMMUNICATION) extras += AppCategory.CONTACTS
         if (primary == AppCategory.FINANCE)  extras += AppCategory.UTILITIES
         if (primary == AppCategory.GAMES)    extras += AppCategory.ENTERTAINMENT
         if (primary == AppCategory.TRAVEL)   extras += AppCategory.UTILITIES
@@ -302,6 +325,9 @@ object AppCategorizer {
         AppCategory.UTILITIES     -> listOf("settings", "tools", "utility", "cleaner", "manager", "calculator", "clock", "alarm", "file", "storage", "system", "backup", "browser", "chrome", "firefox")
         AppCategory.DAILY         -> listOf("fitness", "health", "gym", "run", "workout", "diet", "meditat", "sleep", "yoga", "steps", "calorie", "weight", "dialer", "phone", "contacts")
         AppCategory.PRODUCTIVITY  -> listOf("notion", "todo", "task", "evernote", "obsidian", "news", "read", "book", "learn", "edu", "course", "study", "language", "duolingo", "kindle", "trello")
+        AppCategory.AI            -> listOf("ai", "chatgpt", "gemini", "claude", "copilot", "deepseek", "perplexity")
+        AppCategory.VIDEO_EDITING -> listOf("video edit", "capcut", "inshot", "kinemaster", "reel maker", "video maker")
+        AppCategory.CONTACTS      -> listOf("contacts", "people", "address book", "phone", "dialer")
         else                      -> emptyList()
     }
 
@@ -318,6 +344,9 @@ object AppCategorizer {
         if (query.isBlank()) return null
         val q = query.trim().lowercase()
         return when {
+            q.contains(Regex("ai|chatgpt|gemini|claude|copilot|deepseek|perplexity"))        -> AppCategory.AI
+            q.contains(Regex("contacts?|people|address book"))                               -> AppCategory.CONTACTS
+            q.contains(Regex("video edit|capcut|inshot|kinemaster|reel maker|video maker")) -> AppCategory.VIDEO_EDITING
             q.contains(Regex("music|sound|listen|song|podcast|audio|radio|spotify"))         -> AppCategory.ENTERTAINMENT
             q.contains(Regex("work|email|meeting|office|task|project|doc|calendar|schedule"))-> AppCategory.WORK
             q.contains(Regex("finance|bank|money|pay|invest|budget|crypto|wallet|cash"))     -> AppCategory.FINANCE

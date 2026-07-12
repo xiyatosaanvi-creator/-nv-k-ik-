@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
@@ -39,19 +40,38 @@ fun RealAppIcon(
     drawable: Drawable,
     size: Dp = 52.dp,
     cornerRadius: Dp = 14.dp,
+    scale: Float = 1f,
+    rotation: Float = 0f,
+    accentHex: String? = null,
     modifier: Modifier = Modifier,
 ) {
     // Cache the bitmap — only recompute when the drawable reference changes.
     val bmp = remember(drawable) {
         drawable.toBitmap((size.value * 2).toInt().coerceAtLeast(1), (size.value * 2).toInt().coerceAtLeast(1))
     }
-    Image(
-        bitmap = bmp.asImageBitmap(),
-        contentDescription = null,
+    val accent = accentHex?.let { value ->
+        runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrNull()
+    }
+    Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(cornerRadius)),
-    )
+            .clip(RoundedCornerShape(cornerRadius))
+            .then(if (accent != null) Modifier.background(accent.copy(alpha = 0.22f)) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            bitmap = bmp.asImageBitmap(),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale.coerceIn(0.72f, 1.28f)
+                    scaleY = scale.coerceIn(0.72f, 1.28f)
+                    rotationZ = rotation.coerceIn(-20f, 20f)
+                }
+                .clip(RoundedCornerShape(cornerRadius)),
+        )
+    }
 }
 
 /**
@@ -78,7 +98,13 @@ fun AppIconTile(
             )
             .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
-        RealAppIcon(drawable = app.icon, size = iconSize)
+        RealAppIcon(
+            drawable = app.icon,
+            size = iconSize,
+            scale = app.iconScale,
+            rotation = app.iconRotation,
+            accentHex = app.iconAccent,
+        )
         if (showLabel) {
             Spacer(Modifier.height(5.dp))
             Text(
@@ -114,6 +140,13 @@ fun AppIconView(
             .clickable(onClick = onClick)
             .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
-        RealAppIcon(drawable = app.icon, size = size, cornerRadius = cornerRadius)
+        RealAppIcon(
+            drawable = app.icon,
+            size = size,
+            cornerRadius = cornerRadius,
+            scale = app.iconScale,
+            rotation = app.iconRotation,
+            accentHex = app.iconAccent,
+        )
     }
 }

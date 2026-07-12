@@ -49,6 +49,9 @@ fun BottomDock(
                     drawable = app.icon,
                     size = 56.dp,
                     cornerRadius = 15.dp,
+                    scale = app.iconScale,
+                    rotation = app.iconRotation,
+                    accentHex = app.iconAccent,
                     modifier = Modifier.clickable { onAppTap(app) },
                 )
             }

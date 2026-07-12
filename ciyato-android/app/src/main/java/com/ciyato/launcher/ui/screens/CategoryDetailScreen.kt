@@ -306,7 +306,7 @@ private fun AppTile(
             )
             .padding(vertical = 10.dp, horizontal = 4.dp),
     ) {
-        RealAppIcon(drawable = app.icon, size = 54.dp, cornerRadius = 14.dp)
+        RealAppIcon(drawable = app.icon, size = 54.dp, cornerRadius = 14.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
         Text(
             text = app.label,
             color = CiyatoSec,

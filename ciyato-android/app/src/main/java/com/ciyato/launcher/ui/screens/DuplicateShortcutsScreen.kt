@@ -185,7 +185,7 @@ private fun DuplicateAppRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        RealAppIcon(drawable = app.icon, size = 44.dp, cornerRadius = 12.dp)
+        RealAppIcon(drawable = app.icon, size = 44.dp, cornerRadius = 12.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             androidx.compose.material3.Text(app.label, color = CiyatoWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
