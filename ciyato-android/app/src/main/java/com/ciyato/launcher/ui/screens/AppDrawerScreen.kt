@@ -3,433 +3,288 @@ package com.ciyato.launcher.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
 import com.ciyato.launcher.data.InstalledApp
+import com.ciyato.launcher.ui.components.AppContextMenu
 import com.ciyato.launcher.ui.components.AppIconTile
 import com.ciyato.launcher.ui.components.CiyatoSearchBar
-import com.ciyato.launcher.ui.theme.*
-import com.ciyato.launcher.ui.components.*
+import com.ciyato.launcher.ui.components.RealAppIcon
+import com.ciyato.launcher.ui.theme.CiyatoBg
+import com.ciyato.launcher.ui.theme.CiyatoBgEl
+import com.ciyato.launcher.ui.theme.CiyatoBgEl2
+import com.ciyato.launcher.ui.theme.CiyatoBorder
+import com.ciyato.launcher.ui.theme.CiyatoGold
+import com.ciyato.launcher.ui.theme.CiyatoMuted
+import com.ciyato.launcher.ui.theme.CiyatoSec
+import com.ciyato.launcher.ui.theme.CiyatoShapes
+import com.ciyato.launcher.ui.theme.CiyatoWhite
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 
-// ── Light-mode palette (cream surface, matches reference) ─────────────────────
-private val DrawerBg        = CiyatoBg
-private val DrawerCard      = CiyatoBgEl
-private val DrawerBorder    = CiyatoSubtleBorder
-private val DrawerText      = CiyatoWhite
-private val DrawerSec       = CiyatoSec
-private val DrawerMuted     = CiyatoMuted
-private val DrawerSearch    = CiyatoBgEl2
-
-// ── Sections shown in the drawer (matches reference order) ────────────────────
-private data class DrawerSection(
-    val category: AppCategory?,   // null = "All" flat grid
+private data class AppLibraryGroup(
+    val category: AppCategory,
     val label: String,
-    val isExpandable: Boolean = true,
+    val apps: List<InstalledApp>,
 )
 
-private val DRAWER_SECTIONS = listOf(
-    DrawerSection(AppCategory.WORK,             "Work"),
-    DrawerSection(AppCategory.SOCIAL,           "Social"),
-    DrawerSection(AppCategory.UTILITIES,        "Utilities"),
-    DrawerSection(AppCategory.CREATIVITY,       "Creativity"),
-    DrawerSection(AppCategory.ENTERTAINMENT,    "Entertainment"),
-    DrawerSection(AppCategory.TRAVEL,           "Travel"),
-    DrawerSection(AppCategory.FINANCE,          "Finance"),
-    DrawerSection(AppCategory.COMMUNICATION,    "Communication"),
-    DrawerSection(AppCategory.CONTACTS,         "Contacts"),
-    DrawerSection(AppCategory.AI,               "AI"),
-    DrawerSection(AppCategory.VIDEO_EDITING,    "Video Editing"),
-)
-
-// Filter chips at the top
-private val FILTER_CHIPS = listOf(
-    null to "All",
-    AppCategory.WORK to "Work",
-    AppCategory.SOCIAL to "Social",
-    AppCategory.CREATIVITY to "Creativity",
-    AppCategory.UTILITIES to "Utilities",
-    AppCategory.ENTERTAINMENT to "Entertainment",
-    AppCategory.FINANCE to "Finance",
-    AppCategory.TRAVEL to "Travel",
-    AppCategory.AI to "AI",
-    AppCategory.VIDEO_EDITING to "Video Editing",
+private val APP_LIBRARY_ORDER = listOf(
+    AppCategory.WORK,
+    AppCategory.SOCIAL,
+    AppCategory.FINANCE,
+    AppCategory.CREATIVITY,
+    AppCategory.UTILITIES,
+    AppCategory.DAILY,
+    AppCategory.COMMUNICATION,
+    AppCategory.PRODUCTIVITY,
+    AppCategory.ENTERTAINMENT,
+    AppCategory.GAMES,
+    AppCategory.TRAVEL,
+    AppCategory.SHOPPING,
+    AppCategory.AI,
+    AppCategory.VIDEO_EDITING,
+    AppCategory.CONTACTS,
 )
 
 /**
- * ═══════════════════════════════════════════════════════════════════
- *  CIYATO APP DRAWER / SMART APP LIBRARY — Functional Wiring Phase
- *  Sections expand/collapse ✓ (already worked)
- *  Duplicate shortcuts card is now fully clickable via onDuplicatesTap ✓
- * ═══════════════════════════════════════════════════════════════════
+ * Ciyato's complete app browser. Home is curated; this is intentionally the
+ * place to browse every installed launchable app. Preview icons are descriptive
+ * only, so a group always has one clear tap target and one expanded state.
  */
 @Composable
 fun AppDrawerScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
 ) {
-    val apps        by viewModel.apps.collectAsState()
-    val isLoading   by viewModel.isLoading.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
+    val apps by viewModel.apps.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val query by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
-    val drawerStyle by viewModel.drawerStyle.collectAsState()
-
-    // Active filter chip (null = All)
-    var activeFilter by remember { mutableStateOf<AppCategory?>(null) }
-    var sortMode by remember { mutableStateOf("alpha") }
+    var expandedGroup by remember { mutableStateOf<AppLibraryGroup?>(null) }
     var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
 
-    // Sections that have apps (avoid empty section cards)
-    val populatedSections = remember(apps) {
-        DRAWER_SECTIONS.filter { section ->
-            when (section.category) {
-                null -> false
-                AppCategory.RECENTLY_ADDED -> viewModel.recentlyAdded().isNotEmpty()
-                else -> viewModel.byCategory(section.category).isNotEmpty()
+    val groups = remember(apps) {
+        APP_LIBRARY_ORDER.mapNotNull { category ->
+            val categoryApps = apps.filter { it.category == category }
+                .sortedBy { it.label.lowercase() }
+            categoryApps.takeIf { it.isNotEmpty() }?.let {
+                AppLibraryGroup(category, category.displayName, it)
             }
         }
     }
-
-    // When a filter chip is active, flatten to a single section
-    val sectionsToShow = remember(activeFilter, populatedSections) {
-        val filter = activeFilter
-        when (filter) {
-            null -> populatedSections
-            else -> listOf(DrawerSection(filter, filter.displayName, false))
-        }
+    val groupedPackages = remember(groups) { groups.flatMap { it.apps }.mapTo(mutableSetOf()) { it.packageName } }
+    val standaloneApps = remember(apps, groupedPackages) {
+        apps.filter { it.packageName !in groupedPackages && it.category != AppCategory.HIDDEN }
+            .sortedBy { it.label.lowercase() }
     }
-
-    Scaffold(
-        containerColor = DrawerBg,
-    ) { scaffoldPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DrawerBg)
-                .padding(scaffoldPadding)
-        ) {
-            // ── 1. Neutral drawer header ─────────────────────────────────────
-            DrawerHeader(
-                onBack = onBack,
-                drawerStyle = drawerStyle,
-            )
-
-            // ── 2. Search Area ────────────────────────────────────────────────
-            CiyatoSearchBar(
-                query           = searchQuery,
-                onQueryChange   = viewModel::setSearch,
-                placeholder     = "Search apps...",
-                backgroundColor = DrawerSearch,
-                borderColor     = DrawerBorder,
-                iconTint        = DrawerMuted,
-                textColor       = DrawerText,
-                placeholderColor= DrawerMuted,
-                modifier        = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(FILTER_CHIPS) { (cat, label) ->
-                    val selected = activeFilter == cat
-                    CiyatoToggleChip(
-                        text = label,
-                        selected = selected,
-                        onClick = {
-                            activeFilter = cat
-                            viewModel.setSearch("")
-                        }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // ── 4. Pagination Indicator ───────────────────────────────────────
-            // ── 5. Main content: search results OR section cards ─────────────────
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        color       = CiyatoGold,
-                        strokeWidth = 2.dp,
-                        modifier    = Modifier.size(28.dp),
-                    )
-                }
-            } else if (searchQuery.isNotBlank()) {
-                // Search results — flat grid
-                SearchResultsGrid(
-                    results  = sortDrawerApps(searchResults, sortMode, viewModel),
-                    onAppTap = viewModel::launchApp,
-                    onAppLongTap = { contextMenuApp = it },
-                )
-            } else {
-                // Section cards
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        start  = 16.dp,
-                        end    = 16.dp,
-                        top    = 0.dp,
-                        bottom = 32.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(sectionsToShow) { section ->
-                        DrawerSectionCard(
-                            section  = section,
-                            viewModel= viewModel,
-                            sortMode = sortMode,
-                            drawerStyle = drawerStyle,
-                            onAppLongTap = { contextMenuApp = it },
-                        )
-                    }
-
-                    // ── 6. Duplicate Shortcuts Area ───────────────────────────
-                }
-            }
-        }
-    }
-
-    contextMenuApp?.let { app ->
-        AppContextMenu(
-            app = app,
-            viewModel = viewModel,
-            onDismiss = { contextMenuApp = null }
-        )
-    }
-}
-
-private fun sortDrawerApps(
-    apps: List<InstalledApp>,
-    sortMode: String,
-    viewModel: LauncherViewModel,
-): List<InstalledApp> {
-    return when (sortMode) {
-        "frequent" -> apps.sortedWith(
-            compareByDescending<InstalledApp> { viewModel.launchCount(it.packageName) }
-                .thenBy { it.label.lowercase() }
-        )
-        "recent" -> apps.sortedWith(
-            compareByDescending<InstalledApp> { it.installTime }
-                .thenBy { it.label.lowercase() }
-        )
-        else -> apps.sortedBy { it.label.lowercase() }
-    }
-}
-
-private fun sortModeLabel(sortMode: String): String {
-    return when (sortMode) {
-        "frequent" -> "Most used"
-        "recent" -> "Recently installed"
-        else -> "A to Z"
-    }
-}
-
-private fun drawerStyleLabel(drawerStyle: String): String {
-    return when (drawerStyle) {
-        "dense" -> "Dense grid"
-        "spacious" -> "Spacious grid"
-        else -> "Standard grid"
-    }
-}
-
-// ── Header row ─────────────────────────────────────────────────────────────────
-@Composable
-private fun DrawerHeader(
-    onBack: () -> Unit = {},
-    drawerStyle: String,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                "Apps",
-                color = DrawerText,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-            )
-        }
-
-        // Right: current drawer mode label
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                drawerStyleLabel(drawerStyle),
-                color = CiyatoGold,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(CiyatoGold.copy(alpha = 0.12f))
-                    .border(1.dp, CiyatoGold.copy(alpha = 0.20f), RoundedCornerShape(999.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-            )
-        }
-    }
-}
-
-// ── Section card ───────────────────────────────────────────────────────────────
-@Composable
-private fun DrawerSectionCard(
-    section: DrawerSection,
-    viewModel: LauncherViewModel,
-    sortMode: String,
-    drawerStyle: String,
-    onAppLongTap: (InstalledApp) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var showAll by remember(section.label) { mutableStateOf(false) }
-
-    // Resolve apps for this section
-    val category = section.category ?: return
-    val rawSectionApps = when (category) {
-        AppCategory.RECENTLY_ADDED -> viewModel.recentlyAdded()
-        else -> viewModel.byCategory(category)
-    }
-    val sectionApps = sortDrawerApps(rawSectionApps, sortMode, viewModel)
-
-    if (sectionApps.isEmpty()) return
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(DrawerCard)
-            .border(1.dp, DrawerBorder, RoundedCornerShape(22.dp)),
+            .fillMaxSize()
+            .background(CiyatoBg)
+            .padding(top = 18.dp),
     ) {
-        // ── Card header ────────────────────────────────────────────────────
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Text(
+            text = "Apps",
+            color = CiyatoWhite,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        )
+        CiyatoSearchBar(
+            query = query,
+            onQueryChange = viewModel::setSearch,
+            placeholder = "Search apps",
+            backgroundColor = CiyatoBgEl2,
+            borderColor = CiyatoBorder,
+            iconTint = CiyatoMuted,
+            textColor = CiyatoWhite,
+            placeholderColor = CiyatoMuted,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = section.isExpandable) { expanded = !expanded }
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-        ) {
-            Text(
-                text = section.label,
-                color = DrawerText,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                modifier = Modifier.weight(1f),
-            )
+                .padding(horizontal = 20.dp),
+        )
+        Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = "${sectionApps.size} apps",
-                color = DrawerMuted,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(end = 12.dp),
-            )
-
-            Icon(
-                Icons.Default.FolderOpen,
-                contentDescription = null,
-                tint = DrawerMuted,
-                modifier = Modifier.size(20.dp),
-            )
-
-            if (section.isExpandable) {
-                Spacer(Modifier.width(10.dp))
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = DrawerSec,
-                    modifier = Modifier.size(22.dp),
-                )
+        when {
+            isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = CiyatoGold, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
             }
-        }
-
-        if (expanded) {
-            HorizontalDivider(
-                color     = DrawerBorder,
-                thickness = 1.dp,
-                modifier  = Modifier.padding(horizontal = 16.dp),
+            query.isNotBlank() -> SearchResultsGrid(
+                results = searchResults.sortedBy { it.label.lowercase() },
+                onAppTap = viewModel::launchApp,
+                onAppLongTap = { contextMenuApp = it },
             )
-
-            val columns = if (drawerStyle == "spacious") 3 else 4
-            val visibleLimit = when (drawerStyle) {
-                "dense" -> 16
-                "spacious" -> 9
-                else -> 12
-            }
-            val iconSize = when (drawerStyle) {
-                "dense" -> 48.dp
-                "spacious" -> 62.dp
-                else -> 56.dp
-            }
-            val visibleApps = if (showAll) sectionApps else sectionApps.take(visibleLimit)
-            val rows = visibleApps.chunked(columns)
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(if (drawerStyle == "spacious") 12.dp else 8.dp),
+            else -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                rows.forEach { rowApps ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(0.dp),
-                    ) {
-                        rowApps.forEach { app ->
-                            AppIconTile(
-                                app        = app,
-                                iconSize   = iconSize,
-                                labelColor = DrawerSec,
-                                onClick    = { viewModel.launchApp(app) },
-                                onLongClick = { onAppLongTap(app) },
-                                modifier   = Modifier.weight(1f),
-                            )
-                        }
-                        repeat(columns - rowApps.size) { Spacer(Modifier.weight(1f)) }
+                items(groups, key = { it.category.name }) { group ->
+                    AppLibraryGroupTile(group = group, onClick = { expandedGroup = group })
+                }
+                if (standaloneApps.isNotEmpty()) {
+                    item(key = "standalone") {
+                        StandaloneAppsTile(
+                            apps = standaloneApps,
+                            onClick = { expandedGroup = AppLibraryGroup(AppCategory.OTHER, "Apps", standaloneApps) },
+                        )
                     }
                 }
             }
+        }
+    }
 
-            if (sectionApps.size > visibleLimit) {
-                Text(
-                    if (showAll) "Show fewer" else "View all ${sectionApps.size} apps",
-                    color = CiyatoGold,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .padding(start = 18.dp, top = 0.dp, end = 18.dp, bottom = 14.dp)
-                        .align(Alignment.End)
-                        .clickable { showAll = !showAll },
+    expandedGroup?.let { group ->
+        AppLibraryGroupSheet(
+            group = group,
+            onDismiss = { expandedGroup = null },
+            onLaunch = { app ->
+                expandedGroup = null
+                viewModel.launchApp(app)
+            },
+            onLongPress = { contextMenuApp = it },
+        )
+    }
+    contextMenuApp?.let { app ->
+        AppContextMenu(app = app, viewModel = viewModel, onDismiss = { contextMenuApp = null })
+    }
+}
+
+@Composable
+private fun AppLibraryGroupTile(group: AppLibraryGroup, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(132.dp)
+            .clip(CiyatoShapes.medium)
+            .background(CiyatoBgEl)
+            .border(1.dp, CiyatoBorder, CiyatoShapes.medium)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            group.apps.take(4).forEach { app ->
+                RealAppIcon(
+                    drawable = app.icon,
+                    size = 32.dp,
+                    cornerRadius = 9.dp,
+                    scale = app.iconScale,
+                    rotation = app.iconRotation,
+                    accentHex = app.iconAccent,
                 )
+            }
+        }
+        Column {
+            Text(group.label, color = CiyatoWhite, fontWeight = FontWeight.Medium, fontSize = 15.sp, maxLines = 1)
+            Text("${group.apps.size} apps", color = CiyatoMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun StandaloneAppsTile(apps: List<InstalledApp>, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(132.dp)
+            .clip(CiyatoShapes.medium)
+            .background(CiyatoBgEl)
+            .border(1.dp, CiyatoBorder, CiyatoShapes.medium)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            apps.take(4).forEach { app ->
+                RealAppIcon(app.icon, size = 32.dp, cornerRadius = 9.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
+            }
+        }
+        Column {
+            Text("Apps", color = CiyatoWhite, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+            Text("${apps.size} ungrouped", color = CiyatoMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppLibraryGroupSheet(
+    group: AppLibraryGroup,
+    onDismiss: () -> Unit,
+    onLaunch: (InstalledApp) -> Unit,
+    onLongPress: (InstalledApp) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = CiyatoBgEl,
+        contentColor = CiyatoWhite,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 30.dp),
+        ) {
+            Text(group.label, color = CiyatoWhite, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+            Text("${group.apps.size} apps", color = CiyatoMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
+            HorizontalDivider(color = CiyatoBorder, modifier = Modifier.padding(vertical = 16.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                modifier = Modifier.height(360.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(group.apps, key = { it.id }) { app ->
+                    AppIconTile(
+                        app = app,
+                        iconSize = 52.dp,
+                        labelColor = CiyatoSec,
+                        onClick = { onLaunch(app) },
+                        onLongClick = { onLongPress(app) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
 }
 
-// ── Search results (flat 4-col grid) ──────────────────────────────────────────
 @Composable
 private fun SearchResultsGrid(
     results: List<InstalledApp>,
@@ -437,32 +292,27 @@ private fun SearchResultsGrid(
     onAppLongTap: (InstalledApp) -> Unit,
 ) {
     if (results.isEmpty()) {
-        Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-            Text("No apps found", color = DrawerMuted, fontSize = 14.sp)
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No apps found", color = CiyatoMuted, fontSize = 14.sp)
         }
         return
     }
-    val rows = results.chunked(4)
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(4),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(rows) { rowApps ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                rowApps.forEach { app ->
-                    AppIconTile(
-                        app        = app,
-                        iconSize   = 54.dp,
-                        labelColor = DrawerSec,
-                        onClick    = { onAppTap(app) },
-                        onLongClick = { onAppLongTap(app) },
-                        modifier   = Modifier.weight(1f),
-                    )
-                }
-                repeat(4 - rowApps.size) { Spacer(Modifier.weight(1f)) }
-            }
+        items(results, key = { it.id }) { app ->
+            AppIconTile(
+                app = app,
+                iconSize = 52.dp,
+                labelColor = CiyatoSec,
+                onClick = { onAppTap(app) },
+                onLongClick = { onAppLongTap(app) },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
-
-// ── Duplicate Smart Shortcuts card — now fully clickable ──────────────────────

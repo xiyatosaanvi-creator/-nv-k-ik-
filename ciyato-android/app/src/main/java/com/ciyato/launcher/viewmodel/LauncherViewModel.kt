@@ -129,7 +129,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val appLockTimerMin    = settings.appLockTimerMin    .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
     val networkCallLog     = settings.networkCallLog     .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val useSystemWallpaper = settings.useSystemWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val useSystemWallpaper = settings.useSystemWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val categoryOrder      = settings.categoryOrder     .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryTilesSizes = settings.categoryTilesSizes.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")

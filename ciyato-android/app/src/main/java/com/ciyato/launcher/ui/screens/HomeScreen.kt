@@ -58,7 +58,18 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
-private val ALL_HOME_CATEGORIES = listOf(
+// Automatic Home content is limited to the approved six. The remaining
+// classifications are available in the App Library or through manual placement.
+private val APPROVED_HOME_CATEGORIES = listOf(
+    AppCategory.WORK,
+    AppCategory.SOCIAL,
+    AppCategory.FINANCE,
+    AppCategory.CREATIVITY,
+    AppCategory.UTILITIES,
+    AppCategory.DAILY,
+)
+
+private val WORKSPACE_CATEGORY_CHOICES = listOf(
     AppCategory.WORK,
     AppCategory.SOCIAL,
     AppCategory.FINANCE,
@@ -183,9 +194,13 @@ fun HomeScreen(
 
     // ── Smart & Custom Categories ─────────────────────────────────────────────
     val displayCategories = remember(apps, timeAwareLayout, focusSession, customCatsList, hiddenHomeCategories) {
-        val timeCats = if (timeAwareLayout) viewModel.timeAwareCategories() else ALL_HOME_CATEGORIES
+        val timeCats = if (timeAwareLayout) {
+            viewModel.timeAwareCategories().filter { it in APPROVED_HOME_CATEGORIES }
+        } else {
+            APPROVED_HOME_CATEGORIES
+        }
         val bedtimeHide = viewModel.isBedtimeNow()
-        val allVisible = (timeCats + ALL_HOME_CATEGORIES).distinct()
+        val allVisible = (timeCats + APPROVED_HOME_CATEGORIES).distinct()
 
         val standard = allVisible.filter { cat ->
             val hasApps = viewModel.byCategory(cat).isNotEmpty()
@@ -235,17 +250,6 @@ fun HomeScreen(
 
     // ── Wallpaper & Background mode ───────────────────────────────────────────
     val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
-    val infiniteTransition = rememberInfiniteTransition(label = "aurora")
-    val pulseGlow by infiniteTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.55f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseGlow"
-    )
-
     val backgroundModifier = if (useSystemWallpaper) {
         Modifier
             .fillMaxSize()
@@ -253,23 +257,7 @@ fun HomeScreen(
     } else {
         Modifier
             .fillMaxSize()
-            .drawBehind {
-                drawRect(CiyatoBg)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(CiyatoGold.copy(alpha = 0.08f * pulseGlow), Color.Transparent),
-                        radius = size.width * 0.8f
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.1f)
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(CiyatoBlue.copy(alpha = 0.12f * (1f - pulseGlow)), Color.Transparent),
-                        radius = size.width * 0.9f
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.5f)
-                )
-            }
+            .background(CiyatoBg)
     }
 
     // ── Pager state for swiping screens ──────────────────────────────────────
@@ -941,21 +929,6 @@ fun HomeScreen(
                 }
             }
 
-            if (showAppDrawer) {
-                IconButton(
-                    onClick = onOpenDrawer,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = if (dockApps.isNotEmpty()) scaffoldPadding.calculateBottomPadding() + 110.dp else scaffoldPadding.calculateBottomPadding() + 24.dp)
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(CiyatoBgEl2.copy(alpha = 0.92f))
-                        .border(1.dp, CiyatoSubtleBorder, CircleShape),
-                ) {
-                    Icon(Icons.Default.Apps, contentDescription = "Open App Library", tint = CiyatoWhite, modifier = Modifier.size(22.dp))
-                }
-            }
-
             if (dockApps.isNotEmpty()) {
                 Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .padding(bottom = scaffoldPadding.calculateBottomPadding() + 20.dp),
@@ -1130,7 +1103,7 @@ fun HomeScreen(
 
         if (showHomeCategoryPicker) {
             val currentKeys = orderedCategories.toSet()
-            val categoryChoices = (ALL_HOME_CATEGORIES.map { it.name } + customCatsList)
+            val categoryChoices = (APPROVED_HOME_CATEGORIES.map { it.name } + customCatsList)
                 .distinct()
                 .filterNot { it in currentKeys }
             AlertDialog(
@@ -1174,7 +1147,7 @@ fun HomeScreen(
         }
 
         if (showWorkspaceCategoryPicker) {
-            val categoryChoices = (ALL_HOME_CATEGORIES.map { it.name } + customCatsList).distinct()
+            val categoryChoices = (WORKSPACE_CATEGORY_CHOICES.map { it.name } + customCatsList).distinct()
             AlertDialog(
                 onDismissRequest = { showWorkspaceCategoryPicker = false },
                 containerColor = CiyatoBgEl,

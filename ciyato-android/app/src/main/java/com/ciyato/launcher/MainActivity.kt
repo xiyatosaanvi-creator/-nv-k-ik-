@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PeopleOutline
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Scaffold
@@ -73,8 +73,10 @@ class MainActivity : ComponentActivity() {
                 val navController     = rememberNavController()
                 val requestedDestination = intent.getStringExtra(EXTRA_START_DESTINATION)
                 val startDest = when (requestedDestination) {
-                    "dashboard", "files", "photos", "search", "shared", "settings" -> requestedDestination
-                    else -> if (onboardingDone) "dashboard" else "onboarding"
+                    "home", "files", "photos", "search", "settings" -> requestedDestination
+                    "dashboard" -> "home"
+                    "shared" -> "photos"
+                    else -> if (onboardingDone) "home" else "onboarding"
                 }
 
                 // Auto-fetch weather if permission already granted
@@ -86,12 +88,12 @@ class MainActivity : ComponentActivity() {
 
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val activeRoute = currentBackStackEntry?.destination?.route
-                val tabRoutes = listOf("dashboard", "files", "search", "shared", "settings")
+                val tabRoutes = listOf("home", "files", "search", "photos", "settings")
                 val tabItems = listOf(
                     CiyatoNavItem(Icons.Default.Home, "Home"),
                     CiyatoNavItem(Icons.Default.FolderOpen, "Files"),
                     CiyatoNavItem(Icons.Default.Search, "Search"),
-                    CiyatoNavItem(Icons.Default.PeopleOutline, "Shared"),
+                    CiyatoNavItem(Icons.Default.PhotoLibrary, "Photos"),
                     CiyatoNavItem(Icons.Default.Settings, "Settings"),
                 )
                 val selectedTab = tabRoutes.indexOf(activeRoute).coerceAtLeast(0)
@@ -121,33 +123,21 @@ class MainActivity : ComponentActivity() {
                     composable("onboarding") {
                         OnboardingScreen(onDone = {
                             viewModel.setOnboardingDone()
-                            navController.navigate("dashboard") {
+                            navController.navigate("home") {
                                 popUpTo("onboarding") { inclusive = true }
                             }
                         })
                     }
 
-                    composable("dashboard") {
-                        DashboardScreen(
-                            viewModel      = viewModel,
-                            onOpenFiles    = { navController.navigate("files") },
-                            onOpenPhotos   = { navController.navigate("photos") },
-                            onOpenSearch   = { navController.navigate("search") },
-                            onOpenTheme    = { navController.navigate("theme") },
-                            onOpenSettings = { navController.navigate("settings") },
-                        )
-                    }
+                    composable("home") { DashboardScreen(viewModel = viewModel) }
 
                     composable("files")   { FilesScreen(viewModel = viewModel, onBack = { navController.popBackStack() }) }
                     composable("photos")  { PhotosScreen(onBack = { navController.popBackStack() }) }
 
                     composable("search") {
-                        SearchScreen(
-                            viewModel        = viewModel,
-                            onBack           = { navController.popBackStack() },
-                            onCategoryFilter = { cat ->
-                                navController.navigate("category_detail/${cat.name}")
-                            },
+                        NlFileSearchScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
                         )
                     }
 
@@ -168,10 +158,6 @@ class MainActivity : ComponentActivity() {
                             onNavigateToPermissionAudit = { navController.navigate("permission_audit") },
                             onNavigateToFocus = { navController.navigate("focus") },
                         )
-                    }
-
-                    composable("shared") {
-                        SharedScreen()
                     }
 
                     composable("permission_audit") {

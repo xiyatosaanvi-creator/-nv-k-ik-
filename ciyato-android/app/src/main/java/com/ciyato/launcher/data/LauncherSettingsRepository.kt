@@ -244,7 +244,7 @@ class LauncherSettingsRepository(private val context: Context) {
     val debugWeatherStub:       Flow<Boolean> = pref(KEY_DEBUG_WEATHER_STUB,      false)
     val debugLocationStub:      Flow<Boolean> = pref(KEY_DEBUG_LOCATION_STUB,     false)
 
-    val useSystemWallpaper:     Flow<Boolean> = pref(KEY_USE_SYSTEM_WALLPAPER,    false)
+    val useSystemWallpaper:     Flow<Boolean> = pref(KEY_USE_SYSTEM_WALLPAPER,    true)
     val categoryOrder:          Flow<String>  = pref(KEY_CATEGORY_ORDER,         "")
     val categoryTilesSizes:     Flow<String>  = pref(KEY_CATEGORY_TILES_SIZES,     "{}")
     val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
@@ -379,6 +379,7 @@ class LauncherSettingsRepository(private val context: Context) {
             p[KEY_CUSTOM_ACCENT_COLOR]  = "#E8E8E4"
             p[KEY_GLASS_MORPHISM_PRESET] = "medium"
             p[KEY_MATERIAL_YOU]        = false
+            p[KEY_USE_SYSTEM_WALLPAPER] = true
             p[KEY_DRAWER_STYLE]        = "smart"
         }
     }
