@@ -66,4 +66,69 @@ class WorkspaceStoreTest {
         assertEquals("workspace-2", result.defaultWorkspaceId)
         assertNotNull(WorkspaceStore.parse(WorkspaceStore.serialize(result)))
     }
+
+    @Test
+    fun `moving a shortcut reorders only the selected workspace grid`() {
+        val initial = WorkspaceStore.migrateLegacy(
+            count = 3,
+            page0Apps = "com.example.one,com.example.two,com.example.three",
+            page2Apps = "com.example.other",
+            workspaceApps = "{}",
+            workspaceCategories = "{}",
+            ciyatoPackage = "com.ciyato.launcher",
+        )
+
+        val result = requireNotNull(
+            WorkspaceStore.moveAppWithinWorkspace(
+                layout = initial,
+                workspaceId = "workspace-1",
+                packageName = "com.example.one",
+                destinationIndex = 2,
+            ),
+        )
+
+        assertEquals(
+            listOf("com.ciyato.launcher", "com.example.two", "com.example.one", "com.example.three"),
+            result.workspaceAt(0)?.appPackages,
+        )
+        assertEquals(listOf("com.example.other"), result.workspaceAt(1)?.appPackages)
+    }
+
+    @Test
+    fun `moving a shortcut toward the end preserves every unique shortcut`() {
+        val initial = WorkspaceStore.migrateLegacy(
+            count = 3,
+            page0Apps = "com.example.one,com.example.two,com.example.three",
+            page2Apps = "com.example.other",
+            workspaceApps = "{}",
+            workspaceCategories = "{}",
+            ciyatoPackage = "com.ciyato.launcher",
+        )
+
+        val result = requireNotNull(
+            WorkspaceStore.moveAppWithinWorkspace(
+                layout = initial,
+                workspaceId = "workspace-1",
+                packageName = "com.ciyato.launcher",
+                destinationIndex = 2,
+            ),
+        )
+
+        assertEquals(
+            listOf("com.example.one", "com.example.two", "com.ciyato.launcher", "com.example.three"),
+            result.workspaceAt(0)?.appPackages,
+        )
+        assertEquals(4, result.workspaceAt(0)?.appPackages?.distinct()?.size)
+    }
+
+    @Test
+    fun `reordering a workspace never changes its default identity`() {
+        val initial = WorkspaceStore.migrateLegacy(3, "", "", "{}", "{}", "com.ciyato.launcher")
+        val defaulted = requireNotNull(WorkspaceStore.setDefault(initial, "workspace-2"))
+        val result = requireNotNull(WorkspaceStore.reorder(defaulted, sourceIndex = 1, destinationIndex = 0))
+
+        assertEquals(listOf("workspace-2", "workspace-1"), result.visualOrder)
+        assertEquals("workspace-2", result.defaultWorkspaceId)
+        assertNotNull(WorkspaceStore.parse(WorkspaceStore.serialize(result)))
+    }
 }

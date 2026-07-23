@@ -205,6 +205,29 @@ object WorkspaceStore {
         })
     }
 
+    /**
+     * Moves one shortcut to a concrete slot in a workspace grid. The list order is the
+     * single source of truth for the grid, so a drop can never create a duplicate or a
+     * transient invalid layout.
+     */
+    fun moveAppWithinWorkspace(
+        layout: WorkspaceLayout,
+        workspaceId: String,
+        packageName: String,
+        destinationIndex: Int,
+    ): WorkspaceLayout? {
+        if (!isValid(layout) || workspaceId !in layout.visualOrder) return null
+        val workspace = layout.workspaces.firstOrNull { it.id == workspaceId } ?: return null
+        val apps = workspace.appPackages.toMutableList()
+        val sourceIndex = apps.indexOf(packageName)
+        if (sourceIndex < 0 || apps.size < 2) return null
+        val targetIndex = destinationIndex.coerceIn(0, apps.lastIndex)
+        if (sourceIndex == targetIndex) return layout
+        apps.removeAt(sourceIndex)
+        apps.add(targetIndex, packageName)
+        return withWorkspace(layout, workspace.copy(appPackages = apps))
+    }
+
     private fun isValid(layout: WorkspaceLayout): Boolean {
         val ids = layout.workspaces.map(WorkspaceRecord::id)
         val sequences = layout.workspaces.map(WorkspaceRecord::creationOrder)

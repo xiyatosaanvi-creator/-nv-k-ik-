@@ -147,6 +147,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     val useSystemWallpaper = settings.useSystemWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val ciyatoVideoWallpaper = settings.ciyatoVideoWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val ciyatoImageWallpaper = settings.ciyatoImageWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val wallpaperDim = settings.wallpaperDim.stateIn(viewModelScope, SharingStarted.Eagerly, 32)
+    val wallpaperImageScale = settings.wallpaperImageScale.stateIn(viewModelScope, SharingStarted.Eagerly, 1f)
+    val wallpaperImageOffset = settings.wallpaperImageOffset.stateIn(viewModelScope, SharingStarted.Eagerly, 0f)
     val categoryOrder      = settings.categoryOrder     .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryTilesSizes = settings.categoryTilesSizes.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")
@@ -240,6 +244,22 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         }
         settings.setCiyatoVideoWallpaper(uri)
     }
+    fun setCiyatoImageWallpaper(uri: String) = viewModelScope.launch {
+        val previous = Uri.parse(ciyatoImageWallpaper.value)
+        if (previous.toString() != uri) {
+            val privateWallpaperDirectory = File(getApplication<Application>().filesDir, "wallpapers").canonicalFile
+            val previousFile = previous.path?.let(::File)?.canonicalFile
+            if (previousFile != null && previousFile.parentFile == privateWallpaperDirectory &&
+                previousFile.name.startsWith("ciyato_image_wallpaper")
+            ) {
+                runCatching { previousFile.delete() }
+            }
+        }
+        settings.setCiyatoImageWallpaper(uri)
+    }
+    fun setWallpaperDim(value: Int) = viewModelScope.launch { settings.setWallpaperDim(value) }
+    fun setWallpaperImageScale(value: Float) = viewModelScope.launch { settings.setWallpaperImageScale(value) }
+    fun setWallpaperImageOffset(value: Float) = viewModelScope.launch { settings.setWallpaperImageOffset(value) }
     fun setCategoryOrder(v: String)        = viewModelScope.launch { settings.setCategoryOrder(v) }
     fun setCategoryTilesSizes(v: String)    = viewModelScope.launch { settings.setCategoryTilesSizes(v) }
     fun setWorkspaceLayout(v: String) = viewModelScope.launch {
@@ -701,6 +721,13 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 WorkspaceStore.withWorkspace(without, destination.copy(appPackages = destination.appPackages + packageName)) ?: without,
             )
         }
+    }
+
+    fun moveAppWithinWorkspace(pageIndex: Int, packageName: String, destinationIndex: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        WorkspaceStore.moveAppWithinWorkspace(layout, workspace.id, packageName, destinationIndex)
+            ?.let { updated -> persistWorkspaceLayout(updated) }
     }
 
     fun addWorkspace() = insertWorkspaceAt(currentWorkspaceLayout().visualOrder.size)

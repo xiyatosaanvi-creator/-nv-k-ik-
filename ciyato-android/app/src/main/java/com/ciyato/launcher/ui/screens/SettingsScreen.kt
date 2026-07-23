@@ -55,6 +55,7 @@ fun SettingsScreen(
     onNavigateToPhotos: (() -> Unit)? = null,
     onNavigateToAgenda: (() -> Unit)? = null,
     onNavigateToTheme: (() -> Unit)? = null,
+    onNavigateToWallpaper: (() -> Unit)? = null,
     onNavigateToHiddenApps: (() -> Unit)? = null,
     onNavigateToRemovedApps: (() -> Unit)? = null,
 ) {
@@ -149,7 +150,7 @@ fun SettingsScreen(
             item {
                 CiyatoListCard(
                     title = "Theme Studio",
-                    subtitle = "Color mode, font, wallpaper, home, and App Library layout",
+                    subtitle = "Typography, Home layout, and App Library layout",
                     icon = Icons.Default.Palette,
                     iconColor = CiyatoGold,
                     onClick = { onNavigateToTheme?.invoke() }
@@ -239,6 +240,15 @@ fun SettingsScreen(
                             showForgetFilesDialog = true
                         }
                     }
+                )
+            }
+            item {
+                CiyatoListCard(
+                    title = "Wallpaper Studio",
+                    subtitle = "System wallpaper, private images, and short Ciyato-only videos",
+                    icon = Icons.Default.Wallpaper,
+                    iconColor = CiyatoGold,
+                    onClick = { onNavigateToWallpaper?.invoke() },
                 )
             }
             item {

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ciyato.launcher.ui.components.CiyatoSettingSwitch
+import com.ciyato.launcher.ui.components.CiyatoListCard
 import com.ciyato.launcher.ui.components.CiyatoTopBar
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -36,12 +36,12 @@ import com.ciyato.launcher.viewmodel.LauncherViewModel
 fun ThemeStudioScreen(
     viewModel: LauncherViewModel,
     onBack: () -> Unit,
+    onOpenWallpaper: () -> Unit,
 ) {
     val homeLayoutMode by viewModel.homeLayoutMode.collectAsState()
     val denseLayout = homeLayoutMode == "dense"
     val font by viewModel.font.collectAsState()
     val fontOption = if (font in setOf("sans", "serif", "mono")) font else "sans"
-    val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
     val accent = CiyatoGold
 
     Scaffold(
@@ -93,13 +93,12 @@ fun ThemeStudioScreen(
                 )
             }
             item {
-                CiyatoSettingSwitch(
-                    title = "Use system wallpaper",
-                    subtitle = "Let your Android wallpaper show behind the launcher",
+                CiyatoListCard(
+                    title = "Wallpaper Studio",
+                    subtitle = "Choose a system wallpaper, private image, or short Ciyato-only video",
                     icon = Icons.Default.Wallpaper,
-                    checked = useSystemWallpaper,
-                    onCheckedChange = viewModel::setUseSystemWallpaper,
-                    accentColor = accent,
+                    iconColor = accent,
+                    onClick = onOpenWallpaper,
                 )
             }
 

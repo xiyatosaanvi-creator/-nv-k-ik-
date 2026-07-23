@@ -241,6 +241,7 @@ private fun LauncherRoot(
             onNavigateToPermissionAudit= { dest = LauncherDest.PermissionAudit },
             onNavigateToFocus          = { dest = LauncherDest.FocusSession },
             onNavigateToTheme          = { dest = LauncherDest.ThemeStudio },
+            onNavigateToWallpaper      = { dest = LauncherDest.WallpaperStudio },
             onNavigateToHiddenApps     = { dest = LauncherDest.HiddenApps },
             onNavigateToRemovedApps    = { dest = LauncherDest.RemovedApps },
         )
@@ -257,6 +258,7 @@ private fun LauncherRoot(
         is LauncherDest.ThemeStudio -> ThemeStudioScreen(
             viewModel = viewModel,
             onBack = { dest = LauncherDest.Home },
+            onOpenWallpaper = { dest = LauncherDest.WallpaperStudio },
         )
 
         is LauncherDest.WallpaperStudio -> WallpaperPickerScreen(

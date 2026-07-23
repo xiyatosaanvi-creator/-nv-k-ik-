@@ -52,9 +52,9 @@ verification evidence live in `V2_TRACEABILITY.md`.
 
 ## Remaining V2 Work
 
-1. Finish valid-grid reflow, deliberate group-creation hover behavior, and physical-device proof of per-action undo semantics.
+1. Validate the implemented valid-grid reorder and hover-armed cross-workspace movement on physical devices, then finish deliberate group-creation hover behavior and any remaining card-resize reflow rules.
 2. Add denial, revocation, cancellation and deletion-result coverage to the SAF Files, cleanup and internal-search flows.
-3. Finish Wallpaper Studio crop/contrast options and validate its image/video lifecycle behavior on a physical device.
+3. Finish Wallpaper Studio's optional native crop, contrast and per-workspace scope features, then validate image and video lifecycle behavior on a physical device.
 4. Finish formal behavioral coverage for every Settings control, including the persisted appearance, privacy and crash-reporting effects already wired into the current UI.
 5. Extend classifier discovery for managed work profiles and incremental package changes, then validate correction persistence on a physical device.
 6. Install a complete Android API 35/36 base SDK, update the target API, and run the behavior compatibility pass.
@@ -63,7 +63,7 @@ verification evidence live in `V2_TRACEABILITY.md`.
 ## Verification In This Slice
 
 - `assembleDebug`: passed without an emulator.
-- `testDebugUnitTest`: passed without an emulator (33 JVM tests, zero failures).
+- `testDebugUnitTest`: passed without an emulator (34 JVM tests, zero failures).
 - `git diff --check`: passed.
-- Current debug artifact: `Ciyato.apk`, 24,487,275 bytes, SHA-256 `7C62D551C6D7C38FEDFD6F102BA97EF729F5B447256A7FA2B2BFB28B2F4B774C`.
+- Current debug artifact: `Ciyato.apk`, 24,510,862 bytes, SHA-256 `3429FA733DA2F01AF79AE16369BE6270725EA7F467CF95601B15AE51FE99BA2F`.
 - Physical-device validation remains required before any completion claim.

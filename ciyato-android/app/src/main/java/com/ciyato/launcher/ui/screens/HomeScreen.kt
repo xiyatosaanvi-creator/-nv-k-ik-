@@ -37,14 +37,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -70,6 +74,7 @@ import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.ui.launcher.*
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -106,6 +111,40 @@ private val WORKSPACE_CATEGORY_CHOICES = listOf(
 )
 
 private fun workspacePagerPage(visualIndex: Int): Int = if (visualIndex == 0) 0 else visualIndex + 1
+
+private const val WORKSPACE_EDGE_DROP_THRESHOLD_PX = 120f
+private const val WORKSPACE_EDGE_HOVER_DELAY_MS = 420L
+
+private fun workspaceEdgeDropDestination(
+    sourcePage: Int,
+    horizontalOffset: Float,
+    workspaceCount: Int,
+): Int? = when {
+    horizontalOffset > WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage == 0 && workspaceCount > 2 -> 2
+    horizontalOffset > WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage >= 2 && sourcePage + 1 < workspaceCount -> sourcePage + 1
+    horizontalOffset < -WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage == 2 -> 0
+    horizontalOffset < -WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage > 2 -> sourcePage - 1
+    else -> null
+}
+
+private fun nearestWorkspaceGridTarget(
+    sourceKey: String,
+    sourceBounds: Rect?,
+    dragOffset: Offset,
+    validKeys: Set<String>,
+    boundsByKey: Map<String, Rect>,
+): String? {
+    val draggedCenter = (sourceBounds ?: return null).center + dragOffset
+    return boundsByKey
+        .asSequence()
+        .filter { (key, _) -> key != sourceKey && key in validKeys }
+        .minByOrNull { (_, bounds) ->
+            val dx = bounds.center.x - draggedCenter.x
+            val dy = bounds.center.y - draggedCenter.y
+            dx * dx + dy * dy
+        }
+        ?.key
+}
 
 private data class WorkspaceStarterTemplate(
     val title: String,
@@ -199,6 +238,10 @@ fun HomeScreen(
     var workspaceCategoryDragOffset by remember { mutableStateOf(Offset.Zero) }
     var workspaceDraggingApp by remember { mutableStateOf<String?>(null) }
     var workspaceAppDragOffset by remember { mutableStateOf(Offset.Zero) }
+    var workspaceDropTargetPage by remember { mutableStateOf<Int?>(null) }
+    var workspaceDropReady by remember { mutableStateOf(false) }
+    var workspaceAppGridDropTarget by remember { mutableStateOf<String?>(null) }
+    var workspaceAppBounds by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
     var upwardDrag by remember { mutableFloatStateOf(0f) }
     var launcherSurfaceHeight by remember { mutableFloatStateOf(0f) }
     var isDrawerGestureArmed by remember { mutableStateOf(false) }
@@ -307,6 +350,26 @@ fun HomeScreen(
         showPageAppPicker = true
     }
 
+    fun clearWorkspaceDropPreview() {
+        workspaceDropTargetPage = null
+        workspaceDropReady = false
+        workspaceAppGridDropTarget = null
+    }
+
+    LaunchedEffect(workspaceDropTargetPage, workspaceDraggingCategory, workspaceDraggingApp) {
+        val target = workspaceDropTargetPage
+        if (target == null || (workspaceDraggingCategory == null && workspaceDraggingApp == null)) {
+            workspaceDropReady = false
+            return@LaunchedEffect
+        }
+        delay(WORKSPACE_EDGE_HOVER_DELAY_MS)
+        if (workspaceDropTargetPage == target &&
+            (workspaceDraggingCategory != null || workspaceDraggingApp != null)
+        ) {
+            workspaceDropReady = true
+        }
+    }
+
     fun cancelLauncherInteraction() {
         discardLayoutEdits()
         interactionState = LauncherInteractionState.Browsing
@@ -316,6 +379,7 @@ fun HomeScreen(
         workspaceCategoryDragOffset = Offset.Zero
         workspaceDraggingApp = null
         workspaceAppDragOffset = Offset.Zero
+        clearWorkspaceDropPreview()
         upwardDrag = 0f
         showCreateCategoryDialog = false
         showPageAppPicker = false
@@ -372,6 +436,7 @@ fun HomeScreen(
                 workspaceCategoryDragOffset = Offset.Zero
                 workspaceDraggingApp = null
                 workspaceAppDragOffset = Offset.Zero
+                clearWorkspaceDropPreview()
                 interactionState = interactionState.afterBack()
             }
             interactionState != LauncherInteractionState.Browsing -> {
@@ -502,7 +567,14 @@ fun HomeScreen(
     // ── Wallpaper & Background mode ───────────────────────────────────────────
     val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
     val ciyatoVideoWallpaper by viewModel.ciyatoVideoWallpaper.collectAsState()
-    val backgroundModifier = if (useSystemWallpaper || ciyatoVideoWallpaper.isBlank() || reduceMotion) {
+    val ciyatoImageWallpaper by viewModel.ciyatoImageWallpaper.collectAsState()
+    val wallpaperDim by viewModel.wallpaperDim.collectAsState()
+    val wallpaperBlur by viewModel.wallpaperBlur.collectAsState()
+    val wallpaperImageScale by viewModel.wallpaperImageScale.collectAsState()
+    val wallpaperImageOffset by viewModel.wallpaperImageOffset.collectAsState()
+    val hasCiyatoBackground = !useSystemWallpaper &&
+        (ciyatoImageWallpaper.isNotBlank() || (ciyatoVideoWallpaper.isNotBlank() && !reduceMotion))
+    val backgroundModifier = if (!hasCiyatoBackground) {
         Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.35f))
@@ -569,6 +641,12 @@ fun HomeScreen(
         }
     }
 
+    fun performLayoutChange(message: String, change: () -> Unit) {
+        val snapshot = currentLayoutSnapshot()
+        change()
+        offerLayoutUndo(message, snapshot)
+    }
+
     Scaffold(
         containerColor = Color.Transparent, // Let system wallpaper or custom background show
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -607,9 +685,17 @@ fun HomeScreen(
                     )
                 },
         ) {
-            if (ciyatoVideoWallpaper.isNotBlank() && !reduceMotion) {
+            if (!useSystemWallpaper && ciyatoImageWallpaper.isNotBlank()) {
+                CiyatoImageBackground(
+                    uri = ciyatoImageWallpaper,
+                    scale = wallpaperImageScale,
+                    verticalOffset = wallpaperImageOffset,
+                    blurRadius = wallpaperBlur,
+                )
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = wallpaperDim / 100f)))
+            } else if (!useSystemWallpaper && ciyatoVideoWallpaper.isNotBlank() && !reduceMotion) {
                 CiyatoVideoBackground(uri = ciyatoVideoWallpaper)
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)))
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = wallpaperDim / 100f)))
             }
 
             // Swipable layout area
@@ -650,6 +736,20 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .then(workspaceTransitionModifier)
+                                .then(
+                                    if ((workspaceDraggingCategory?.startsWith("$pageIndex:") == true ||
+                                            workspaceDraggingApp?.startsWith("$pageIndex:") == true) &&
+                                        workspaceDropTargetPage != null
+                                    ) {
+                                        Modifier.border(
+                                            width = if (workspaceDropReady) 2.dp else 1.dp,
+                                            color = CiyatoGold.copy(alpha = if (workspaceDropReady) 0.88f else 0.42f),
+                                            shape = RoundedCornerShape(18.dp),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                                 .combinedClickable(
                                     onClick = {},
                                     onLongClick = {
@@ -673,10 +773,18 @@ fun HomeScreen(
                                     if (isEditMode) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                             if (workspaceCount < 11) {
-                                                TextButton(onClick = { viewModel.insertWorkspaceBeforePage(pageIndex) }) {
+                                                TextButton(onClick = {
+                                                    performLayoutChange("Workspace added") {
+                                                        viewModel.insertWorkspaceBeforePage(pageIndex)
+                                                    }
+                                                }) {
                                                     Text("Insert left", color = CiyatoSec, fontSize = 12.sp)
                                                 }
-                                                TextButton(onClick = { viewModel.insertWorkspaceAfterPage(pageIndex) }) {
+                                                TextButton(onClick = {
+                                                    performLayoutChange("Workspace added") {
+                                                        viewModel.insertWorkspaceAfterPage(pageIndex)
+                                                    }
+                                                }) {
                                                     Text("Insert right", color = CiyatoSec, fontSize = 12.sp)
                                                 }
                                             }
@@ -695,7 +803,10 @@ fun HomeScreen(
                                             ) {
                                                 Text("+ Add App", color = CiyatoGold, fontSize = 12.sp)
                                             }
-                                            TextButton(onClick = { pendingWorkspaceDeletion = pageIndex }) {
+                                            TextButton(
+                                                onClick = { pendingWorkspaceDeletion = pageIndex },
+                                                enabled = workspaceOverview.size > 1,
+                                            ) {
                                                 Text("Delete", color = CiyatoSec, fontSize = 12.sp)
                                             }
                                         }
@@ -734,6 +845,7 @@ fun HomeScreen(
                                                                     onDragStart = {
                                                                         workspaceDraggingCategory = "$pageIndex:$categoryKey"
                                                                         workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
                                                                         interactionState = LauncherInteractionState.Dragging(
                                                                             itemKey = "$pageIndex:$categoryKey",
                                                                             source = DragSource.WORKSPACE_CATEGORY,
@@ -742,30 +854,32 @@ fun HomeScreen(
                                                                     onDragCancel = {
                                                                         workspaceDraggingCategory = null
                                                                         workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
                                                                         interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                     },
                                                                     onDragEnd = {
-                                                                        workspaceDraggingCategory = null
-                                                                        workspaceCategoryDragOffset = Offset.Zero
-                                                                        interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
-                                                                    },
-                                                                    onDrag = { _, dragAmount ->
-                                                                        workspaceCategoryDragOffset += dragAmount
-                                                                        val destination = when {
-                                                                            workspaceCategoryDragOffset.x > 132f && pageIndex >= 2 && pageIndex + 1 < workspaceCount -> pageIndex + 1
-                                                                            workspaceCategoryDragOffset.x < -132f && pageIndex == 2 -> 0
-                                                                            workspaceCategoryDragOffset.x < -132f && pageIndex > 2 -> pageIndex - 1
-                                                                            workspaceCategoryDragOffset.x > 132f && pageIndex == 0 -> 2
-                                                                            else -> null
-                                                                        }
+                                                                        val destination = workspaceDropTargetPage.takeIf { workspaceDropReady }
                                                                         if (destination != null) {
                                                                             val undoSnapshot = currentLayoutSnapshot()
                                                                             viewModel.moveCategoryBetweenWorkspaces(pageIndex, destination, categoryKey)
                                                                             offerLayoutUndo("Category moved", undoSnapshot)
                                                                             workspaceScope.launch { pagerState.animateScrollToPage(destination) }
-                                                                            workspaceDraggingCategory = null
-                                                                            workspaceCategoryDragOffset = Offset.Zero
-                                                                            interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
+                                                                        }
+                                                                        workspaceDraggingCategory = null
+                                                                        workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
+                                                                        interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
+                                                                    },
+                                                                    onDrag = { _, dragAmount ->
+                                                                        workspaceCategoryDragOffset += dragAmount
+                                                                        val destination = workspaceEdgeDropDestination(
+                                                                            sourcePage = pageIndex,
+                                                                            horizontalOffset = workspaceCategoryDragOffset.x,
+                                                                            workspaceCount = workspaceCount,
+                                                                        )
+                                                                        if (destination != workspaceDropTargetPage) {
+                                                                            workspaceDropTargetPage = destination
+                                                                            workspaceDropReady = false
                                                                         }
                                                                     },
                                                                 )
@@ -829,9 +943,24 @@ fun HomeScreen(
                                         rowApps.forEach { app ->
                                             val workspaceAppKey = "$pageIndex:${app.packageName}"
                                             val isWorkspaceAppDragging = workspaceDraggingApp == workspaceAppKey
+                                            val isWorkspaceGridDropTarget = workspaceAppGridDropTarget == workspaceAppKey &&
+                                                !isWorkspaceAppDragging
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        val bounds = coordinates.boundsInRoot()
+                                                        if (workspaceAppBounds[workspaceAppKey] != bounds) {
+                                                            workspaceAppBounds = workspaceAppBounds + (workspaceAppKey to bounds)
+                                                        }
+                                                    }
+                                                    .then(
+                                                        if (isWorkspaceGridDropTarget) {
+                                                            Modifier.border(2.dp, CiyatoGold, RoundedCornerShape(14.dp))
+                                                        } else {
+                                                            Modifier
+                                                        },
+                                                    )
                                                     .graphicsLayer {
                                                         if (isWorkspaceAppDragging) {
                                                             translationX = workspaceAppDragOffset.x
@@ -847,6 +976,7 @@ fun HomeScreen(
                                                                 onDragStart = {
                                                                     workspaceDraggingApp = workspaceAppKey
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
                                                                     interactionState = LauncherInteractionState.Dragging(
                                                                         itemKey = workspaceAppKey,
                                                                         source = DragSource.WORKSPACE_APP,
@@ -855,30 +985,55 @@ fun HomeScreen(
                                                                 onDragCancel = {
                                                                     workspaceDraggingApp = null
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
                                                                     interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                 },
                                                                 onDragEnd = {
+                                                                    val destination = workspaceDropTargetPage.takeIf { workspaceDropReady }
+                                                                    val targetKey = workspaceAppGridDropTarget
+                                                                    when {
+                                                                        destination != null -> {
+                                                                            val undoSnapshot = currentLayoutSnapshot()
+                                                                            viewModel.moveAppBetweenWorkspaces(pageIndex, destination, app.packageName)
+                                                                            offerLayoutUndo("Shortcut moved", undoSnapshot)
+                                                                            workspaceScope.launch { pagerState.animateScrollToPage(destination) }
+                                                                        }
+                                                                        targetKey != null && targetKey != workspaceAppKey -> {
+                                                                            val targetPackage = targetKey.removePrefix("$pageIndex:")
+                                                                            val destinationIndex = pageApps.indexOfFirst { it.packageName == targetPackage }
+                                                                            if (destinationIndex >= 0) {
+                                                                                val undoSnapshot = currentLayoutSnapshot()
+                                                                                viewModel.moveAppWithinWorkspace(pageIndex, app.packageName, destinationIndex)
+                                                                                offerLayoutUndo("Shortcut reordered", undoSnapshot)
+                                                                            }
+                                                                        }
+                                                                    }
                                                                     workspaceDraggingApp = null
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
                                                                     interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                 },
                                                                 onDrag = { _, dragAmount ->
                                                                     workspaceAppDragOffset += dragAmount
-                                                                    val destination = when {
-                                                                        workspaceAppDragOffset.x > 88f && pageIndex >= 2 && pageIndex + 1 < workspaceCount -> pageIndex + 1
-                                                                        workspaceAppDragOffset.x < -88f && pageIndex == 2 -> 0
-                                                                        workspaceAppDragOffset.x < -88f && pageIndex > 2 -> pageIndex - 1
-                                                                        workspaceAppDragOffset.x > 88f && pageIndex == 0 -> 2
-                                                                        else -> null
+                                                                    val destination = workspaceEdgeDropDestination(
+                                                                        sourcePage = pageIndex,
+                                                                        horizontalOffset = workspaceAppDragOffset.x,
+                                                                        workspaceCount = workspaceCount,
+                                                                    )
+                                                                    if (destination != workspaceDropTargetPage) {
+                                                                        workspaceDropTargetPage = destination
+                                                                        workspaceDropReady = false
                                                                     }
-                                                                    if (destination != null) {
-                                                                        val undoSnapshot = currentLayoutSnapshot()
-                                                                        viewModel.moveAppBetweenWorkspaces(pageIndex, destination, app.packageName)
-                                                                        offerLayoutUndo("Shortcut moved", undoSnapshot)
-                                                                        workspaceScope.launch { pagerState.animateScrollToPage(destination) }
-                                                                        workspaceDraggingApp = null
-                                                                        workspaceAppDragOffset = Offset.Zero
-                                                                        interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
+                                                                    workspaceAppGridDropTarget = if (destination == null) {
+                                                                        nearestWorkspaceGridTarget(
+                                                                            sourceKey = workspaceAppKey,
+                                                                            sourceBounds = workspaceAppBounds[workspaceAppKey],
+                                                                            dragOffset = workspaceAppDragOffset,
+                                                                            validKeys = pageApps.map { "$pageIndex:${it.packageName}" }.toSet(),
+                                                                            boundsByKey = workspaceAppBounds,
+                                                                        )
+                                                                    } else {
+                                                                        null
                                                                     }
                                                                 },
                                                             )
@@ -2055,7 +2210,9 @@ fun HomeScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.removeWorkspace(pageIndex, pendingWorkspaceMoveDestination)
+                        performLayoutChange("Workspace deleted") {
+                            viewModel.removeWorkspace(pageIndex, pendingWorkspaceMoveDestination)
+                        }
                         pendingWorkspaceDeletion = null
                         pendingWorkspaceMoveDestination = null
                     }) { Text("Delete workspace", color = CiyatoRed) }
@@ -2083,12 +2240,30 @@ fun HomeScreen(
                     workspaceNameDraft = workspaceOverview.getOrNull(visualIndex)?.name.orEmpty()
                 },
                 onMove = { visualIndex, delta ->
-                    viewModel.reorderWorkspace(visualIndex, visualIndex + delta)
+                    performLayoutChange("Workspace reordered") {
+                        viewModel.reorderWorkspace(visualIndex, visualIndex + delta)
+                    }
                 },
-                onDuplicate = { visualIndex -> viewModel.duplicateWorkspace(workspacePagerPage(visualIndex)) },
-                onInsertBefore = { visualIndex -> viewModel.insertWorkspaceAt(visualIndex) },
-                onInsertAfter = { visualIndex -> viewModel.insertWorkspaceAt(visualIndex + 1) },
-                onSetDefault = { visualIndex -> viewModel.setDefaultWorkspace(workspacePagerPage(visualIndex)) },
+                onDuplicate = { visualIndex ->
+                    performLayoutChange("Workspace duplicated") {
+                        viewModel.duplicateWorkspace(workspacePagerPage(visualIndex))
+                    }
+                },
+                onInsertBefore = { visualIndex ->
+                    performLayoutChange("Workspace added") {
+                        viewModel.insertWorkspaceAt(visualIndex)
+                    }
+                },
+                onInsertAfter = { visualIndex ->
+                    performLayoutChange("Workspace added") {
+                        viewModel.insertWorkspaceAt(visualIndex + 1)
+                    }
+                },
+                onSetDefault = { visualIndex ->
+                    performLayoutChange("Default workspace changed") {
+                        viewModel.setDefaultWorkspace(workspacePagerPage(visualIndex))
+                    }
+                },
                 onEditWallpaper = {
                     showWorkspaceOverview = false
                     cancelLauncherInteraction()
@@ -2119,7 +2294,9 @@ fun HomeScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            viewModel.renameWorkspace(pageIndex, workspaceNameDraft)
+                            performLayoutChange("Workspace renamed") {
+                                viewModel.renameWorkspace(pageIndex, workspaceNameDraft)
+                            }
                             workspaceRenamePage = null
                         },
                         enabled = workspaceNameDraft.isNotBlank(),
@@ -2188,7 +2365,9 @@ fun HomeScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            viewModel.applyWorkspaceTemplate(pageIndex, template.categoryKeys)
+                            performLayoutChange("Workspace template applied") {
+                                viewModel.applyWorkspaceTemplate(pageIndex, template.categoryKeys)
+                            }
                             pendingWorkspaceTemplate = null
                             pendingWorkspaceTemplatePage = null
                         }) { Text("Apply template", color = CiyatoGold) }
@@ -2806,6 +2985,28 @@ private fun CiyatoVideoBackground(uri: String) {
             videoView = null
         }
     }
+}
+
+@Composable
+private fun CiyatoImageBackground(
+    uri: String,
+    scale: Float,
+    verticalOffset: Float,
+    blurRadius: Int,
+) {
+    AsyncImage(
+        model = Uri.parse(uri),
+        contentDescription = null,
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = size.height * verticalOffset * 0.18f
+            }
+            .blur(blurRadius.dp),
+    )
 }
 
 private fun currentTimeString(): String =

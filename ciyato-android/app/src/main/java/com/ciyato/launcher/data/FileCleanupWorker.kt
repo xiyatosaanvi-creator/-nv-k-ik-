@@ -216,6 +216,22 @@ data class CleanupAnalysisResult(
     val reclaimableBytes: Long get() = groups.sumOf(DuplicateCleanupGroup::reclaimableBytes)
 }
 
+/**
+ * Returns only the copies a person has explicitly selected for removal. Every group must
+ * retain one valid URI, otherwise that group contributes no deletion candidates.
+ */
+fun plannedDuplicateDeletions(
+    groups: List<DuplicateCleanupGroup>,
+    keptUris: Map<Int, String>,
+): List<CleanupFileRef> = groups.flatMapIndexed { groupIndex, group ->
+    val keptUri = keptUris[groupIndex]
+    if (keptUri !in group.files.map(CleanupFileRef::uri)) {
+        emptyList()
+    } else {
+        group.files.filterNot { it.uri == keptUri }
+    }
+}.distinctBy(CleanupFileRef::uri)
+
 /** Small private persistence store used for safe restart/cancellation recovery. */
 object FileCleanupResultStore {
     private const val PREFERENCES = "ciyato_file_cleanup"
@@ -278,6 +294,10 @@ object FileCleanupResultStore {
 
     fun clearCheckpoint(context: Context, rootUri: String) {
         prefs(context).edit().remove(CHECKPOINT_PREFIX + rootUri).apply()
+    }
+
+    fun clearResult(context: Context, rootUri: String) {
+        prefs(context).edit().remove(RESULT_PREFIX + rootUri).apply()
     }
 
     private fun decodeGroups(array: JSONArray): List<DuplicateCleanupGroup> = buildList {

@@ -13,12 +13,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Article
@@ -38,7 +42,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -47,6 +53,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,14 +78,18 @@ import com.ciyato.launcher.ui.theme.CiyatoRed
 import com.ciyato.launcher.ui.theme.CiyatoSec
 import com.ciyato.launcher.ui.theme.CiyatoWhite
 import com.ciyato.launcher.data.CleanupAnalysisResult
+import com.ciyato.launcher.data.CleanupFileRef
+import com.ciyato.launcher.data.DuplicateCleanupGroup
 import com.ciyato.launcher.data.FileCleanupResultStore
 import com.ciyato.launcher.data.FileCleanupWorker
 import com.ciyato.launcher.data.FileSearchIndexEntry
+import com.ciyato.launcher.data.plannedDuplicateDeletions
 import com.ciyato.launcher.viewmodel.LauncherViewModel
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
@@ -131,6 +142,8 @@ fun FilesScreen(viewModel: LauncherViewModel, onBack: () -> Unit) {
     var cleanupWorkId by remember(rootUri) { mutableStateOf<UUID?>(null) }
     var cleanupProgress by remember(rootUri) { mutableStateOf(0 to 0) }
     var cleanupError by remember(rootUri) { mutableStateOf<String?>(null) }
+    var cleanupNotice by remember(rootUri) { mutableStateOf<String?>(null) }
+    var showDuplicateReview by remember(rootUri, cleanupResult?.completedAt) { mutableStateOf(false) }
 
     LaunchedEffect(cleanupWorkId) {
         val workId = cleanupWorkId ?: return@LaunchedEffect
@@ -207,6 +220,7 @@ fun FilesScreen(viewModel: LauncherViewModel, onBack: () -> Unit) {
         cleanupResult = cleanupResult,
         cleanupProgress = cleanupProgress,
         cleanupError = cleanupError,
+        cleanupNotice = cleanupNotice,
         isCleanupScanning = cleanupWorkId != null,
         onBack = onBack,
         onOpenBrowser = { showBrowser = true },
@@ -216,11 +230,32 @@ fun FilesScreen(viewModel: LauncherViewModel, onBack: () -> Unit) {
         onScanDuplicates = {
             rootUri?.let { uri ->
                 cleanupError = null
+                cleanupNotice = null
                 cleanupProgress = 0 to 0
                 cleanupWorkId = FileCleanupWorker.enqueue(context, uri).id
             }
         },
+        onReviewDuplicates = { showDuplicateReview = true },
     )
+
+    val resultForReview = cleanupResult
+    if (showDuplicateReview && rootUri != null && resultForReview != null) {
+        DuplicateCleanupReviewDialog(
+            result = resultForReview,
+            onDismiss = { showDuplicateReview = false },
+            onDeletionFinished = { deletion ->
+                showDuplicateReview = false
+                FileCleanupResultStore.clearResult(context, rootUri.toString())
+                cleanupResult = null
+                refreshNonce += 1
+                cleanupNotice = when {
+                    deletion.deleted.isEmpty() -> "No files were removed. Check folder access and try again."
+                    deletion.failed.isEmpty() -> "Removed ${deletion.deleted.size} selected duplicate ${if (deletion.deleted.size == 1) "copy" else "copies"}. Run another scan to verify the folder."
+                    else -> "Removed ${deletion.deleted.size} selected ${if (deletion.deleted.size == 1) "copy" else "copies"}; ${deletion.failed.size} could not be removed because Android no longer allowed it."
+                }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,11 +268,13 @@ private fun FilesHomeContent(
     cleanupResult: CleanupAnalysisResult?,
     cleanupProgress: Pair<Int, Int>,
     cleanupError: String?,
+    cleanupNotice: String?,
     isCleanupScanning: Boolean,
     onBack: () -> Unit,
     onOpenBrowser: () -> Unit,
     onRefresh: () -> Unit,
     onScanDuplicates: () -> Unit,
+    onReviewDuplicates: () -> Unit,
 ) {
     val categories = remember(scan) { scan?.let(::buildCategories).orEmpty() }
     val recentFiles = remember(scan) { scan?.files?.sortedByDescending(AccessibleFile::modifiedAt)?.take(6).orEmpty() }
@@ -327,9 +364,11 @@ private fun FilesHomeContent(
                             cleanupResult = cleanupResult,
                             cleanupProgress = cleanupProgress,
                             cleanupError = cleanupError,
+                            cleanupNotice = cleanupNotice,
                             isCleanupScanning = isCleanupScanning,
                             onScanDuplicates = onScanDuplicates,
                             onOpenBrowser = onOpenBrowser,
+                            onReviewDuplicates = onReviewDuplicates,
                         )
                     }
                 }
@@ -454,9 +493,11 @@ private fun CleanupReviewCard(
     cleanupResult: CleanupAnalysisResult?,
     cleanupProgress: Pair<Int, Int>,
     cleanupError: String?,
+    cleanupNotice: String?,
     isCleanupScanning: Boolean,
     onScanDuplicates: () -> Unit,
     onOpenBrowser: () -> Unit,
+    onReviewDuplicates: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = CiyatoBgEl),
@@ -477,6 +518,7 @@ private fun CleanupReviewCard(
                         lineHeight = 19.sp,
                     )
                 }
+                cleanupNotice != null -> Text(cleanupNotice, color = CiyatoGreen, fontSize = 13.sp, lineHeight = 19.sp)
                 cleanupError != null -> Text(cleanupError, color = CiyatoRed, fontSize = 13.sp, lineHeight = 19.sp)
                 cleanupResult != null && cleanupResult.groups.isNotEmpty() -> {
                     Text(
@@ -539,10 +581,185 @@ private fun CleanupReviewCard(
                 Text(if (cleanupResult == null) "Scan duplicate candidates" else "Scan again")
             }
             if (cleanupResult?.groups?.isNotEmpty() == true) {
-                Text("Open Files Browser to review files individually. Ciyato never removes them automatically.", color = CiyatoMuted, fontSize = 12.sp)
+                Text(
+                    "Choose exactly which copy to keep before Ciyato asks Android to remove any selected duplicate.",
+                    color = CiyatoMuted,
+                    fontSize = 12.sp,
+                )
+                TextButton(onClick = onReviewDuplicates) {
+                    Text("Review verified duplicates", color = CiyatoGold)
+                }
             }
         }
     }
+}
+
+private data class DuplicateDeletionResult(
+    val deleted: List<CleanupFileRef>,
+    val failed: List<CleanupFileRef>,
+)
+
+@Composable
+private fun DuplicateCleanupReviewDialog(
+    result: CleanupAnalysisResult,
+    onDismiss: () -> Unit,
+    onDeletionFinished: (DuplicateDeletionResult) -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var keptUris by remember(result.completedAt) {
+        mutableStateOf(result.groups.mapIndexedNotNull { index, group ->
+            group.files.firstOrNull()?.uri?.let { index to it }
+        }.toMap())
+    }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
+    var deletionError by remember { mutableStateOf<String?>(null) }
+    val deletionTargets = remember(result.groups, keptUris) {
+        plannedDuplicateDeletions(result.groups, keptUris)
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!isDeleting) onDismiss() },
+        containerColor = CiyatoBgEl,
+        title = { Text("Review verified duplicates", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    "Each group has matching SHA-256 content. Select one copy to keep in every group. Ciyato will ask Android to delete only the remaining copies you confirm.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                )
+                result.groups.forEachIndexed { groupIndex, group ->
+                    DuplicateGroupReviewCard(
+                        groupIndex = groupIndex,
+                        group = group,
+                        keptUri = keptUris[groupIndex],
+                        onKeep = { uri -> keptUris = keptUris + (groupIndex to uri) },
+                    )
+                }
+                deletionError?.let { Text(it, color = CiyatoRed, fontSize = 12.sp, lineHeight = 18.sp) }
+                Text(
+                    "${deletionTargets.size} selected duplicate ${if (deletionTargets.size == 1) "copy" else "copies"} can be removed after confirmation.",
+                    color = CiyatoMuted,
+                    fontSize = 12.sp,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { showDeleteConfirmation = true },
+                enabled = deletionTargets.isNotEmpty() && !isDeleting,
+            ) {
+                Text(if (isDeleting) "Removing..." else "Delete selected copies", color = CiyatoRed)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isDeleting) { Text("Cancel", color = CiyatoSec) }
+        },
+    )
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) showDeleteConfirmation = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Delete selected copies?", color = CiyatoWhite, fontWeight = FontWeight.SemiBold) },
+            text = {
+                Text(
+                    "Android will be asked to permanently delete ${deletionTargets.size} selected duplicate ${if (deletionTargets.size == 1) "copy" else "copies"}. This cannot be undone.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        isDeleting = true
+                        scope.launch {
+                            val outcome = deleteReviewedDuplicates(context, deletionTargets)
+                            isDeleting = false
+                            showDeleteConfirmation = false
+                            if (outcome.deleted.isNotEmpty()) {
+                                onDeletionFinished(outcome)
+                            } else {
+                                deletionError = "Android could not remove the selected files. Their folder access may have changed."
+                            }
+                        }
+                    },
+                    enabled = !isDeleting,
+                ) { Text("Delete permanently", color = CiyatoRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }, enabled = !isDeleting) {
+                    Text("Keep files", color = CiyatoSec)
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun DuplicateGroupReviewCard(
+    groupIndex: Int,
+    group: DuplicateCleanupGroup,
+    keptUri: String?,
+    onKeep: (String) -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = CiyatoBgEl2),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Duplicate group ${groupIndex + 1}: ${group.files.size} copies, ${formatScopeBytes(group.bytesPerFile)} each",
+                color = CiyatoWhite,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            group.files.forEach { file ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onKeep(file.uri) }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = keptUri == file.uri, onClick = { onKeep(file.uri) })
+                    Column(Modifier.weight(1f)) {
+                        Text(file.name, color = CiyatoSec, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (keptUri == file.uri) "Keep this copy" else "Selected for deletion", color = CiyatoMuted, fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private suspend fun deleteReviewedDuplicates(
+    context: Context,
+    files: List<CleanupFileRef>,
+): DuplicateDeletionResult = withContext(Dispatchers.IO) {
+    val deleted = mutableListOf<CleanupFileRef>()
+    val failed = mutableListOf<CleanupFileRef>()
+    files.distinctBy(CleanupFileRef::uri).forEach { file ->
+        val didDelete = runCatching {
+            DocumentFile.fromSingleUri(context, Uri.parse(file.uri))
+                ?.takeIf(DocumentFile::canWrite)
+                ?.delete() == true
+        }.getOrDefault(false)
+        if (didDelete) deleted += file else failed += file
+    }
+    DuplicateDeletionResult(deleted = deleted, failed = failed)
 }
 
 @Composable

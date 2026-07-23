@@ -151,6 +151,10 @@ class LauncherSettingsRepository(private val context: Context) {
         // ── Custom Layout Settings ──
         val KEY_USE_SYSTEM_WALLPAPER   = booleanPreferencesKey("use_system_wallpaper")
         val KEY_CIYATO_VIDEO_WALLPAPER = stringPreferencesKey("ciyato_video_wallpaper")
+        val KEY_CIYATO_IMAGE_WALLPAPER = stringPreferencesKey("ciyato_image_wallpaper")
+        val KEY_WALLPAPER_DIM          = intPreferencesKey("wallpaper_dim")
+        val KEY_WALLPAPER_IMAGE_SCALE  = floatPreferencesKey("wallpaper_image_scale")
+        val KEY_WALLPAPER_IMAGE_OFFSET = floatPreferencesKey("wallpaper_image_offset")
         val KEY_CATEGORY_ORDER         = stringPreferencesKey("category_order")
         val KEY_CATEGORY_TILES_SIZES   = stringPreferencesKey("category_tiles_sizes")
         val KEY_CUSTOM_CATEGORIES     = stringPreferencesKey("custom_categories")
@@ -258,6 +262,10 @@ class LauncherSettingsRepository(private val context: Context) {
 
     val useSystemWallpaper:     Flow<Boolean> = pref(KEY_USE_SYSTEM_WALLPAPER,    true)
     val ciyatoVideoWallpaper:   Flow<String>  = pref(KEY_CIYATO_VIDEO_WALLPAPER,  "")
+    val ciyatoImageWallpaper:   Flow<String>  = pref(KEY_CIYATO_IMAGE_WALLPAPER,  "")
+    val wallpaperDim:           Flow<Int>     = pref(KEY_WALLPAPER_DIM,           32)
+    val wallpaperImageScale:    Flow<Float>   = pref(KEY_WALLPAPER_IMAGE_SCALE,   1f)
+    val wallpaperImageOffset:   Flow<Float>   = pref(KEY_WALLPAPER_IMAGE_OFFSET,  0f)
     val categoryOrder:          Flow<String>  = pref(KEY_CATEGORY_ORDER,         "")
     val categoryTilesSizes:     Flow<String>  = pref(KEY_CATEGORY_TILES_SIZES,     "{}")
     val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
@@ -367,6 +375,10 @@ class LauncherSettingsRepository(private val context: Context) {
 
     suspend fun setUseSystemWallpaper(v: Boolean)      = set(KEY_USE_SYSTEM_WALLPAPER,     v)
     suspend fun setCiyatoVideoWallpaper(v: String)     = set(KEY_CIYATO_VIDEO_WALLPAPER,   v)
+    suspend fun setCiyatoImageWallpaper(v: String)     = set(KEY_CIYATO_IMAGE_WALLPAPER,   v)
+    suspend fun setWallpaperDim(v: Int)                = set(KEY_WALLPAPER_DIM,            v.coerceIn(0, 80))
+    suspend fun setWallpaperImageScale(v: Float)       = set(KEY_WALLPAPER_IMAGE_SCALE,    v.coerceIn(1f, 1.6f))
+    suspend fun setWallpaperImageOffset(v: Float)      = set(KEY_WALLPAPER_IMAGE_OFFSET,   v.coerceIn(-1f, 1f))
     suspend fun setCategoryOrder(v: String)            = set(KEY_CATEGORY_ORDER,           v)
     suspend fun setCategoryTilesSizes(v: String)        = set(KEY_CATEGORY_TILES_SIZES,       v)
     suspend fun setCustomCategories(v: String)          = set(KEY_CUSTOM_CATEGORIES,         v)

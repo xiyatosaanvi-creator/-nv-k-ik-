@@ -150,7 +150,15 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("theme") {
-                        ThemeStudioScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                        ThemeStudioScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onOpenWallpaper = { navController.navigate("wallpaper") },
+                        )
+                    }
+
+                    composable("wallpaper") {
+                        WallpaperPickerScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
                     }
 
                     composable("settings") {
@@ -161,6 +169,7 @@ class MainActivity : ComponentActivity() {
                             onNavigateToPhotos = { navController.navigate("photos") },
                             onNavigateToAgenda = { navController.navigate("agenda") },
                             onNavigateToTheme = { navController.navigate("theme") },
+                            onNavigateToWallpaper = { navController.navigate("wallpaper") },
                             onNavigateToHiddenApps = { navController.navigate("hidden_apps") },
                             onNavigateToRemovedApps = { navController.navigate("removed_apps") },
                             onNavigateToPermissionAudit = { navController.navigate("permission_audit") },
