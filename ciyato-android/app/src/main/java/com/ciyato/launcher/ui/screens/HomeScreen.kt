@@ -1,13 +1,22 @@
 package com.ciyato.launcher.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.widget.VideoView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -24,20 +33,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,13 +60,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import android.view.WindowManager
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.CustomCategoryPresentation
 import com.ciyato.launcher.data.FocusSessionManager
 import com.ciyato.launcher.data.InstalledApp
+import com.ciyato.launcher.data.WorkspaceRecord
 import com.ciyato.launcher.ui.components.*
+import com.ciyato.launcher.ui.launcher.*
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -87,7 +110,73 @@ private val WORKSPACE_CATEGORY_CHOICES = listOf(
     AppCategory.CONTACTS,
 )
 
-@OptIn(ExperimentalFoundationApi::class)
+private fun workspacePagerPage(visualIndex: Int): Int = if (visualIndex == 0) 0 else visualIndex + 1
+
+private const val WORKSPACE_EDGE_DROP_THRESHOLD_PX = 120f
+private const val WORKSPACE_EDGE_HOVER_DELAY_MS = 420L
+
+private fun workspaceEdgeDropDestination(
+    sourcePage: Int,
+    horizontalOffset: Float,
+    workspaceCount: Int,
+): Int? = when {
+    horizontalOffset > WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage == 0 && workspaceCount > 2 -> 2
+    horizontalOffset > WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage >= 2 && sourcePage + 1 < workspaceCount -> sourcePage + 1
+    horizontalOffset < -WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage == 2 -> 0
+    horizontalOffset < -WORKSPACE_EDGE_DROP_THRESHOLD_PX && sourcePage > 2 -> sourcePage - 1
+    else -> null
+}
+
+private fun nearestWorkspaceGridTarget(
+    sourceKey: String,
+    sourceBounds: Rect?,
+    dragOffset: Offset,
+    validKeys: Set<String>,
+    boundsByKey: Map<String, Rect>,
+): String? {
+    val draggedCenter = (sourceBounds ?: return null).center + dragOffset
+    return boundsByKey
+        .asSequence()
+        .filter { (key, _) -> key != sourceKey && key in validKeys }
+        .minByOrNull { (_, bounds) ->
+            val dx = bounds.center.x - draggedCenter.x
+            val dy = bounds.center.y - draggedCenter.y
+            dx * dx + dy * dy
+        }
+        ?.key
+}
+
+private data class WorkspaceStarterTemplate(
+    val title: String,
+    val description: String,
+    val categoryKeys: List<String>,
+)
+
+private data class LayoutEditSnapshot(
+    val categoryOrder: String,
+    val tileSizes: String,
+    val workspaceLayout: String,
+    val customCategories: String,
+    val customCategoryIcons: String,
+    val customCategoryPresentations: String,
+    val appCategoryOverrides: String,
+    val hiddenHomeCategories: String,
+)
+
+private val WORKSPACE_STARTER_TEMPLATES = listOf(
+    WorkspaceStarterTemplate(
+        title = "Focus",
+        description = "Add Work and Productivity categories without pinning any apps.",
+        categoryKeys = listOf(AppCategory.WORK.name, AppCategory.PRODUCTIVITY.name),
+    ),
+    WorkspaceStarterTemplate(
+        title = "Personal",
+        description = "Add Daily and Social categories without pinning any apps.",
+        categoryKeys = listOf(AppCategory.DAILY.name, AppCategory.SOCIAL.name),
+    ),
+)
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: LauncherViewModel,
@@ -103,24 +192,24 @@ fun HomeScreen(
     val apps              by viewModel.apps.collectAsState()
     val isLoading         by viewModel.isLoading.collectAsState()
     val denseLayout       by viewModel.denseLayout.collectAsState()
+    val homeLayoutMode    by viewModel.homeLayoutMode.collectAsState()
     val showSmartCategories by viewModel.smartCategories.collectAsState()
     val goldAccentEnabled by viewModel.goldAccent.collectAsState()
     val homeTipDismissed by viewModel.homeTipDismissed.collectAsState()
     val dockPackages by viewModel.dockPackages.collectAsState()
-    val page0Apps by viewModel.page0Apps.collectAsState()
-    val page2Apps by viewModel.page2Apps.collectAsState()
     val workspaceCount by viewModel.workspaceCount.collectAsState()
-    val workspaceApps by viewModel.workspaceApps.collectAsState()
-    val workspaceCategories by viewModel.workspaceCategories.collectAsState()
+    val workspaceLayoutV2 by viewModel.workspaceLayoutV2.collectAsState()
     val toastEvent        by viewModel.toastEvent.collectAsState()
     val weatherState      by viewModel.weatherState.collectAsState()
     val timeAwareLayout   by viewModel.timeAwareLayout.collectAsState()
     val hapticEnabled     by viewModel.hapticFeedback.collectAsState()
+    val reduceMotion      by viewModel.reduceMotion.collectAsState()
     val showRecentLaunched by viewModel.showRecentlyLaunched.collectAsState()
     val showHomeGreeting by viewModel.showHomeGreeting.collectAsState()
     val showHomeSearch by viewModel.showHomeSearch.collectAsState()
     val showHomeWeather by viewModel.showHomeWeather.collectAsState()
     val showHomeAgenda by viewModel.showHomeAgenda.collectAsState()
+    val showHomeDock by viewModel.showHomeDock.collectAsState()
     val showAppDrawer by viewModel.showAppDrawer.collectAsState()
     val workspaceTransition by viewModel.workspaceTransition.collectAsState()
     val hiddenHomeCategories by viewModel.hiddenHomeCategories.collectAsState()
@@ -132,43 +221,245 @@ fun HomeScreen(
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
 
-    var contextMenuApp by remember { mutableStateOf<InstalledApp?>(null) }
-    var isEditMode by remember { mutableStateOf(false) }
-    var showLauncherControls by remember { mutableStateOf(false) }
+    var interactionState by remember { mutableStateOf<LauncherInteractionState>(LauncherInteractionState.Browsing) }
+    val isEditMode = interactionState.isEditing
+    val showLauncherControls = (interactionState as? LauncherInteractionState.LayoutEditing)
+        ?.isControlSheetVisible == true
+    val contextMenuApp = (interactionState as? LauncherInteractionState.ItemSelected)
+        ?.packageName
+        ?.let { packageName -> apps.firstOrNull { it.packageName == packageName } }
+    val selectedCustomCategory = (interactionState as? LauncherInteractionState.CategoryEditor)?.categoryKey
+    val pendingCategoryRemoval = (interactionState as? LauncherInteractionState.Confirmation)
+        ?.action as? LauncherConfirmation.RemoveCategory
+    val categoryPendingDelete = pendingCategoryRemoval?.categoryKey
     var draggingCategory by remember { mutableStateOf<String?>(null) }
     var categoryDragOffset by remember { mutableStateOf(Offset.Zero) }
     var workspaceDraggingCategory by remember { mutableStateOf<String?>(null) }
     var workspaceCategoryDragOffset by remember { mutableStateOf(Offset.Zero) }
     var workspaceDraggingApp by remember { mutableStateOf<String?>(null) }
     var workspaceAppDragOffset by remember { mutableStateOf(Offset.Zero) }
-    var selectedCustomCategory by remember { mutableStateOf<String?>(null) }
-    var categoryPendingDelete by remember { mutableStateOf<String?>(null) }
+    var workspaceDropTargetPage by remember { mutableStateOf<Int?>(null) }
+    var workspaceDropReady by remember { mutableStateOf(false) }
+    var workspaceAppGridDropTarget by remember { mutableStateOf<String?>(null) }
+    var workspaceAppBounds by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
     var upwardDrag by remember { mutableFloatStateOf(0f) }
-
-    BackHandler(enabled = isEditMode) { isEditMode = false }
+    var launcherSurfaceHeight by remember { mutableFloatStateOf(0f) }
+    var isDrawerGestureArmed by remember { mutableStateOf(false) }
 
     // Custom categories & order
     val customCats by viewModel.customCategories.collectAsState()
     val customCategoryIcons by viewModel.customCategoryIcons.collectAsState()
+    val customCategoryPresentations by viewModel.customCategoryPresentations.collectAsState()
+    val appCategoryOverrides by viewModel.appCategoryOverrides.collectAsState()
     val customCatsList = remember(customCats) {
         customCats.split(",").map(String::trim).filter(String::isNotEmpty)
     }
 
     val categoryOrderVal by viewModel.categoryOrder.collectAsState()
     val categoryTilesSizesVal by viewModel.categoryTilesSizes.collectAsState()
+    var layoutEditSnapshot by remember { mutableStateOf<LayoutEditSnapshot?>(null) }
 
     // Dialog state for creating a custom category
     var showCreateCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     var newCategoryIcon by remember { mutableStateOf("folder") }
+    var newCategoryPresentation by remember { mutableStateOf(CustomCategoryPresentation.GROUP) }
 
     // Dialog state for picking apps for custom pages
     var showPageAppPicker by remember { mutableStateOf(false) }
     var pickerPageIndex by remember { mutableStateOf(0) }
+    var pageAppPickerQuery by remember { mutableStateOf("") }
+    var pageAppPickerSelection by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showWorkspaceCategoryPicker by remember { mutableStateOf(false) }
     var workspaceCategoryPickerIndex by remember { mutableStateOf(0) }
+    var pendingWorkspaceDeletion by remember { mutableStateOf<Int?>(null) }
+    var pendingWorkspaceMoveDestination by remember { mutableStateOf<Int?>(null) }
+    var showWorkspaceOverview by remember { mutableStateOf(false) }
+    var showDockManager by remember { mutableStateOf(false) }
+    var workspaceRenamePage by remember { mutableStateOf<Int?>(null) }
+    var workspaceNameDraft by remember { mutableStateOf("") }
+    var workspaceTemplatePage by remember { mutableStateOf<Int?>(null) }
+    var pendingWorkspaceTemplate by remember { mutableStateOf<WorkspaceStarterTemplate?>(null) }
+    var pendingWorkspaceTemplatePage by remember { mutableStateOf<Int?>(null) }
     var workspaceForNewCategory by remember { mutableStateOf<Int?>(null) }
     var showHomeCategoryPicker by remember { mutableStateOf(false) }
+    var categoryEditorNameDraft by rememberSaveable { mutableStateOf("") }
+    var categoryEditorIconDraft by rememberSaveable { mutableStateOf("folder") }
+    var categoryEditorPresentationDraft by rememberSaveable {
+        mutableStateOf(CustomCategoryPresentation.GROUP.name)
+    }
+    var browsingCustomCategory by remember { mutableStateOf<String?>(null) }
+    var showCategoryAppPicker by remember { mutableStateOf(false) }
+    var categoryAppPickerQuery by rememberSaveable { mutableStateOf("") }
+    var categoryAppPickerSelection by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var categoryMoveTarget by remember { mutableStateOf<String?>(null) }
+    var categoryMergeSource by remember { mutableStateOf<String?>(null) }
+
+    fun enterLayoutEditing(showControls: Boolean) {
+        if (!interactionState.isEditing && layoutEditSnapshot == null) {
+            layoutEditSnapshot = LayoutEditSnapshot(
+                categoryOrder = categoryOrderVal,
+                tileSizes = categoryTilesSizesVal,
+                workspaceLayout = viewModel.workspaceLayoutSnapshot(),
+                customCategories = customCats,
+                customCategoryIcons = customCategoryIcons,
+                customCategoryPresentations = customCategoryPresentations,
+                appCategoryOverrides = appCategoryOverrides,
+                hiddenHomeCategories = hiddenHomeCategories,
+            )
+        }
+        interactionState = LauncherInteractionState.LayoutEditing(showControls)
+    }
+
+    fun discardLayoutEdits() {
+        val snapshot = layoutEditSnapshot ?: return
+        viewModel.restoreLayoutEditState(
+            categoryOrder = snapshot.categoryOrder,
+            tileSizes = snapshot.tileSizes,
+            workspaceLayout = snapshot.workspaceLayout,
+            customCategories = snapshot.customCategories,
+            customCategoryIcons = snapshot.customCategoryIcons,
+            customCategoryPresentations = snapshot.customCategoryPresentations,
+            appCategoryOverrides = snapshot.appCategoryOverrides,
+            hiddenHomeCategories = snapshot.hiddenHomeCategories,
+        )
+        layoutEditSnapshot = null
+    }
+
+    fun openCategoryEditor(categoryKey: String) {
+        categoryEditorNameDraft = categoryKey
+        categoryEditorIconDraft = viewModel.getCustomCategoryIcon(categoryKey)
+        categoryEditorPresentationDraft = viewModel.getCustomCategoryPresentation(categoryKey).name
+        interactionState = LauncherInteractionState.CategoryEditor(
+            categoryKey = categoryKey,
+            returnState = interactionState,
+        )
+    }
+
+    fun requestCategoryRemoval(categoryKey: String, isCustom: Boolean, workspaceIndex: Int? = null) {
+        interactionState = LauncherInteractionState.Confirmation(
+            action = LauncherConfirmation.RemoveCategory(categoryKey, isCustom, workspaceIndex),
+            returnState = interactionState,
+        )
+    }
+
+    fun openPageAppPicker(pageIndex: Int) {
+        pickerPageIndex = pageIndex
+        pageAppPickerQuery = ""
+        pageAppPickerSelection = emptySet()
+        showPageAppPicker = true
+    }
+
+    fun clearWorkspaceDropPreview() {
+        workspaceDropTargetPage = null
+        workspaceDropReady = false
+        workspaceAppGridDropTarget = null
+    }
+
+    LaunchedEffect(workspaceDropTargetPage, workspaceDraggingCategory, workspaceDraggingApp) {
+        val target = workspaceDropTargetPage
+        if (target == null || (workspaceDraggingCategory == null && workspaceDraggingApp == null)) {
+            workspaceDropReady = false
+            return@LaunchedEffect
+        }
+        delay(WORKSPACE_EDGE_HOVER_DELAY_MS)
+        if (workspaceDropTargetPage == target &&
+            (workspaceDraggingCategory != null || workspaceDraggingApp != null)
+        ) {
+            workspaceDropReady = true
+        }
+    }
+
+    fun cancelLauncherInteraction() {
+        discardLayoutEdits()
+        interactionState = LauncherInteractionState.Browsing
+        draggingCategory = null
+        categoryDragOffset = Offset.Zero
+        workspaceDraggingCategory = null
+        workspaceCategoryDragOffset = Offset.Zero
+        workspaceDraggingApp = null
+        workspaceAppDragOffset = Offset.Zero
+        clearWorkspaceDropPreview()
+        upwardDrag = 0f
+        showCreateCategoryDialog = false
+        showPageAppPicker = false
+        pageAppPickerQuery = ""
+        pageAppPickerSelection = emptySet()
+        showWorkspaceCategoryPicker = false
+        pendingWorkspaceDeletion = null
+        pendingWorkspaceMoveDestination = null
+        showWorkspaceOverview = false
+        showDockManager = false
+        workspaceRenamePage = null
+        workspaceNameDraft = ""
+        workspaceTemplatePage = null
+        pendingWorkspaceTemplate = null
+        pendingWorkspaceTemplatePage = null
+        showHomeCategoryPicker = false
+        workspaceForNewCategory = null
+        categoryEditorNameDraft = ""
+        categoryEditorIconDraft = "folder"
+        categoryEditorPresentationDraft = CustomCategoryPresentation.GROUP.name
+        newCategoryPresentation = CustomCategoryPresentation.GROUP
+        browsingCustomCategory = null
+        showCategoryAppPicker = false
+        categoryAppPickerQuery = ""
+        categoryAppPickerSelection = emptySet()
+        categoryMoveTarget = null
+        categoryMergeSource = null
+    }
+
+    fun dismissHighestPriority() {
+        when {
+            showCreateCategoryDialog -> showCreateCategoryDialog = false
+            showPageAppPicker -> showPageAppPicker = false
+            showWorkspaceCategoryPicker -> showWorkspaceCategoryPicker = false
+            showCategoryAppPicker -> showCategoryAppPicker = false
+            categoryMoveTarget != null -> categoryMoveTarget = null
+            categoryMergeSource != null -> categoryMergeSource = null
+            browsingCustomCategory != null -> browsingCustomCategory = null
+            pendingWorkspaceTemplate != null -> {
+                pendingWorkspaceTemplate = null
+                pendingWorkspaceTemplatePage = null
+            }
+            workspaceTemplatePage != null -> workspaceTemplatePage = null
+            workspaceRenamePage != null -> workspaceRenamePage = null
+            pendingWorkspaceDeletion != null -> pendingWorkspaceDeletion = null
+            showWorkspaceOverview -> showWorkspaceOverview = false
+            showDockManager -> showDockManager = false
+            showHomeCategoryPicker -> showHomeCategoryPicker = false
+            interactionState is LauncherInteractionState.Dragging ||
+                interactionState is LauncherInteractionState.Resizing -> {
+                draggingCategory = null
+                categoryDragOffset = Offset.Zero
+                workspaceDraggingCategory = null
+                workspaceCategoryDragOffset = Offset.Zero
+                workspaceDraggingApp = null
+                workspaceAppDragOffset = Offset.Zero
+                clearWorkspaceDropPreview()
+                interactionState = interactionState.afterBack()
+            }
+            interactionState != LauncherInteractionState.Browsing -> {
+                val nextState = interactionState.afterBack()
+                interactionState = nextState
+                if (nextState == LauncherInteractionState.Browsing) discardLayoutEdits()
+            }
+        }
+    }
+
+    BackHandler(
+        enabled = interactionState != LauncherInteractionState.Browsing ||
+            showCreateCategoryDialog || showPageAppPicker || showWorkspaceCategoryPicker || showHomeCategoryPicker ||
+            showCategoryAppPicker || categoryMoveTarget != null || categoryMergeSource != null ||
+            browsingCustomCategory != null ||
+            pendingWorkspaceDeletion != null || showWorkspaceOverview || workspaceRenamePage != null ||
+            workspaceTemplatePage != null || pendingWorkspaceTemplate != null || showDockManager,
+        onBack = ::dismissHighestPriority,
+    )
+
+    LaunchedEffect(viewModel) {
+        viewModel.exitLauncherEditing.collect { cancelLauncherInteraction() }
+    }
 
     // ── Live clock ─────────────────────────────────────────────────────────────
     var liveClock by remember { mutableStateOf(currentTimeString()) }
@@ -182,6 +473,9 @@ fun HomeScreen(
     val dateStr = remember { SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date()) }
 
     // ── Dock apps ─────────────────────────────────────────────────────────────
+    LaunchedEffect(apps, dockPackages) {
+        if (apps.isNotEmpty() && dockPackages.isBlank()) viewModel.ensureDefaultDock()
+    }
     val dockApps = remember(apps, dockPackages) {
         val byPkg = apps.associateBy { it.packageName }
         val pinned = dockPackages.split(",").map(String::trim).filter(String::isNotEmpty)
@@ -189,7 +483,7 @@ fun HomeScreen(
             .mapNotNull { byPkg[it] }
             .distinctBy { it.packageName }
             .take(5)
-        if (configured.isNotEmpty()) configured else apps.take(5)
+        if (configured.isNotEmpty()) configured else viewModel.defaultDockApps()
     }
 
     // ── Smart & Custom Categories ─────────────────────────────────────────────
@@ -241,16 +535,46 @@ fun HomeScreen(
     }
 
     // ── Layout variables ───────────────────────────────────────────────────────
-    val columns        = if (denseLayout) 3 else 2
-    val cardHeight: Dp = if (denseLayout) 114.dp else 142.dp
-    val categoryMoveThresholdPx = with(LocalDensity.current) { cardHeight.toPx() * 0.52f }
-    val spacing        = if (denseLayout) 14.dp else 22.dp
-    val topPad         = if (denseLayout) 20.dp else 36.dp
-    val greetingSize   = if (denseLayout) 22.sp else 28.sp
+    val columns = when (homeLayoutMode) {
+        "dense", "smart" -> 3
+        else -> 2
+    }
+    val cardHeight: Dp = when (homeLayoutMode) {
+        "dense" -> 108.dp
+        "smart" -> 126.dp
+        else -> 142.dp
+    }
+    val density = LocalDensity.current
+    val categoryMoveThresholdPx = with(density) { cardHeight.toPx() * 0.52f }
+    val drawerActivationHeightPx = with(density) { 96.dp.toPx() }
+    val drawerOpenDistancePx = with(density) { 96.dp.toPx() }
+    val spacing = when (homeLayoutMode) {
+        "dense" -> 12.dp
+        "smart" -> 16.dp
+        else -> 22.dp
+    }
+    val topPad = when (homeLayoutMode) {
+        "dense" -> 20.dp
+        "smart" -> 28.dp
+        else -> 36.dp
+    }
+    val greetingSize = when (homeLayoutMode) {
+        "dense" -> 22.sp
+        "smart" -> 25.sp
+        else -> 28.sp
+    }
 
     // ── Wallpaper & Background mode ───────────────────────────────────────────
     val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
-    val backgroundModifier = if (useSystemWallpaper) {
+    val ciyatoVideoWallpaper by viewModel.ciyatoVideoWallpaper.collectAsState()
+    val ciyatoImageWallpaper by viewModel.ciyatoImageWallpaper.collectAsState()
+    val wallpaperDim by viewModel.wallpaperDim.collectAsState()
+    val wallpaperBlur by viewModel.wallpaperBlur.collectAsState()
+    val wallpaperImageScale by viewModel.wallpaperImageScale.collectAsState()
+    val wallpaperImageOffset by viewModel.wallpaperImageOffset.collectAsState()
+    val hasCiyatoBackground = !useSystemWallpaper &&
+        (ciyatoImageWallpaper.isNotBlank() || (ciyatoVideoWallpaper.isNotBlank() && !reduceMotion))
+    val backgroundModifier = if (!hasCiyatoBackground) {
         Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.35f))
@@ -261,30 +585,118 @@ fun HomeScreen(
     }
 
     // ── Pager state for swiping screens ──────────────────────────────────────
+    val workspaceOverview = remember(workspaceLayoutV2) { viewModel.workspaceOverview() }
+    val defaultWorkspacePage = remember(workspaceOverview, workspaceLayoutV2) {
+        workspaceOverview.indexOfFirst { workspace ->
+            viewModel.isDefaultWorkspace(workspacePagerPage(workspaceOverview.indexOf(workspace)))
+        }.takeIf { it >= 0 }?.let(::workspacePagerPage)
+    }
     val pagerState = rememberPagerState(
         initialPage = 1,
-        pageCount = { workspaceCount.coerceIn(3, 10) },
+        pageCount = { workspaceCount.coerceIn(3, 11) },
     )
+    var defaultWorkspaceApplied by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(defaultWorkspacePage, workspaceLayoutV2) {
+        if (!defaultWorkspaceApplied && defaultWorkspacePage != null) {
+            pagerState.scrollToPage(defaultWorkspacePage)
+            defaultWorkspaceApplied = true
+        }
+    }
     val workspaceScope = rememberCoroutineScope()
+    var undoSequence by remember { mutableIntStateOf(0) }
+
+    fun currentLayoutSnapshot() = LayoutEditSnapshot(
+        categoryOrder = categoryOrderVal,
+        tileSizes = categoryTilesSizesVal,
+        workspaceLayout = viewModel.workspaceLayoutSnapshot(),
+        customCategories = customCats,
+        customCategoryIcons = customCategoryIcons,
+        customCategoryPresentations = customCategoryPresentations,
+        appCategoryOverrides = appCategoryOverrides,
+        hiddenHomeCategories = hiddenHomeCategories,
+    )
+
+    fun offerLayoutUndo(message: String, snapshot: LayoutEditSnapshot = currentLayoutSnapshot()) {
+        val sequence = undoSequence + 1
+        undoSequence = sequence
+        workspaceScope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "Undo",
+                withDismissAction = true,
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed && sequence == undoSequence) {
+                viewModel.restoreLayoutEditState(
+                    categoryOrder = snapshot.categoryOrder,
+                    tileSizes = snapshot.tileSizes,
+                    workspaceLayout = snapshot.workspaceLayout,
+                    customCategories = snapshot.customCategories,
+                    customCategoryIcons = snapshot.customCategoryIcons,
+                    customCategoryPresentations = snapshot.customCategoryPresentations,
+                    appCategoryOverrides = snapshot.appCategoryOverrides,
+                    hiddenHomeCategories = snapshot.hiddenHomeCategories,
+                )
+            }
+        }
+    }
+
+    fun performLayoutChange(message: String, change: () -> Unit) {
+        val snapshot = currentLayoutSnapshot()
+        change()
+        offerLayoutUndo(message, snapshot)
+    }
 
     Scaffold(
         containerColor = Color.Transparent, // Let system wallpaper or custom background show
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { scaffoldPadding ->
         Box(
-            modifier = backgroundModifier.pointerInput(isEditMode) {
-                detectVerticalDragGestures(
-                    onVerticalDrag = { _, amount ->
-                        if (amount < 0f) upwardDrag += amount
-                    },
-                    onDragEnd = {
-                        if (!isEditMode && showAppDrawer && upwardDrag < -72f) onOpenDrawer()
-                        upwardDrag = 0f
-                    },
-                    onDragCancel = { upwardDrag = 0f },
-                )
-            },
+            modifier = backgroundModifier
+                .onSizeChanged { launcherSurfaceHeight = it.height.toFloat() }
+                .pointerInput(isEditMode) {
+                    // Child app/card gestures consume their own taps. This only
+                    // exits editing when the person double-taps empty Home space.
+                    detectTapGestures(
+                        onDoubleTap = {
+                            if (isEditMode || showLauncherControls) cancelLauncherInteraction()
+                        },
+                    )
+                }
+                .pointerInput(isEditMode, showAppDrawer, launcherSurfaceHeight) {
+                    detectVerticalDragGestures(
+                        onDragStart = { startOffset ->
+                            isDrawerGestureArmed = !isEditMode && showAppDrawer &&
+                                startOffset.y >= launcherSurfaceHeight - drawerActivationHeightPx
+                            upwardDrag = 0f
+                        },
+                        onVerticalDrag = { _, amount ->
+                            if (isDrawerGestureArmed && amount < 0f) upwardDrag += amount
+                        },
+                        onDragEnd = {
+                            if (isDrawerGestureArmed && upwardDrag <= -drawerOpenDistancePx) onOpenDrawer()
+                            upwardDrag = 0f
+                            isDrawerGestureArmed = false
+                        },
+                        onDragCancel = {
+                            upwardDrag = 0f
+                            isDrawerGestureArmed = false
+                        },
+                    )
+                },
         ) {
+            if (!useSystemWallpaper && ciyatoImageWallpaper.isNotBlank()) {
+                CiyatoImageBackground(
+                    uri = ciyatoImageWallpaper,
+                    scale = wallpaperImageScale,
+                    verticalOffset = wallpaperImageOffset,
+                    blurRadius = wallpaperBlur,
+                )
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = wallpaperDim / 100f)))
+            } else if (!useSystemWallpaper && ciyatoVideoWallpaper.isNotBlank() && !reduceMotion) {
+                CiyatoVideoBackground(uri = ciyatoVideoWallpaper)
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = wallpaperDim / 100f)))
+            }
 
             // Swipable layout area
             HorizontalPager(
@@ -292,7 +704,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 val pageOffset = (pagerState.currentPage - page).toFloat()
-                val workspaceTransitionModifier = when (workspaceTransition) {
+                val workspaceTransitionModifier = when (if (reduceMotion) "none" else workspaceTransition) {
                     "fade" -> Modifier.graphicsLayer {
                         alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.55f
                     }
@@ -307,10 +719,10 @@ fun HomeScreen(
                 when (page) {
                     0, 2, 3, 4, 5, 6, 7, 8, 9 -> {
                         val pageIndex = page
-                        val pageApps = remember(apps, pageIndex, page0Apps, page2Apps, workspaceApps) {
+                        val pageApps = remember(apps, pageIndex, workspaceLayoutV2) {
                             viewModel.getAppsForPage(pageIndex)
                         }
-                        val pageCategoryKeys = remember(pageIndex, workspaceCategories) {
+                        val pageCategoryKeys = remember(pageIndex, workspaceLayoutV2) {
                             viewModel.getCategoriesForWorkspace(pageIndex)
                         }
 
@@ -324,12 +736,25 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .then(workspaceTransitionModifier)
+                                .then(
+                                    if ((workspaceDraggingCategory?.startsWith("$pageIndex:") == true ||
+                                            workspaceDraggingApp?.startsWith("$pageIndex:") == true) &&
+                                        workspaceDropTargetPage != null
+                                    ) {
+                                        Modifier.border(
+                                            width = if (workspaceDropReady) 2.dp else 1.dp,
+                                            color = CiyatoGold.copy(alpha = if (workspaceDropReady) 0.88f else 0.42f),
+                                            shape = RoundedCornerShape(18.dp),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                                 .combinedClickable(
                                     onClick = {},
                                     onLongClick = {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        isEditMode = true
-                                        showLauncherControls = true
+                                        enterLayoutEditing(showControls = true)
                                     }
                                 )
                         ) {
@@ -340,21 +765,27 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Workspace ${if (pageIndex == 0) 1 else pageIndex}",
+                                        text = viewModel.workspaceName(pageIndex),
                                         color = CiyatoWhite,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 18.sp
                                     )
                                     if (isEditMode) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            if (pageIndex == workspaceCount - 1 && workspaceCount < 10) {
-                                                TextButton(onClick = viewModel::addWorkspace) {
-                                                    Text("+ Workspace", color = CiyatoSec, fontSize = 12.sp)
+                                            if (workspaceCount < 11) {
+                                                TextButton(onClick = {
+                                                    performLayoutChange("Workspace added") {
+                                                        viewModel.insertWorkspaceBeforePage(pageIndex)
+                                                    }
+                                                }) {
+                                                    Text("Insert left", color = CiyatoSec, fontSize = 12.sp)
                                                 }
-                                            }
-                                            if (pageIndex >= 3 && pageIndex == workspaceCount - 1) {
-                                                TextButton(onClick = viewModel::removeLastWorkspace) {
-                                                    Text("Remove", color = CiyatoRed, fontSize = 12.sp)
+                                                TextButton(onClick = {
+                                                    performLayoutChange("Workspace added") {
+                                                        viewModel.insertWorkspaceAfterPage(pageIndex)
+                                                    }
+                                                }) {
+                                                    Text("Insert right", color = CiyatoSec, fontSize = 12.sp)
                                                 }
                                             }
                                             TextButton(
@@ -367,11 +798,16 @@ fun HomeScreen(
                                             }
                                             TextButton(
                                                 onClick = {
-                                                    pickerPageIndex = pageIndex
-                                                    showPageAppPicker = true
+                                                    openPageAppPicker(pageIndex)
                                                 }
                                             ) {
                                                 Text("+ Add App", color = CiyatoGold, fontSize = 12.sp)
+                                            }
+                                            TextButton(
+                                                onClick = { pendingWorkspaceDeletion = pageIndex },
+                                                enabled = workspaceOverview.size > 1,
+                                            ) {
+                                                Text("Delete", color = CiyatoSec, fontSize = 12.sp)
                                             }
                                         }
                                     }
@@ -409,29 +845,41 @@ fun HomeScreen(
                                                                     onDragStart = {
                                                                         workspaceDraggingCategory = "$pageIndex:$categoryKey"
                                                                         workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
+                                                                        interactionState = LauncherInteractionState.Dragging(
+                                                                            itemKey = "$pageIndex:$categoryKey",
+                                                                            source = DragSource.WORKSPACE_CATEGORY,
+                                                                        )
                                                                     },
                                                                     onDragCancel = {
                                                                         workspaceDraggingCategory = null
                                                                         workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
+                                                                        interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                     },
                                                                     onDragEnd = {
+                                                                        val destination = workspaceDropTargetPage.takeIf { workspaceDropReady }
+                                                                        if (destination != null) {
+                                                                            val undoSnapshot = currentLayoutSnapshot()
+                                                                            viewModel.moveCategoryBetweenWorkspaces(pageIndex, destination, categoryKey)
+                                                                            offerLayoutUndo("Category moved", undoSnapshot)
+                                                                            workspaceScope.launch { pagerState.animateScrollToPage(destination) }
+                                                                        }
                                                                         workspaceDraggingCategory = null
                                                                         workspaceCategoryDragOffset = Offset.Zero
+                                                                        clearWorkspaceDropPreview()
+                                                                        interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                     },
                                                                     onDrag = { _, dragAmount ->
                                                                         workspaceCategoryDragOffset += dragAmount
-                                                                        val destination = when {
-                                                                            workspaceCategoryDragOffset.x > 132f && pageIndex >= 2 && pageIndex + 1 < workspaceCount -> pageIndex + 1
-                                                                            workspaceCategoryDragOffset.x < -132f && pageIndex == 2 -> 0
-                                                                            workspaceCategoryDragOffset.x < -132f && pageIndex > 2 -> pageIndex - 1
-                                                                            workspaceCategoryDragOffset.x > 132f && pageIndex == 0 -> 2
-                                                                            else -> null
-                                                                        }
-                                                                        if (destination != null) {
-                                                                            viewModel.moveCategoryBetweenWorkspaces(pageIndex, destination, categoryKey)
-                                                                            workspaceScope.launch { pagerState.animateScrollToPage(destination) }
-                                                                            workspaceDraggingCategory = null
-                                                                            workspaceCategoryDragOffset = Offset.Zero
+                                                                        val destination = workspaceEdgeDropDestination(
+                                                                            sourcePage = pageIndex,
+                                                                            horizontalOffset = workspaceCategoryDragOffset.x,
+                                                                            workspaceCount = workspaceCount,
+                                                                        )
+                                                                        if (destination != workspaceDropTargetPage) {
+                                                                            workspaceDropTargetPage = destination
+                                                                            workspaceDropReady = false
                                                                         }
                                                                     },
                                                                 )
@@ -443,19 +891,22 @@ fun HomeScreen(
                                                         displayName = standardCategory?.let(viewModel::getCategoryDisplayName) ?: categoryKey,
                                                         apps = categoryApps,
                                                         onTap = {
-                                                            if (standardCategory != null) onCategoryTap(standardCategory)
-                                                            else selectedCustomCategory = categoryKey
+                                                            if (isEditMode) openCategoryEditor(categoryKey)
+                                                            else if (standardCategory != null) onCategoryTap(standardCategory)
+                                                            else browsingCustomCategory = categoryKey
                                                         },
                                                         customIcon = if (standardCategory == null) {
                                                             viewModel.getCustomCategoryIcon(categoryKey)
                                                         } else {
                                                             "folder"
                                                         },
+                                                        customPresentation = if (standardCategory == null) {
+                                                            viewModel.getCustomCategoryPresentation(categoryKey)
+                                                        } else {
+                                                            CustomCategoryPresentation.CARD
+                                                        },
                                                         tileSize = "small",
                                                         isEditMode = isEditMode,
-                                                        onMoveLeft = { viewModel.moveCategoryInWorkspace(pageIndex, categoryKey, -1) },
-                                                        onMoveRight = { viewModel.moveCategoryInWorkspace(pageIndex, categoryKey, 1) },
-                                                        onDelete = { viewModel.removeCategoryFromWorkspace(pageIndex, categoryKey) },
                                                         modifier = Modifier.fillMaxWidth(),
                                                     )
                                                 }
@@ -465,21 +916,22 @@ fun HomeScreen(
                                 }
                             }
 
-                            if (pageApps.isEmpty() && pageCategoryKeys.isEmpty()) {
+                            val workspaceVisualIndex = if (pageIndex == 0) 0 else pageIndex - 1
+                            val shouldShowWorkspaceStarter = pageApps.isEmpty() && pageCategoryKeys.isEmpty() &&
+                                workspaceOverview.getOrNull(workspaceVisualIndex)?.starterDismissed != true
+                            if (shouldShowWorkspaceStarter) {
                                 item {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 60.dp)
-                                    ) {
-                                        Text(
-                                            text = if (isEditMode) "Tap '+ Add App' to pin shortcuts here." else "Long press to enter Edit Mode and add app shortcuts.",
-                                            color = CiyatoMuted,
-                                            textAlign = TextAlign.Center,
-                                            fontSize = 13.sp
-                                        )
-                                    }
+                                    WorkspaceStarterCard(
+                                        onAddShortcut = {
+                                            openPageAppPicker(pageIndex)
+                                        },
+                                        onAddCategory = {
+                                            workspaceCategoryPickerIndex = pageIndex
+                                            showWorkspaceCategoryPicker = true
+                                        },
+                                        onChooseTemplate = { workspaceTemplatePage = pageIndex },
+                                        onStartClean = { viewModel.dismissWorkspaceStarter(pageIndex) },
+                                    )
                                 }
                             } else {
                                 val rows = pageApps.chunked(4)
@@ -491,9 +943,24 @@ fun HomeScreen(
                                         rowApps.forEach { app ->
                                             val workspaceAppKey = "$pageIndex:${app.packageName}"
                                             val isWorkspaceAppDragging = workspaceDraggingApp == workspaceAppKey
+                                            val isWorkspaceGridDropTarget = workspaceAppGridDropTarget == workspaceAppKey &&
+                                                !isWorkspaceAppDragging
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        val bounds = coordinates.boundsInRoot()
+                                                        if (workspaceAppBounds[workspaceAppKey] != bounds) {
+                                                            workspaceAppBounds = workspaceAppBounds + (workspaceAppKey to bounds)
+                                                        }
+                                                    }
+                                                    .then(
+                                                        if (isWorkspaceGridDropTarget) {
+                                                            Modifier.border(2.dp, CiyatoGold, RoundedCornerShape(14.dp))
+                                                        } else {
+                                                            Modifier
+                                                        },
+                                                    )
                                                     .graphicsLayer {
                                                         if (isWorkspaceAppDragging) {
                                                             translationX = workspaceAppDragOffset.x
@@ -509,29 +976,64 @@ fun HomeScreen(
                                                                 onDragStart = {
                                                                     workspaceDraggingApp = workspaceAppKey
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
+                                                                    interactionState = LauncherInteractionState.Dragging(
+                                                                        itemKey = workspaceAppKey,
+                                                                        source = DragSource.WORKSPACE_APP,
+                                                                    )
                                                                 },
                                                                 onDragCancel = {
                                                                     workspaceDraggingApp = null
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
+                                                                    interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                 },
                                                                 onDragEnd = {
+                                                                    val destination = workspaceDropTargetPage.takeIf { workspaceDropReady }
+                                                                    val targetKey = workspaceAppGridDropTarget
+                                                                    when {
+                                                                        destination != null -> {
+                                                                            val undoSnapshot = currentLayoutSnapshot()
+                                                                            viewModel.moveAppBetweenWorkspaces(pageIndex, destination, app.packageName)
+                                                                            offerLayoutUndo("Shortcut moved", undoSnapshot)
+                                                                            workspaceScope.launch { pagerState.animateScrollToPage(destination) }
+                                                                        }
+                                                                        targetKey != null && targetKey != workspaceAppKey -> {
+                                                                            val targetPackage = targetKey.removePrefix("$pageIndex:")
+                                                                            val destinationIndex = pageApps.indexOfFirst { it.packageName == targetPackage }
+                                                                            if (destinationIndex >= 0) {
+                                                                                val undoSnapshot = currentLayoutSnapshot()
+                                                                                viewModel.moveAppWithinWorkspace(pageIndex, app.packageName, destinationIndex)
+                                                                                offerLayoutUndo("Shortcut reordered", undoSnapshot)
+                                                                            }
+                                                                        }
+                                                                    }
                                                                     workspaceDraggingApp = null
                                                                     workspaceAppDragOffset = Offset.Zero
+                                                                    clearWorkspaceDropPreview()
+                                                                    interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                 },
                                                                 onDrag = { _, dragAmount ->
                                                                     workspaceAppDragOffset += dragAmount
-                                                                    val destination = when {
-                                                                        workspaceAppDragOffset.x > 88f && pageIndex >= 2 && pageIndex + 1 < workspaceCount -> pageIndex + 1
-                                                                        workspaceAppDragOffset.x < -88f && pageIndex == 2 -> 0
-                                                                        workspaceAppDragOffset.x < -88f && pageIndex > 2 -> pageIndex - 1
-                                                                        workspaceAppDragOffset.x > 88f && pageIndex == 0 -> 2
-                                                                        else -> null
+                                                                    val destination = workspaceEdgeDropDestination(
+                                                                        sourcePage = pageIndex,
+                                                                        horizontalOffset = workspaceAppDragOffset.x,
+                                                                        workspaceCount = workspaceCount,
+                                                                    )
+                                                                    if (destination != workspaceDropTargetPage) {
+                                                                        workspaceDropTargetPage = destination
+                                                                        workspaceDropReady = false
                                                                     }
-                                                                    if (destination != null) {
-                                                                        viewModel.moveAppBetweenWorkspaces(pageIndex, destination, app.packageName)
-                                                                        workspaceScope.launch { pagerState.animateScrollToPage(destination) }
-                                                                        workspaceDraggingApp = null
-                                                                        workspaceAppDragOffset = Offset.Zero
+                                                                    workspaceAppGridDropTarget = if (destination == null) {
+                                                                        nearestWorkspaceGridTarget(
+                                                                            sourceKey = workspaceAppKey,
+                                                                            sourceBounds = workspaceAppBounds[workspaceAppKey],
+                                                                            dragOffset = workspaceAppDragOffset,
+                                                                            validKeys = pageApps.map { "$pageIndex:${it.packageName}" }.toSet(),
+                                                                            boundsByKey = workspaceAppBounds,
+                                                                        )
+                                                                    } else {
+                                                                        null
                                                                     }
                                                                 },
                                                             )
@@ -546,7 +1048,11 @@ fun HomeScreen(
                                                         .fillMaxWidth()
                                                         .combinedClickable(
                                                             onClick = { viewModel.launchApp(app) },
-                                                            onLongClick = { if (!isEditMode) contextMenuApp = app }
+                                                            onLongClick = {
+                                                                if (!isEditMode) {
+                                                                    interactionState = LauncherInteractionState.ItemSelected(app.packageName)
+                                                                }
+                                                            }
                                                         )
                                                         .padding(8.dp)
                                                 ) {
@@ -572,12 +1078,17 @@ fun HomeScreen(
                                                         modifier = Modifier
                                                             .size(20.dp)
                                                             .clip(CircleShape)
-                                                            .background(CiyatoRed)
+                                                            .background(CiyatoBgEl2)
                                                             .clickable {
-                                                                viewModel.removeAppFromPage(pageIndex, app.packageName)
+                                                                interactionState = LauncherInteractionState.ItemSelected(app.packageName)
                                                             }
                                                     ) {
-                                                        Text("✕", color = CiyatoWhite, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                        Icon(
+                                                            Icons.Default.DragIndicator,
+                                                            contentDescription = "Open actions for ${app.label}",
+                                                            tint = CiyatoWhite,
+                                                            modifier = Modifier.size(14.dp),
+                                                        )
                                                     }
                                                 }
                                             }
@@ -604,8 +1115,7 @@ fun HomeScreen(
                                     onClick = {},
                                     onLongClick = {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        isEditMode = true
-                                        showLauncherControls = true
+                                        enterLayoutEditing(showControls = true)
                                     }
                                 ),
                         ) {
@@ -635,7 +1145,7 @@ fun HomeScreen(
                                         }
                                     }
                                     if (focusSession != null) {
-                                        FocusBadge(focusSession!!)
+                                        FocusBadge(focusSession!!, reduceMotion = reduceMotion)
                                     }
                                 }
                                 if (isEditMode) HomeSectionRemoveButton(
@@ -717,7 +1227,7 @@ fun HomeScreen(
                                                     },
                                                     onLongClick = {
                                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        contextMenuApp = app
+                                                        interactionState = LauncherInteractionState.ItemSelected(app.packageName)
                                                     },
                                                     modifier = Modifier.width(if (denseLayout) 56.dp else 62.dp))
                                             }
@@ -822,14 +1332,20 @@ fun HomeScreen(
                                                                             onDragStart = {
                                                                                 draggingCategory = catKey
                                                                                 categoryDragOffset = Offset.Zero
+                                                                                interactionState = LauncherInteractionState.Dragging(
+                                                                                    itemKey = catKey,
+                                                                                    source = DragSource.HOME_CATEGORY,
+                                                                                )
                                                                             },
                                                                             onDragCancel = {
                                                                                 draggingCategory = null
                                                                                 categoryDragOffset = Offset.Zero
+                                                                                interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                             },
                                                                             onDragEnd = {
                                                                                 draggingCategory = null
                                                                                 categoryDragOffset = Offset.Zero
+                                                                                interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                                             },
                                                                             onDrag = { _, dragAmount ->
                                                                                 categoryDragOffset += dragAmount
@@ -848,7 +1364,9 @@ fun HomeScreen(
                                                                                         val updated = orderedCategories.toMutableList()
                                                                                         updated.removeAt(from)
                                                                                         updated.add(to, catKey)
+                                                                                        val undoSnapshot = currentLayoutSnapshot()
                                                                                         viewModel.setCategoryOrder(updated.joinToString(","))
+                                                                                        offerLayoutUndo("Category order changed", undoSnapshot)
                                                                                     }
                                                                                     categoryDragOffset = Offset.Zero
                                                                                 }
@@ -862,11 +1380,13 @@ fun HomeScreen(
                                                             displayName = displayName,
                                                             apps     = catApps,
                                                             onTap    = {
-                                                                if (standardCat != null) {
+                                                                if (isEditMode) {
+                                                                    openCategoryEditor(catKey)
+                                                                } else if (standardCat != null) {
                                                                     if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                                     onCategoryTap(standardCat)
                                                                 } else {
-                                                                    selectedCustomCategory = catKey
+                                                                    browsingCustomCategory = catKey
                                                                 }
                                                             },
                                                             customIcon = if (standardCat == null) {
@@ -876,40 +1396,29 @@ fun HomeScreen(
                                                             } else {
                                                                 "folder"
                                                             },
+                                                            customPresentation = if (standardCat == null) {
+                                                                remember(catKey, customCategoryPresentations) {
+                                                                    viewModel.getCustomCategoryPresentation(catKey)
+                                                                }
+                                                            } else {
+                                                                CustomCategoryPresentation.CARD
+                                                            },
                                                             tileSize = tileSize,
                                                             isEditMode = isEditMode,
-                                                            onMoveLeft = {
-                                                                val idx = orderedCategories.indexOf(catKey)
-                                                                if (idx > 0) {
-                                                                    val mutable = orderedCategories.toMutableList()
-                                                                    val temp = mutable[idx]
-                                                                    mutable[idx] = mutable[idx - 1]
-                                                                    mutable[idx - 1] = temp
-                                                                    viewModel.setCategoryOrder(mutable.joinToString(","))
-                                                                }
-                                                            },
-                                                            onMoveRight = {
-                                                                val idx = orderedCategories.indexOf(catKey)
-                                                                if (idx < orderedCategories.size - 1) {
-                                                                    val mutable = orderedCategories.toMutableList()
-                                                                    val temp = mutable[idx]
-                                                                    mutable[idx] = mutable[idx + 1]
-                                                                    mutable[idx + 1] = temp
-                                                                    viewModel.setCategoryOrder(mutable.joinToString(","))
-                                                                }
-                                                            },
                                                             onToggleSize = {
+                                                                val undoSnapshot = currentLayoutSnapshot()
+                                                                interactionState = LauncherInteractionState.Resizing(
+                                                                    categoryKey = catKey,
+                                                                    originalSize = tileSize,
+                                                                )
                                                                 val nextSize = when (tileSize) {
                                                                     "small" -> "medium"
                                                                     "medium" -> "large"
                                                                     else -> "small"
                                                                 }
                                                                 viewModel.setCategoryTileSize(catKey, nextSize)
-                                                            },
-                                                            onDelete = if (standardCat == null) {
-                                                                { categoryPendingDelete = catKey }
-                                                            } else {
-                                                                { viewModel.removeCategoryFromHome(catKey) }
+                                                                offerLayoutUndo("Category size changed", undoSnapshot)
+                                                                interactionState = LauncherInteractionState.LayoutEditing(isControlSheetVisible = false)
                                                             },
                                                             modifier = Modifier.fillMaxWidth(),
                                                         )
@@ -929,7 +1438,7 @@ fun HomeScreen(
                 }
             }
 
-            if (dockApps.isNotEmpty()) {
+            if (showHomeDock && dockApps.isNotEmpty()) {
                 Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .padding(bottom = scaffoldPadding.calculateBottomPadding() + 20.dp),
                     contentAlignment = Alignment.Center) {
@@ -945,37 +1454,169 @@ fun HomeScreen(
             AppContextMenu(
                 app = contextMenuApp!!,
                 viewModel = viewModel,
-                onDismiss = { contextMenuApp = null }
+                onDismiss = { interactionState = LauncherInteractionState.Browsing }
             )
         }
 
-        selectedCustomCategory?.let { categoryName ->
-            val customApps = viewModel.byCustomCategory(categoryName)
+        browsingCustomCategory?.let { categoryName ->
+            val categoryApps = viewModel.byCustomCategory(categoryName)
             AlertDialog(
-                onDismissRequest = { selectedCustomCategory = null },
+                onDismissRequest = { browsingCustomCategory = null },
                 containerColor = CiyatoBgEl,
                 title = { Text(categoryName, color = CiyatoWhite, fontWeight = FontWeight.Bold) },
                 text = {
                     Column(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 390.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (categoryApps.isEmpty()) {
+                            Text("No apps are in this collection yet.", color = CiyatoMuted, fontSize = 13.sp)
+                        } else {
+                            categoryApps.forEach { app ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(CiyatoBgEl2)
+                                        .clickable {
+                                            browsingCustomCategory = null
+                                            viewModel.launchApp(app)
+                                        }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    RealAppIcon(
+                                        app.icon,
+                                        size = 38.dp,
+                                        cornerRadius = 10.dp,
+                                        scale = app.iconScale,
+                                        rotation = app.iconRotation,
+                                        accentHex = app.iconAccent,
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(app.label, color = CiyatoWhite, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                        Text(app.packageName, color = CiyatoMuted, maxLines = 1, fontSize = 10.sp)
+                                    }
+                                    Icon(Icons.Default.OpenInNew, contentDescription = "Open ${app.label}", tint = CiyatoSec, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { browsingCustomCategory = null }) { Text("Done", color = CiyatoGold) }
+                },
+            )
+        }
+
+        selectedCustomCategory?.let { categoryName ->
+            val standardCategory = runCatching { AppCategory.valueOf(categoryName) }.getOrNull()
+            val isCustomCategory = standardCategory == null && categoryName in customCatsList
+            val categoryApps = standardCategory?.let(viewModel::byCategory)
+                ?: viewModel.byCustomCategory(categoryName)
+            AlertDialog(
+                onDismissRequest = { interactionState = interactionState.afterBack() },
+                containerColor = CiyatoBgEl,
+                title = {
+                    Text(
+                        if (isCustomCategory) "Edit ${categoryEditorNameDraft.ifBlank { categoryName }}"
+                        else "Edit ${standardCategory?.let(viewModel::getCategoryDisplayName) ?: categoryName}",
+                        color = CiyatoWhite,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                text = {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 360.dp)
+                            .heightIn(max = 430.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        if (customApps.isEmpty()) {
-                            Text("No apps in this custom category yet.", color = CiyatoMuted, fontSize = 13.sp)
+                        if (isCustomCategory) {
+                            OutlinedTextField(
+                                value = categoryEditorNameDraft,
+                                onValueChange = { categoryEditorNameDraft = it.take(24) },
+                                label = { Text("Collection name") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Text("Collection icon", color = CiyatoSec, fontSize = 12.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    "folder" to Icons.Default.Folder,
+                                    "bookmark" to Icons.Default.Bookmark,
+                                    "star" to Icons.Default.Star,
+                                ).forEach { (key, icon) ->
+                                    IconButton(
+                                        onClick = { categoryEditorIconDraft = key },
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(if (categoryEditorIconDraft == key) CiyatoGold.copy(alpha = 0.16f) else CiyatoBgEl2)
+                                            .border(1.dp, if (categoryEditorIconDraft == key) CiyatoGold else CiyatoSubtleBorder, CircleShape),
+                                    ) {
+                                        Icon(icon, contentDescription = key, tint = if (categoryEditorIconDraft == key) CiyatoGold else CiyatoSec)
+                                    }
+                                }
+                            }
+                            Text("Presentation", color = CiyatoSec, fontSize = 12.sp)
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                listOf(CustomCategoryPresentation.GROUP, CustomCategoryPresentation.CARD).forEachIndexed { index, presentation ->
+                                    SegmentedButton(
+                                        selected = categoryEditorPresentationDraft == presentation.name,
+                                        onClick = { categoryEditorPresentationDraft = presentation.name },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                                        label = { Text(if (presentation == CustomCategoryPresentation.GROUP) "Group" else "Card") },
+                                    )
+                                }
+                            }
+                            Text(
+                                if (categoryEditorPresentationDraft == CustomCategoryPresentation.GROUP.name) {
+                                    "Group keeps a compact set of individual shortcuts."
+                                } else {
+                                    "Card keeps a resizable visual preview on the workspace."
+                                },
+                                color = CiyatoMuted,
+                                fontSize = 11.sp,
+                            )
                         } else {
-                            customApps.forEach { app ->
+                            Text(
+                                "This is a smart category. You can place or remove it from a workspace, but its classifier name remains stable.",
+                                color = CiyatoSec,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Apps (${categoryApps.size})", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                            if (isCustomCategory) {
+                                TextButton(onClick = {
+                                    categoryAppPickerQuery = ""
+                                    categoryAppPickerSelection = emptySet()
+                                    showCategoryAppPicker = true
+                                }) { Text("Add apps", color = CiyatoGold) }
+                            }
+                        }
+                        if (categoryApps.isEmpty()) {
+                            Text(
+                                if (isCustomCategory) "Add installed apps to build this collection."
+                                else "No installed apps currently match this category.",
+                                color = CiyatoMuted,
+                                fontSize = 13.sp,
+                            )
+                        } else {
+                            categoryApps.forEach { app ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(CiyatoBgEl2)
-                                        .clickable {
-                                            selectedCustomCategory = null
-                                            viewModel.launchApp(app)
-                                        }
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -985,51 +1626,263 @@ fun HomeScreen(
                                         Text(app.label, color = CiyatoWhite, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                                         Text(app.packageName, color = CiyatoMuted, fontSize = 10.sp, maxLines = 1)
                                     }
+                                    if (isCustomCategory) {
+                                        IconButton(onClick = {
+                                            val undoSnapshot = currentLayoutSnapshot()
+                                            viewModel.setAppCustomCategoryOverride(app.packageName, null)
+                                            offerLayoutUndo("App removed from collection", undoSnapshot)
+                                        }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Remove ${app.label} from this collection", tint = CiyatoSec)
+                                        }
+                                    }
                                 }
                             }
+                        }
+
+                        HorizontalDivider(color = CiyatoSubtleBorder)
+                        TextButton(
+                            onClick = { categoryMoveTarget = categoryName },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.DriveFileMove, contentDescription = null, tint = CiyatoGold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Move to workspace", color = CiyatoGold, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                        }
+                        if (isCustomCategory && customCatsList.size > 1) {
+                            TextButton(
+                                onClick = { categoryMergeSource = categoryName },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Default.MergeType, contentDescription = null, tint = CiyatoSec)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Merge into another collection", color = CiyatoSec, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                            }
+                        }
+                        TextButton(
+                            onClick = {
+                                val undoSnapshot = currentLayoutSnapshot()
+                                viewModel.removeCategoryFromHome(categoryName)
+                                offerLayoutUndo("Category removed from Home", undoSnapshot)
+                                interactionState = interactionState.afterBack()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.RemoveCircleOutline, contentDescription = null, tint = CiyatoSec)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Remove from Home", color = CiyatoSec, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
                         }
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { selectedCustomCategory = null }) {
-                        Text("Done", color = CiyatoGold)
+                    TextButton(onClick = {
+                        val undoSnapshot = currentLayoutSnapshot()
+                        val updatedName = categoryEditorNameDraft.trim().take(24)
+                        if (isCustomCategory && updatedName.isNotBlank()) {
+                            val presentation = runCatching {
+                                CustomCategoryPresentation.valueOf(categoryEditorPresentationDraft)
+                            }.getOrDefault(CustomCategoryPresentation.GROUP)
+                            viewModel.renameCustomCategory(
+                                currentName = categoryName,
+                                requestedName = updatedName,
+                                icon = categoryEditorIconDraft,
+                                presentation = presentation,
+                            )
+                            if (updatedName != categoryName) {
+                            val editor = interactionState as? LauncherInteractionState.CategoryEditor
+                            if (editor != null) {
+                                interactionState = editor.copy(categoryKey = updatedName)
+                            }
+                            }
+                        }
+                        if (isCustomCategory) offerLayoutUndo("Collection updated", undoSnapshot)
+                        interactionState = interactionState.afterBack()
+                    }) {
+                        Text(if (isCustomCategory) "Save" else "Done", color = CiyatoGold)
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = {
-                            categoryPendingDelete = categoryName
-                            selectedCustomCategory = null
+                    if (isCustomCategory) {
+                        TextButton(onClick = { requestCategoryRemoval(categoryName, isCustom = true) }) {
+                            Text("Delete", color = CiyatoRed)
                         }
-                    ) {
-                        Text("Remove category", color = CiyatoRed)
                     }
                 }
             )
         }
 
-        categoryPendingDelete?.let { categoryName ->
+        if (showCategoryAppPicker) {
+            val allInstalledApps by viewModel.allApps.collectAsState()
+            val categoryName = selectedCustomCategory
+            val selected = categoryName?.let(viewModel::byCustomCategory).orEmpty().mapTo(mutableSetOf()) { it.packageName }
+            val matches = remember(allInstalledApps, categoryAppPickerQuery, selected) {
+                val query = categoryAppPickerQuery.trim().lowercase()
+                allInstalledApps.filter { app ->
+                    app.packageName !in selected &&
+                        (query.isBlank() || app.label.lowercase().contains(query) || app.packageName.lowercase().contains(query))
+                }.sortedBy { it.label.lowercase() }
+            }
             AlertDialog(
-                onDismissRequest = { categoryPendingDelete = null },
+                onDismissRequest = { showCategoryAppPicker = false },
                 containerColor = CiyatoBgEl,
-                title = { Text("Delete category?", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                title = { Text("Add apps to ${categoryName.orEmpty()}", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = categoryAppPickerQuery,
+                            onValueChange = { categoryAppPickerQuery = it },
+                            label = { Text("Search installed apps") },
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (matches.isEmpty()) Text("No additional installed apps match.", color = CiyatoMuted, fontSize = 13.sp)
+                        matches.forEach { app ->
+                            val checked = app.packageName in categoryAppPickerSelection
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    categoryAppPickerSelection = if (checked) categoryAppPickerSelection - app.packageName else categoryAppPickerSelection + app.packageName
+                                }.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                RealAppIcon(app.icon, size = 34.dp, cornerRadius = 9.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
+                                Text(app.label, color = CiyatoWhite, modifier = Modifier.weight(1f))
+                                Checkbox(checked = checked, onCheckedChange = {
+                                    categoryAppPickerSelection = if (it) categoryAppPickerSelection + app.packageName else categoryAppPickerSelection - app.packageName
+                                })
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val undoSnapshot = currentLayoutSnapshot()
+                            categoryName?.let { name ->
+                                categoryAppPickerSelection.forEach { packageName ->
+                                    viewModel.setAppCustomCategoryOverride(packageName, name)
+                                }
+                            }
+                            if (categoryAppPickerSelection.isNotEmpty()) {
+                                offerLayoutUndo("Apps added to collection", undoSnapshot)
+                            }
+                            categoryAppPickerSelection = emptySet()
+                            categoryAppPickerQuery = ""
+                            showCategoryAppPicker = false
+                        },
+                        enabled = categoryName != null && categoryAppPickerSelection.isNotEmpty(),
+                    ) { Text("Add ${categoryAppPickerSelection.size}", color = CiyatoGold) }
+                },
+                dismissButton = { TextButton(onClick = { showCategoryAppPicker = false }) { Text("Cancel", color = CiyatoSec) } },
+            )
+        }
+
+        categoryMoveTarget?.let { categoryName ->
+            AlertDialog(
+                onDismissRequest = { categoryMoveTarget = null },
+                containerColor = CiyatoBgEl,
+                title = { Text("Move $categoryName", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        workspaceOverview.forEachIndexed { visualIndex, workspace ->
+                            val pageIndex = workspacePagerPage(visualIndex)
+                            TextButton(
+                                onClick = {
+                                    val undoSnapshot = currentLayoutSnapshot()
+                                    viewModel.moveCategoryToWorkspace(categoryName, pageIndex)
+                                    offerLayoutUndo("Category moved", undoSnapshot)
+                                    categoryMoveTarget = null
+                                    workspaceScope.launch { pagerState.animateScrollToPage(pageIndex) }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(workspace.name ?: "Workspace ${workspace.creationOrder}", color = CiyatoSec, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { categoryMoveTarget = null }) { Text("Cancel", color = CiyatoSec) } },
+            )
+        }
+
+        categoryMergeSource?.let { sourceName ->
+            val destinations = customCatsList.filterNot { it == sourceName }
+            AlertDialog(
+                onDismissRequest = { categoryMergeSource = null },
+                containerColor = CiyatoBgEl,
+                title = { Text("Merge $sourceName into", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        destinations.forEach { destinationName ->
+                            TextButton(
+                                onClick = {
+                                    val undoSnapshot = currentLayoutSnapshot()
+                                    viewModel.mergeCustomCategories(sourceName, destinationName)
+                                    offerLayoutUndo("Collections merged", undoSnapshot)
+                                    categoryMergeSource = null
+                                    interactionState = interactionState.afterBack()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(destinationName, color = CiyatoSec, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { categoryMergeSource = null }) { Text("Cancel", color = CiyatoSec) } },
+            )
+        }
+
+        categoryPendingDelete?.let { categoryName ->
+            val removal = requireNotNull(pendingCategoryRemoval)
+            val isWorkspaceRemoval = removal.workspaceIndex != null
+            AlertDialog(
+                onDismissRequest = { interactionState = interactionState.afterBack() },
+                containerColor = CiyatoBgEl,
+                title = {
+                    Text(
+                        if (isWorkspaceRemoval) "Remove category from workspace?" else "Delete category?",
+                        color = CiyatoWhite,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
                 text = {
                     Text(
-                        "Delete $categoryName from this layout? Its apps stay installed and can be assigned elsewhere.",
+                        "$categoryName will be removed from this layout. Its apps stay installed and remain available in the App Library.",
                         color = CiyatoSec,
                     )
                 },
                 dismissButton = {
-                    TextButton(onClick = { categoryPendingDelete = null }) {
+                    TextButton(onClick = { interactionState = interactionState.afterBack() }) {
                         Text("Cancel", color = CiyatoSec)
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.removeCustomCategory(categoryName)
-                        categoryPendingDelete = null
+                        val undoSnapshot = currentLayoutSnapshot()
+                        when (val workspaceIndex = removal.workspaceIndex) {
+                            null -> if (removal.isCustom) {
+                                viewModel.removeCustomCategory(removal.categoryKey)
+                            } else {
+                                viewModel.removeCategoryFromHome(removal.categoryKey)
+                            }
+                            else -> viewModel.removeCategoryFromWorkspace(workspaceIndex, removal.categoryKey)
+                        }
+                        offerLayoutUndo(
+                            if (isWorkspaceRemoval) "Category removed from workspace" else "Category removed",
+                            undoSnapshot,
+                        )
+                        interactionState = when (val returnState = interactionState.afterBack()) {
+                            is LauncherInteractionState.CategoryEditor -> returnState.afterBack()
+                            else -> returnState
+                        }
                     }) {
-                        Text("Delete", color = CiyatoRed)
+                        Text(if (isWorkspaceRemoval) "Remove" else "Delete", color = CiyatoRed)
                     }
                 },
             )
@@ -1067,6 +1920,26 @@ fun HomeScreen(
                                 }
                             }
                         }
+                        Text("Create as", color = CiyatoSec, fontSize = 12.sp)
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            listOf(CustomCategoryPresentation.GROUP, CustomCategoryPresentation.CARD).forEachIndexed { index, presentation ->
+                                SegmentedButton(
+                                    selected = newCategoryPresentation == presentation,
+                                    onClick = { newCategoryPresentation = presentation },
+                                    shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                                    label = { Text(if (presentation == CustomCategoryPresentation.GROUP) "Group" else "Card") },
+                                )
+                            }
+                        }
+                        Text(
+                            if (newCategoryPresentation == CustomCategoryPresentation.GROUP) {
+                                "A compact collection of shortcuts."
+                            } else {
+                                "A resizable category card with an app preview."
+                            },
+                            color = CiyatoMuted,
+                            fontSize = 11.sp,
+                        )
                     }
                 },
                 confirmButton = {
@@ -1074,15 +1947,18 @@ fun HomeScreen(
                         onClick = {
                             val name = newCategoryName.trim()
                             if (name.isNotBlank()) {
-                                viewModel.addCustomCategory(name)
+                                val undoSnapshot = currentLayoutSnapshot()
+                                viewModel.addCustomCategory(name, newCategoryPresentation)
                                 viewModel.setCustomCategoryIcon(name, newCategoryIcon)
                                 workspaceForNewCategory?.let { workspaceIndex ->
                                     viewModel.addCategoryToWorkspace(workspaceIndex, name)
                                 }
+                                offerLayoutUndo("Category created", undoSnapshot)
                             }
                             showCreateCategoryDialog = false
                             newCategoryName = ""
                             newCategoryIcon = "folder"
+                            newCategoryPresentation = CustomCategoryPresentation.GROUP
                             workspaceForNewCategory = null
                         },
                         enabled = newCategoryName.isNotBlank()
@@ -1193,10 +2069,22 @@ fun HomeScreen(
         // Custom Page App Picker
         if (showPageAppPicker) {
             val allInstalledApps by viewModel.allApps.collectAsState()
+            val matchingApps = remember(allInstalledApps, pageAppPickerQuery) {
+                val query = pageAppPickerQuery.trim().lowercase()
+                allInstalledApps
+                    .asSequence()
+                    .filter { query.isBlank() || it.label.lowercase().contains(query) || it.packageName.lowercase().contains(query) }
+                    .sortedBy { it.label.lowercase() }
+                    .toList()
+            }
             AlertDialog(
-                onDismissRequest = { showPageAppPicker = false },
+                onDismissRequest = {
+                    showPageAppPicker = false
+                    pageAppPickerQuery = ""
+                    pageAppPickerSelection = emptySet()
+                },
                 containerColor = CiyatoBgEl,
-                title = { Text("Add Shortcut", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+                title = { Text("Add shortcuts", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
                 text = {
                     Column(
                         modifier = Modifier
@@ -1205,26 +2093,293 @@ fun HomeScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        allInstalledApps.forEach { app ->
+                        OutlinedTextField(
+                            value = pageAppPickerQuery,
+                            onValueChange = { pageAppPickerQuery = it },
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            label = { Text("Search installed apps") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (matchingApps.isEmpty()) {
+                            Text("No installed apps match this search.", color = CiyatoMuted, fontSize = 13.sp)
+                        }
+                        matchingApps.forEach { app ->
+                            val isSelected = app.packageName in pageAppPickerSelection
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        viewModel.addAppToPage(pickerPageIndex, app.packageName)
-                                        showPageAppPicker = false
+                                        pageAppPickerSelection = if (isSelected) {
+                                            pageAppPickerSelection - app.packageName
+                                        } else {
+                                            pageAppPickerSelection + app.packageName
+                                        }
                                     }
                                     .padding(vertical = 8.dp, horizontal = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RealAppIcon(app.icon, size = 36.dp, cornerRadius = 8.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
-                                Text(app.label, color = CiyatoWhite, fontSize = 14.sp)
+                                Text(app.label, color = CiyatoWhite, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = {
+                                        pageAppPickerSelection = if (it) {
+                                            pageAppPickerSelection + app.packageName
+                                        } else {
+                                            pageAppPickerSelection - app.packageName
+                                        }
+                                    },
+                                )
                             }
                         }
                     }
                 },
-                confirmButton = {}
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val undoSnapshot = currentLayoutSnapshot()
+                            pageAppPickerSelection.forEach { packageName ->
+                                viewModel.addAppToPage(pickerPageIndex, packageName)
+                            }
+                            if (pageAppPickerSelection.isNotEmpty()) {
+                                offerLayoutUndo("Shortcuts added", undoSnapshot)
+                            }
+                            showPageAppPicker = false
+                            pageAppPickerQuery = ""
+                            pageAppPickerSelection = emptySet()
+                        },
+                        enabled = pageAppPickerSelection.isNotEmpty(),
+                    ) { Text("Add ${pageAppPickerSelection.size}", color = CiyatoGold) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showPageAppPicker = false
+                        pageAppPickerQuery = ""
+                        pageAppPickerSelection = emptySet()
+                    }) { Text("Cancel", color = CiyatoSec) }
+                },
             )
+        }
+
+        pendingWorkspaceDeletion?.let { pageIndex ->
+            val deletingVisualIndex = if (pageIndex == 0) 0 else pageIndex - 1
+            val moveDestinations = workspaceOverview.mapIndexedNotNull { visualIndex, workspace ->
+                if (visualIndex == deletingVisualIndex) null else workspacePagerPage(visualIndex) to workspace.name.orEmpty()
+            }
+            AlertDialog(
+                onDismissRequest = {
+                    pendingWorkspaceDeletion = null
+                    pendingWorkspaceMoveDestination = null
+                },
+                containerColor = CiyatoBgEl,
+                title = { Text("Delete ${viewModel.workspaceName(pageIndex)}", color = CiyatoWhite) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "Applications stay installed. Choose whether Ciyato shortcuts move to another workspace or are removed from this launcher layout.",
+                            color = CiyatoSec,
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp,
+                        )
+                        Text("Move shortcuts (optional)", color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = { pendingWorkspaceMoveDestination = null },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                "Remove Ciyato shortcuts",
+                                color = if (pendingWorkspaceMoveDestination == null) CiyatoGold else CiyatoSec,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        moveDestinations.forEach { (destinationPage, destinationName) ->
+                            TextButton(
+                                onClick = { pendingWorkspaceMoveDestination = destinationPage },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    "Move to ${destinationName.ifBlank { viewModel.workspaceName(destinationPage) }}",
+                                    color = if (pendingWorkspaceMoveDestination == destinationPage) CiyatoGold else CiyatoSec,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        performLayoutChange("Workspace deleted") {
+                            viewModel.removeWorkspace(pageIndex, pendingWorkspaceMoveDestination)
+                        }
+                        pendingWorkspaceDeletion = null
+                        pendingWorkspaceMoveDestination = null
+                    }) { Text("Delete workspace", color = CiyatoRed) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        pendingWorkspaceDeletion = null
+                        pendingWorkspaceMoveDestination = null
+                    }) { Text("Cancel", color = CiyatoSec) }
+                },
+            )
+        }
+
+        if (showWorkspaceOverview) {
+            WorkspaceOverviewDialog(
+                workspaces = workspaceOverview,
+                defaultWorkspace = { visualIndex -> viewModel.isDefaultWorkspace(workspacePagerPage(visualIndex)) },
+                onDismiss = { showWorkspaceOverview = false },
+                onOpen = { visualIndex ->
+                    showWorkspaceOverview = false
+                    workspaceScope.launch { pagerState.animateScrollToPage(workspacePagerPage(visualIndex)) }
+                },
+                onRename = { visualIndex ->
+                    workspaceRenamePage = workspacePagerPage(visualIndex)
+                    workspaceNameDraft = workspaceOverview.getOrNull(visualIndex)?.name.orEmpty()
+                },
+                onMove = { visualIndex, delta ->
+                    performLayoutChange("Workspace reordered") {
+                        viewModel.reorderWorkspace(visualIndex, visualIndex + delta)
+                    }
+                },
+                onDuplicate = { visualIndex ->
+                    performLayoutChange("Workspace duplicated") {
+                        viewModel.duplicateWorkspace(workspacePagerPage(visualIndex))
+                    }
+                },
+                onInsertBefore = { visualIndex ->
+                    performLayoutChange("Workspace added") {
+                        viewModel.insertWorkspaceAt(visualIndex)
+                    }
+                },
+                onInsertAfter = { visualIndex ->
+                    performLayoutChange("Workspace added") {
+                        viewModel.insertWorkspaceAt(visualIndex + 1)
+                    }
+                },
+                onSetDefault = { visualIndex ->
+                    performLayoutChange("Default workspace changed") {
+                        viewModel.setDefaultWorkspace(workspacePagerPage(visualIndex))
+                    }
+                },
+                onEditWallpaper = {
+                    showWorkspaceOverview = false
+                    cancelLauncherInteraction()
+                    onOpenSystemWallpaper()
+                },
+                onDelete = { visualIndex ->
+                    showWorkspaceOverview = false
+                    pendingWorkspaceMoveDestination = null
+                    pendingWorkspaceDeletion = workspacePagerPage(visualIndex)
+                },
+            )
+        }
+
+        workspaceRenamePage?.let { pageIndex ->
+            AlertDialog(
+                onDismissRequest = { workspaceRenamePage = null },
+                containerColor = CiyatoBgEl,
+                title = { Text("Rename workspace", color = CiyatoWhite) },
+                text = {
+                    OutlinedTextField(
+                        value = workspaceNameDraft,
+                        onValueChange = { workspaceNameDraft = it.take(40) },
+                        singleLine = true,
+                        label = { Text("Workspace name") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            performLayoutChange("Workspace renamed") {
+                                viewModel.renameWorkspace(pageIndex, workspaceNameDraft)
+                            }
+                            workspaceRenamePage = null
+                        },
+                        enabled = workspaceNameDraft.isNotBlank(),
+                    ) { Text("Save", color = CiyatoGold) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { workspaceRenamePage = null }) { Text("Cancel", color = CiyatoSec) }
+                },
+            )
+        }
+
+        workspaceTemplatePage?.let { pageIndex ->
+            AlertDialog(
+                onDismissRequest = { workspaceTemplatePage = null },
+                containerColor = CiyatoBgEl,
+                title = { Text("Choose a workspace template", color = CiyatoWhite) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "Templates add only category structure. They never pin apps automatically.",
+                            color = CiyatoSec,
+                            fontSize = 13.sp,
+                        )
+                        WORKSPACE_STARTER_TEMPLATES.forEach { template ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = CiyatoBgEl2,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        workspaceTemplatePage = null
+                                        pendingWorkspaceTemplate = template
+                                        pendingWorkspaceTemplatePage = pageIndex
+                                    },
+                            ) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(template.title, color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                                    Text(template.description, color = CiyatoSec, fontSize = 12.sp, lineHeight = 17.sp)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { workspaceTemplatePage = null }) { Text("Cancel", color = CiyatoSec) }
+                },
+            )
+        }
+
+        pendingWorkspaceTemplate?.let { template ->
+            pendingWorkspaceTemplatePage?.let { pageIndex ->
+                AlertDialog(
+                    onDismissRequest = {
+                        pendingWorkspaceTemplate = null
+                        pendingWorkspaceTemplatePage = null
+                    },
+                    containerColor = CiyatoBgEl,
+                    title = { Text("Apply ${template.title} template?", color = CiyatoWhite) },
+                    text = {
+                        Text(
+                            "${template.description} You can remove or rearrange these categories later. No apps will be added automatically.",
+                            color = CiyatoSec,
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp,
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            performLayoutChange("Workspace template applied") {
+                                viewModel.applyWorkspaceTemplate(pageIndex, template.categoryKeys)
+                            }
+                            pendingWorkspaceTemplate = null
+                            pendingWorkspaceTemplatePage = null
+                        }) { Text("Apply template", color = CiyatoGold) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            pendingWorkspaceTemplate = null
+                            pendingWorkspaceTemplatePage = null
+                        }) { Text("Cancel", color = CiyatoSec) }
+                    },
+                )
+            }
         }
 
         if (showLauncherControls) {
@@ -1234,31 +2389,53 @@ fun HomeScreen(
                 showSearch = showHomeSearch,
                 showWeather = showHomeWeather,
                 showAgenda = showHomeAgenda,
-                showAppDrawer = showAppDrawer,
                 showRecent = showRecentLaunched,
                 showCategories = showSmartCategories,
+                showDock = showHomeDock,
                 workspaceTransition = workspaceTransition,
-                onDismiss = { showLauncherControls = false },
+                onDismiss = { enterLayoutEditing(showControls = false) },
                 onEditLayout = {
-                    isEditMode = true
-                    showLauncherControls = false
+                    enterLayoutEditing(showControls = false)
+                },
+                onAddToHome = {
+                    enterLayoutEditing(showControls = false)
+                    showHomeCategoryPicker = true
                 },
                 onOpenWallpaper = {
-                    showLauncherControls = false
+                    cancelLauncherInteraction()
                     onOpenSystemWallpaper()
                 },
                 onOpenSettings = {
-                    showLauncherControls = false
+                    cancelLauncherInteraction()
                     onOpenOrganizerSettings()
+                },
+                onOpenWorkspaces = {
+                    enterLayoutEditing(showControls = false)
+                    showWorkspaceOverview = true
+                },
+                onManageDock = {
+                    enterLayoutEditing(showControls = false)
+                    showDockManager = true
                 },
                 onShowGreetingChanged = viewModel::setShowHomeGreeting,
                 onShowSearchChanged = viewModel::setShowHomeSearch,
                 onShowWeatherChanged = viewModel::setShowHomeWeather,
                 onShowAgendaChanged = viewModel::setShowHomeAgenda,
-                onShowAppDrawerChanged = viewModel::setShowAppDrawer,
                 onShowRecentChanged = viewModel::setShowRecentlyLaunched,
                 onShowCategoriesChanged = viewModel::setSmartCategories,
+                onShowDockChanged = viewModel::setShowHomeDock,
                 onTransitionChanged = viewModel::setWorkspaceTransition,
+            )
+        }
+
+        if (showDockManager) {
+            DockManagerDialog(
+                dockApps = dockApps,
+                availableApps = apps.filterNot { app -> dockApps.any { it.packageName == app.packageName } },
+                onDismiss = { showDockManager = false },
+                onMove = viewModel::moveDockShortcut,
+                onRemove = viewModel::unpinFromDock,
+                onAdd = viewModel::pinToDock,
             )
         }
     }
@@ -1272,31 +2449,39 @@ private fun LauncherControlSheet(
     showSearch: Boolean,
     showWeather: Boolean,
     showAgenda: Boolean,
-    showAppDrawer: Boolean,
     showRecent: Boolean,
     showCategories: Boolean,
+    showDock: Boolean,
     workspaceTransition: String,
     onDismiss: () -> Unit,
     onEditLayout: () -> Unit,
+    onAddToHome: () -> Unit,
     onOpenWallpaper: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenWorkspaces: () -> Unit,
+    onManageDock: () -> Unit,
     onShowGreetingChanged: (Boolean) -> Unit,
     onShowSearchChanged: (Boolean) -> Unit,
     onShowWeatherChanged: (Boolean) -> Unit,
     onShowAgendaChanged: (Boolean) -> Unit,
-    onShowAppDrawerChanged: (Boolean) -> Unit,
     onShowRecentChanged: (Boolean) -> Unit,
     onShowCategoriesChanged: (Boolean) -> Unit,
+    onShowDockChanged: (Boolean) -> Unit,
     onTransitionChanged: (String) -> Unit,
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = CiyatoBgEl,
         contentColor = CiyatoWhite,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = 640.dp)
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -1305,8 +2490,14 @@ private fun LauncherControlSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 HomeControlAction(
+                    icon = Icons.Default.Add,
+                    label = "Add",
+                    onClick = onAddToHome,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeControlAction(
                     icon = Icons.Default.Edit,
-                    label = if (isEditMode) "Edit layout" else "Arrange home",
+                    label = if (isEditMode) "Layout" else "Arrange",
                     onClick = onEditLayout,
                     modifier = Modifier.weight(1f),
                 )
@@ -1316,12 +2507,21 @@ private fun LauncherControlSheet(
                     onClick = onOpenWallpaper,
                     modifier = Modifier.weight(1f),
                 )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                HomeControlAction(
+                    icon = Icons.Default.ViewCarousel,
+                    label = "Workspaces",
+                    onClick = onOpenWorkspaces,
+                    modifier = Modifier.weight(1f),
+                )
                 HomeControlAction(
                     icon = Icons.Default.Settings,
-                    label = "Settings",
+                    label = "Home settings",
                     onClick = onOpenSettings,
                     modifier = Modifier.weight(1f),
                 )
+                Spacer(Modifier.weight(1f))
             }
 
             Text("Home sections", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -1329,13 +2529,18 @@ private fun LauncherControlSheet(
             HomeControlToggle("Search", showSearch, onShowSearchChanged)
             HomeControlToggle("Weather", showWeather, onShowWeatherChanged)
             HomeControlToggle("Agenda", showAgenda, onShowAgendaChanged)
-            HomeControlToggle("App Library", showAppDrawer, onShowAppDrawerChanged)
             HomeControlToggle("Recently used", showRecent, onShowRecentChanged)
             HomeControlToggle("Categories", showCategories, onShowCategoriesChanged)
+            HomeControlToggle("Dock", showDock, onShowDockChanged)
+            TextButton(onClick = onManageDock, modifier = Modifier.align(Alignment.End)) {
+                Icon(Icons.Default.Dock, contentDescription = null, tint = CiyatoGold, modifier = Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Manage dock", color = CiyatoGold)
+            }
 
             Text("Workspace transition", color = CiyatoSec, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf("slide" to "Slide", "fade" to "Fade", "scale" to "Scale").forEach { (value, label) ->
+                listOf("slide" to "Slide", "fade" to "Fade", "scale" to "Scale", "none" to "None").forEach { (value, label) ->
                     val selected = workspaceTransition == value
                     TextButton(
                         onClick = { onTransitionChanged(value) },
@@ -1346,6 +2551,319 @@ private fun LauncherControlSheet(
                     ) {
                         Text(label, color = if (selected) CiyatoGold else CiyatoSec, fontSize = 12.sp)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DockManagerDialog(
+    dockApps: List<InstalledApp>,
+    availableApps: List<InstalledApp>,
+    onDismiss: () -> Unit,
+    onMove: (String, Int) -> Unit,
+    onRemove: (String) -> Unit,
+    onAdd: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val shownApps = remember(availableApps, query) {
+        availableApps
+            .asSequence()
+            .filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
+            .take(30)
+            .toList()
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CiyatoBgEl,
+        title = { Text("Dock", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Up to five app shortcuts. Changes are saved to this launcher.", color = CiyatoMuted, fontSize = 12.sp)
+                dockApps.forEachIndexed { index, app ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CiyatoBgEl2)
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RealAppIcon(drawable = app.icon, size = 36.dp, cornerRadius = 10.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
+                        Spacer(Modifier.width(10.dp))
+                        Text(app.label, color = CiyatoWhite, fontSize = 14.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        IconButton(onClick = { onMove(app.packageName, -1) }, enabled = index > 0) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Move ${app.label} left", tint = if (index > 0) CiyatoSec else CiyatoMuted)
+                        }
+                        IconButton(onClick = { onMove(app.packageName, 1) }, enabled = index < dockApps.lastIndex) {
+                            Icon(Icons.Default.ArrowForward, contentDescription = "Move ${app.label} right", tint = if (index < dockApps.lastIndex) CiyatoSec else CiyatoMuted)
+                        }
+                        IconButton(onClick = { onRemove(app.packageName) }) {
+                            Icon(Icons.Default.Close, contentDescription = "Remove ${app.label}", tint = CiyatoSec)
+                        }
+                    }
+                }
+                if (dockApps.size < 5) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        label = { Text("Add an installed app") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = CiyatoWhite,
+                            unfocusedTextColor = CiyatoWhite,
+                            focusedBorderColor = CiyatoGold,
+                            unfocusedBorderColor = CiyatoSubtleBorder,
+                            focusedLabelColor = CiyatoGold,
+                            unfocusedLabelColor = CiyatoMuted,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    LazyColumn(modifier = Modifier.heightIn(max = 220.dp)) {
+                        items(shownApps, key = { it.packageName }) { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onAdd(app.packageName) }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RealAppIcon(drawable = app.icon, size = 32.dp, cornerRadius = 9.dp, scale = app.iconScale, rotation = app.iconRotation, accentHex = app.iconAccent)
+                                Spacer(Modifier.width(10.dp))
+                                Text(app.label, color = CiyatoWhite, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Default.Add, contentDescription = "Add ${app.label}", tint = CiyatoGold)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done", color = CiyatoGold) } },
+    )
+}
+
+@Composable
+private fun WorkspaceOverviewDialog(
+    workspaces: List<WorkspaceRecord>,
+    defaultWorkspace: (Int) -> Boolean,
+    onDismiss: () -> Unit,
+    onOpen: (Int) -> Unit,
+    onRename: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
+    onDuplicate: (Int) -> Unit,
+    onInsertBefore: (Int) -> Unit,
+    onInsertAfter: (Int) -> Unit,
+    onSetDefault: (Int) -> Unit,
+    onEditWallpaper: () -> Unit,
+    onDelete: (Int) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CiyatoBgEl,
+        title = { Text("Workspaces", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    "Reorder, name and manage each saved workspace. Wallpaper applies across workspaces unless you choose a different source in Wallpaper Studio.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                )
+                TextButton(onClick = onEditWallpaper, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Wallpaper, contentDescription = null, tint = CiyatoGold, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open Wallpaper Studio", color = CiyatoGold)
+                }
+                workspaces.forEachIndexed { visualIndex, workspace ->
+                    val isDefault = defaultWorkspace(visualIndex)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = CiyatoBgEl2,
+                        border = BorderStroke(1.dp, if (isDefault) CiyatoGold.copy(alpha = 0.45f) else CiyatoSubtleBorder),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        workspace.name ?: "Workspace ${workspace.creationOrder}",
+                                        color = CiyatoWhite,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        "Workspace ${workspace.creationOrder} · ${workspace.appPackages.size} shortcuts · ${workspace.categoryKeys.size} categories",
+                                        color = CiyatoMuted,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (isDefault) {
+                                    Text(
+                                        "Default",
+                                        color = CiyatoGold,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                            WorkspaceLayoutPreview(workspace = workspace)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TextButton(onClick = { onOpen(visualIndex) }) { Text("Open", color = CiyatoGold) }
+                                TextButton(onClick = { onRename(visualIndex) }) { Text("Rename", color = CiyatoSec) }
+                                if (!isDefault) {
+                                    TextButton(onClick = { onSetDefault(visualIndex) }) { Text("Default", color = CiyatoSec) }
+                                }
+                                IconButton(
+                                    onClick = { onMove(visualIndex, -1) },
+                                    enabled = visualIndex > 0,
+                                ) {
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Move workspace left", tint = CiyatoSec)
+                                }
+                                IconButton(
+                                    onClick = { onMove(visualIndex, 1) },
+                                    enabled = visualIndex < workspaces.lastIndex,
+                                ) {
+                                    Icon(Icons.Default.ArrowDownward, contentDescription = "Move workspace right", tint = CiyatoSec)
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (workspaces.size < 10) {
+                                    TextButton(onClick = { onInsertBefore(visualIndex) }) { Text("Insert left", color = CiyatoSec) }
+                                    TextButton(onClick = { onInsertAfter(visualIndex) }) { Text("Insert right", color = CiyatoSec) }
+                                    TextButton(onClick = { onDuplicate(visualIndex) }) { Text("Duplicate", color = CiyatoSec) }
+                                }
+                                Spacer(Modifier.weight(1f))
+                                TextButton(
+                                    onClick = { onDelete(visualIndex) },
+                                    enabled = workspaces.size > 1,
+                                ) { Text("Delete", color = CiyatoRed) }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Done", color = CiyatoGold) }
+        },
+    )
+}
+
+@Composable
+private fun WorkspaceLayoutPreview(workspace: WorkspaceRecord) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(9.dp))
+            .background(CiyatoBg.copy(alpha = 0.72f))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            repeat(workspace.categoryKeys.take(3).size.coerceAtLeast(1)) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(if (index == 0) CiyatoGold.copy(alpha = 0.34f) else CiyatoSec.copy(alpha = 0.18f)),
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            repeat(workspace.appPackages.take(5).size.coerceAtLeast(1)) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (index % 2 == 0) CiyatoSec.copy(alpha = 0.18f) else CiyatoBlue.copy(alpha = 0.23f)),
+                )
+            }
+        }
+        Text(
+            if (workspace.appPackages.isEmpty() && workspace.categoryKeys.isEmpty()) {
+                "New workspace starter is ready"
+            } else {
+                "Layout summary based on saved shortcuts and categories"
+            },
+            color = CiyatoMuted,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun WorkspaceStarterCard(
+    onAddShortcut: () -> Unit,
+    onAddCategory: () -> Unit,
+    onChooseTemplate: () -> Unit,
+    onStartClean: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = CiyatoBgEl.copy(alpha = 0.88f),
+        border = BorderStroke(1.dp, CiyatoSubtleBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(Icons.Default.SpaceDashboard, contentDescription = null, tint = CiyatoGold, modifier = Modifier.size(24.dp))
+            Text("Make this workspace yours", color = CiyatoWhite, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Start with a few shortcuts, add a category, preview a light template, or keep the space clean. Ciyato never fills it with apps on your behalf.",
+                color = CiyatoSec,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                TextButton(
+                    onClick = onAddShortcut,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(CiyatoGold.copy(alpha = 0.14f)),
+                ) { Text("Add app", color = CiyatoGold) }
+                TextButton(
+                    onClick = onAddCategory,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Add category", color = CiyatoSec) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = onChooseTemplate, modifier = Modifier.weight(1f)) {
+                    Text("Preview template", color = CiyatoSec)
+                }
+                TextButton(onClick = onStartClean, modifier = Modifier.weight(1f)) {
+                    Text("Start clean", color = CiyatoSec)
                 }
             }
         }
@@ -1398,6 +2916,99 @@ private fun HomeSectionRemoveButton(modifier: Modifier = Modifier, onClick: () -
     }
 }
 
+@Composable
+private fun CiyatoVideoBackground(uri: String) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val powerManager = remember(context) {
+        context.getSystemService(PowerManager::class.java)
+    }
+    var videoView by remember(uri) { mutableStateOf<VideoView?>(null) }
+    var deviceInteractive by remember(powerManager) { mutableStateOf(powerManager?.isInteractive ?: true) }
+    val canPlay = powerManager?.isPowerSaveMode != true && deviceInteractive
+    val latestCanPlay by rememberUpdatedState(canPlay)
+
+    DisposableEffect(context, powerManager) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: android.content.Context?, intent: android.content.Intent?) {
+                deviceInteractive = powerManager?.isInteractive ?: true
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(android.content.Intent.ACTION_SCREEN_OFF)
+            addAction(android.content.Intent.ACTION_SCREEN_ON)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+
+    LaunchedEffect(canPlay, videoView) {
+        if (canPlay) videoView?.start() else videoView?.pause()
+    }
+
+    AndroidView(
+        factory = { viewContext ->
+            VideoView(viewContext).also { view ->
+                view.setVideoURI(Uri.parse(uri))
+                view.setOnPreparedListener { player ->
+                    player.isLooping = true
+                    player.setVolume(0f, 0f)
+                    if (canPlay) view.start()
+                }
+                videoView = view
+            }
+        },
+        update = { view ->
+            if (canPlay && !view.isPlaying) view.start()
+            if (!canPlay && view.isPlaying) view.pause()
+        },
+        modifier = Modifier.fillMaxSize(),
+    )
+
+    DisposableEffect(lifecycleOwner, uri) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> if (latestCanPlay) videoView?.start()
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> videoView?.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            videoView?.stopPlayback()
+            videoView = null
+        }
+    }
+}
+
+@Composable
+private fun CiyatoImageBackground(
+    uri: String,
+    scale: Float,
+    verticalOffset: Float,
+    blurRadius: Int,
+) {
+    AsyncImage(
+        model = Uri.parse(uri),
+        contentDescription = null,
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = size.height * verticalOffset * 0.18f
+            }
+            .blur(blurRadius.dp),
+    )
+}
+
 private fun currentTimeString(): String =
     SimpleDateFormat("h:mm", Locale.getDefault()).format(Date())
 
@@ -1417,12 +3028,17 @@ private fun HomeSearchBar(isDense: Boolean, onClick: () -> Unit, modifier: Modif
 }
 
 @Composable
-private fun FocusBadge(session: FocusSessionManager.FocusSession) {
-    val pulse by rememberInfiniteTransition(label = "focus_pulse").animateFloat(
-        initialValue = 1f, targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "pulse",
-    )
+private fun FocusBadge(session: FocusSessionManager.FocusSession, reduceMotion: Boolean) {
+    val pulse = if (reduceMotion) {
+        1f
+    } else {
+        val animatedPulse by rememberInfiniteTransition(label = "focus_pulse").animateFloat(
+            initialValue = 1f, targetValue = 1.08f,
+            animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "pulse",
+        )
+        animatedPulse
+    }
     Box(contentAlignment = Alignment.Center,
         modifier = Modifier.scale(pulse).clip(RoundedCornerShape(10.dp))
             .background(CiyatoGold.copy(0.15f)).border(1.dp, CiyatoGold.copy(0.35f), RoundedCornerShape(10.dp))

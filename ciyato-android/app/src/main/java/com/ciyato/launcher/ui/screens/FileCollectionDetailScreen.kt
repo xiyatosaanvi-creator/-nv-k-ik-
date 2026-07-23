@@ -40,6 +40,7 @@ data class CiyatoFile(
     val mimeType: String?,
     val lastModified: Long,
     val isDirectory: Boolean = false,
+    val canDelete: Boolean = false,
     val document: DocumentFile? = null,
 )
 
@@ -72,6 +73,7 @@ fun FileCollectionDetailScreen(
     var pendingDeletion by remember { mutableStateOf<CiyatoFile?>(null) }
     var cacheBytes by remember { mutableStateOf(0L) }
     var isClearingCache by remember { mutableStateOf(false) }
+    var accessMessage by remember { mutableStateOf<String?>(null) }
     val currentFolderName = folderStack.lastOrNull()?.name ?: collectionTitle
 
     LaunchedEffect(Unit) {
@@ -81,12 +83,13 @@ fun FileCollectionDetailScreen(
     LaunchedEffect(initialFolderUri) {
         if (initialFolderUri != null) {
             val root = DocumentFile.fromTreeUri(context, initialFolderUri)
-            if (root != null) {
+            if (root != null && root.canRead()) {
                 folderStack = listOf(root)
                 files = loadFilesFromDocument(root, collectionTitle)
             } else {
                 folderStack = emptyList()
                 files = emptyList()
+                accessMessage = "Folder access is no longer available. Choose the folder again to continue."
             }
             isLoading = false
         } else {
@@ -111,12 +114,14 @@ fun FileCollectionDetailScreen(
             isLoading = true
             scope.launch {
                 val root = DocumentFile.fromTreeUri(context, uri)
-                if (root != null) {
+                if (root != null && root.canRead()) {
                     folderStack = listOf(root)
                     files = loadFilesFromDocument(root, collectionTitle)
+                    accessMessage = null
                 } else {
                     folderStack = emptyList()
                     files = emptyList()
+                    accessMessage = "Ciyato could not read that folder. Choose another folder or check its Android permissions."
                 }
                 isLoading = false
             }
@@ -223,6 +228,7 @@ fun FileCollectionDetailScreen(
                     }
 
                     files.isEmpty() -> {
+                        accessMessage?.let { message -> item { FileAccessNotice(message) } }
                         item {
                             Box(
                                 modifier = Modifier.fillMaxWidth().padding(40.dp),
@@ -238,6 +244,7 @@ fun FileCollectionDetailScreen(
                     }
 
                     else -> {
+                        accessMessage?.let { message -> item { FileAccessNotice(message) } }
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -294,7 +301,7 @@ fun FileCollectionDetailScreen(
                                         try { context.startActivity(intent) } catch (e: Exception) { }
                                     }
                                 },
-                                onDelete = { pendingDeletion = file },
+                                onDelete = if (file.canDelete) ({ pendingDeletion = file }) else null,
                             )
                         }
                     }
@@ -323,7 +330,12 @@ fun FileCollectionDetailScreen(
                         if (file.document != null && activeFolder != null) {
                             isLoading = true
                             scope.launch {
-                                withContext(Dispatchers.IO) { file.document.delete() }
+                                val deleted = withContext(Dispatchers.IO) {
+                                    runCatching { file.document.delete() }.getOrDefault(false)
+                                }
+                                if (!deleted) {
+                                    accessMessage = "Ciyato could not delete ${file.name}. It may be read-only or no longer available."
+                                }
                                 files = loadFilesFromDocument(activeFolder, collectionTitle)
                                 isLoading = false
                             }
@@ -398,6 +410,23 @@ private fun SafExplainerCard() {
 }
 
 @Composable
+private fun FileAccessNotice(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(CiyatoBgEl)
+            .border(1.dp, CiyatoGold.copy(alpha = 0.28f), RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Default.Info, contentDescription = null, tint = CiyatoGold, modifier = Modifier.size(18.dp))
+        Text(message, color = CiyatoSec, fontSize = 12.sp, lineHeight = 18.sp)
+    }
+}
+
+@Composable
 private fun FileMaintenanceCard(
     cacheBytes: Long,
     isClearing: Boolean,
@@ -437,7 +466,12 @@ private fun FileMaintenanceCard(
 }
 
 @Composable
-private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit, onDelete: () -> Unit) {
+private fun FileRow(
+    file: CiyatoFile,
+    accentColor: Color,
+    onTap: () -> Unit,
+    onDelete: (() -> Unit)?,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -467,8 +501,10 @@ private fun FileRow(file: CiyatoFile, accentColor: Color, onTap: () -> Unit, onD
             Text(file.name, color = CiyatoWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             Text(if (file.isDirectory) "Folder" else formatFileSize(file.sizeBytes), color = CiyatoMuted, fontSize = 11.sp)
         }
-        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete ${file.name}", tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+        if (onDelete != null) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete ${file.name}", tint = CiyatoMuted, modifier = Modifier.size(18.dp))
+            }
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CiyatoMuted, modifier = Modifier.size(18.dp))
     }
@@ -530,6 +566,7 @@ private suspend fun loadFilesFromDocument(
                             mimeType = doc.type,
                             lastModified = doc.lastModified(),
                             isDirectory = doc.isDirectory,
+                            canDelete = doc.canWrite(),
                             document = doc,
                         )
                     )

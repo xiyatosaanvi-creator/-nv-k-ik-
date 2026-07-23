@@ -19,19 +19,31 @@ object CrashReporter {
 
     private const val LOG_DIR     = "crash_logs"
     private const val MAX_LOGS    = 10
+    @Volatile private var installed = false
+    @Volatile private var loggingEnabled = true
 
     fun install(context: Context) {
-        val appCtx   = context.applicationContext
-        val default  = Thread.getDefaultUncaughtExceptionHandler()
+        if (installed) return
+        synchronized(this) {
+            if (installed) return
+            val appCtx = context.applicationContext
+            val default = Thread.getDefaultUncaughtExceptionHandler()
 
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            try {
-                writeCrashLog(appCtx, thread, throwable)
-            } catch (_: Exception) {
-                // Never crash inside the crash handler
+            Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+                try {
+                    if (loggingEnabled) writeCrashLog(appCtx, thread, throwable)
+                } catch (_: Exception) {
+                    // Never crash inside the crash handler
+                }
+                default?.uncaughtException(thread, throwable)
             }
-            default?.uncaughtException(thread, throwable)
+            installed = true
         }
+    }
+
+    /** Controlled by the visible local-only Crash Reporting setting. */
+    fun setLoggingEnabled(enabled: Boolean) {
+        loggingEnabled = enabled
     }
 
     private fun writeCrashLog(context: Context, thread: Thread, t: Throwable) {

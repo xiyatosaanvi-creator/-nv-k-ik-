@@ -31,6 +31,7 @@ object CategoryColorManager {
         AppCategory.TRAVEL        to 0xFF00695C.toInt(),  // Teal
         AppCategory.COMMUNICATION to 0xFF283593.toInt(),  // Indigo
         AppCategory.SHOPPING      to 0xFF880E4F.toInt(),  // Pink
+        AppCategory.REVIEW        to 0xFF546E7A.toInt(),  // Blue Gray
         AppCategory.OTHER         to 0xFF455A64.toInt(),  // Blue Gray
     )
 

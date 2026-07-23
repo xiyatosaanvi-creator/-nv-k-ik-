@@ -2,6 +2,9 @@ package com.ciyato.launcher.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
 import android.view.Window
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +13,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.util.Calendar
 
 /**
@@ -56,6 +60,16 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val allApps   get() = repo.allApps
     val isLoading get() = repo.isLoading
 
+    // Transient launcher interactions must never survive Home, Recents, another
+    // activity, or a fresh Home intent. The UI consumes this event to restore a
+    // clean launcher state without persisting temporary edit state.
+    private val _exitLauncherEditing = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val exitLauncherEditing = _exitLauncherEditing.asSharedFlow()
+
+    fun cancelLauncherEditing() {
+        _exitLauncherEditing.tryEmit(Unit)
+    }
+
     // ── Search ────────────────────────────────────────────────────────────────
 
     private val _searchQuery = MutableStateFlow("")
@@ -93,6 +107,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val showHomeSearch     = settings.showHomeSearch    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showHomeWeather    = settings.showHomeWeather   .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showHomeAgenda     = settings.showHomeAgenda    .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val showHomeDock       = settings.showHomeDock      .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showAppDrawer      = settings.showAppDrawer     .stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val hiddenHomeCategories = settings.hiddenHomeCategories.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val denseLayout        = settings.denseLayout        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -122,6 +137,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val focusBlockedCats   = settings.focusBlockedCats   .stateIn(viewModelScope, SharingStarted.Eagerly, "SOCIAL,ENTERTAINMENT,GAMES")
     val focusDurationMin   = settings.focusDurationMin   .stateIn(viewModelScope, SharingStarted.Eagerly, 25)
     val hapticFeedback     = settings.hapticFeedback     .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val reduceMotion       = settings.reduceMotion       .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val privacyMode        = settings.privacyMode        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val screenshotBlocked  = settings.screenshotBlocked  .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val crashReporting     = settings.crashReporting     .stateIn(viewModelScope, SharingStarted.Eagerly, true)
@@ -130,18 +146,34 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val networkCallLog     = settings.networkCallLog     .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val useSystemWallpaper = settings.useSystemWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val ciyatoVideoWallpaper = settings.ciyatoVideoWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val ciyatoImageWallpaper = settings.ciyatoImageWallpaper.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val wallpaperDim = settings.wallpaperDim.stateIn(viewModelScope, SharingStarted.Eagerly, 32)
+    val wallpaperImageScale = settings.wallpaperImageScale.stateIn(viewModelScope, SharingStarted.Eagerly, 1f)
+    val wallpaperImageOffset = settings.wallpaperImageOffset.stateIn(viewModelScope, SharingStarted.Eagerly, 0f)
     val categoryOrder      = settings.categoryOrder     .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val categoryTilesSizes = settings.categoryTilesSizes.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val customCategories   = settings.customCategories  .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val customCategoryIcons = settings.customCategoryIcons.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
+    val customCategoryPresentations = settings.customCategoryPresentations.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val page0Apps          = settings.page0Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val page2Apps          = settings.page2Apps         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val workspaceCount     = settings.workspaceCount    .stateIn(viewModelScope, SharingStarted.Eagerly, 3)
     val workspaceApps      = settings.workspaceApps     .stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val workspaceCategories = settings.workspaceCategories.stateIn(viewModelScope, SharingStarted.Eagerly, "{}")
     val workspaceTransition = settings.workspaceTransition.stateIn(viewModelScope, SharingStarted.Eagerly, "slide")
+    val workspaceLayoutV2  = settings.workspaceLayoutV2.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val filesRootUri       = settings.filesRootUri      .stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val drawerStyle        = settings.drawerStyle       .stateIn(viewModelScope, SharingStarted.Eagerly, "smart")
+    val photoMediaUris    = settings.photoMediaUris    .stateIn(viewModelScope, SharingStarted.Eagerly, "[]")
+    val photoCollections  = settings.photoCollections  .stateIn(viewModelScope, SharingStarted.Eagerly, "[]")
+    val fileSearchHistory = settings.fileSearchHistory.stateIn(viewModelScope, SharingStarted.Eagerly, "[]")
+    val saveFileSearchHistory = settings.saveFileSearchHistory.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val fileSearchIndex = settings.fileSearchIndex.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    init {
+        viewModelScope.launch { ensureWorkspaceLayoutMigration() }
+    }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -151,6 +183,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setShowHomeSearch(v: Boolean)     = viewModelScope.launch { settings.setShowHomeSearch(v) }
     fun setShowHomeWeather(v: Boolean)    = viewModelScope.launch { settings.setShowHomeWeather(v) }
     fun setShowHomeAgenda(v: Boolean)     = viewModelScope.launch { settings.setShowHomeAgenda(v) }
+    fun setShowHomeDock(v: Boolean)       = viewModelScope.launch { settings.setShowHomeDock(v) }
     fun setShowAppDrawer(v: Boolean)      = viewModelScope.launch { settings.setShowAppDrawer(v) }
     fun removeCategoryFromHome(categoryKey: String) = viewModelScope.launch {
         val hidden = parsePackageCsv(settings.hiddenHomeCategories.first()).toMutableSet()
@@ -190,6 +223,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setFocusDurationMin(v: Int)       = viewModelScope.launch { settings.setFocusDurationMin(v) }
     fun setFocusBlockedCats(csv: String)  = viewModelScope.launch { settings.setFocusBlockedCats(csv) }
     fun setHapticFeedback(v: Boolean)     = viewModelScope.launch { settings.setHapticFeedback(v) }
+    fun setReduceMotion(v: Boolean)       = viewModelScope.launch { settings.setReduceMotion(v) }
     fun setPrivacyMode(v: Boolean)        = viewModelScope.launch { settings.setPrivacyMode(v) }
     fun setScreenshotBlocked(v: Boolean)  = viewModelScope.launch { settings.setScreenshotBlocked(v) }
     fun setCrashReporting(v: Boolean)     = viewModelScope.launch { settings.setCrashReporting(v) }
@@ -199,15 +233,132 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun setShowRecentlyLaunched(v: Boolean)= viewModelScope.launch { settings.setShowRecentlyLaunched(v) }
 
     fun setUseSystemWallpaper(v: Boolean)  = viewModelScope.launch { settings.setUseSystemWallpaper(v) }
+    fun setCiyatoVideoWallpaper(uri: String) = viewModelScope.launch {
+        if (uri.isBlank()) {
+            val previous = Uri.parse(ciyatoVideoWallpaper.value)
+            val privateWallpaperDirectory = File(getApplication<Application>().filesDir, "wallpapers").canonicalFile
+            val previousFile = previous.path?.let(::File)?.canonicalFile
+            if (previousFile != null && previousFile.parentFile == privateWallpaperDirectory) {
+                runCatching { previousFile.delete() }
+            }
+        }
+        settings.setCiyatoVideoWallpaper(uri)
+    }
+    fun setCiyatoImageWallpaper(uri: String) = viewModelScope.launch {
+        val previous = Uri.parse(ciyatoImageWallpaper.value)
+        if (previous.toString() != uri) {
+            val privateWallpaperDirectory = File(getApplication<Application>().filesDir, "wallpapers").canonicalFile
+            val previousFile = previous.path?.let(::File)?.canonicalFile
+            if (previousFile != null && previousFile.parentFile == privateWallpaperDirectory &&
+                previousFile.name.startsWith("ciyato_image_wallpaper")
+            ) {
+                runCatching { previousFile.delete() }
+            }
+        }
+        settings.setCiyatoImageWallpaper(uri)
+    }
+    fun setWallpaperDim(value: Int) = viewModelScope.launch { settings.setWallpaperDim(value) }
+    fun setWallpaperImageScale(value: Float) = viewModelScope.launch { settings.setWallpaperImageScale(value) }
+    fun setWallpaperImageOffset(value: Float) = viewModelScope.launch { settings.setWallpaperImageOffset(value) }
     fun setCategoryOrder(v: String)        = viewModelScope.launch { settings.setCategoryOrder(v) }
     fun setCategoryTilesSizes(v: String)    = viewModelScope.launch { settings.setCategoryTilesSizes(v) }
+    fun setWorkspaceLayout(v: String) = viewModelScope.launch {
+        if (WorkspaceStore.parse(v) != null) settings.setWorkspaceLayoutV2(v)
+    }
     fun setCustomCategories(v: String)     = viewModelScope.launch { settings.setCustomCategories(v) }
+
+    /** Restores one coherent user-layout snapshot after an explicit Undo or Cancel. */
+    fun restoreLayoutEditState(
+        categoryOrder: String,
+        tileSizes: String,
+        workspaceLayout: String,
+        customCategories: String,
+        customCategoryIcons: String,
+        customCategoryPresentations: String,
+        appCategoryOverrides: String,
+        hiddenHomeCategories: String,
+    ) = viewModelScope.launch {
+        if (WorkspaceStore.parse(workspaceLayout) == null) return@launch
+        settings.setCategoryOrder(categoryOrder)
+        settings.setCategoryTilesSizes(tileSizes)
+        settings.setWorkspaceLayoutV2(workspaceLayout)
+        settings.setWorkspaceCount(WorkspaceStore.parse(workspaceLayout)?.visualOrder?.size?.plus(1) ?: 3)
+        settings.setCustomCategories(customCategories)
+        settings.setCustomCategoryIcons(customCategoryIcons)
+        settings.setCustomCategoryPresentations(customCategoryPresentations)
+        settings.setAppCategoryOverrides(appCategoryOverrides)
+        settings.setHiddenHomeCategories(hiddenHomeCategories)
+        repo.loadApps()
+    }
     fun setPage0Apps(v: String)            = viewModelScope.launch { settings.setPage0Apps(v) }
     fun setPage2Apps(v: String)            = viewModelScope.launch { settings.setPage2Apps(v) }
     fun setFilesRootUri(v: String)         = viewModelScope.launch { settings.setFilesRootUri(v) }
-    fun clearFilesRootUri()                = viewModelScope.launch { settings.setFilesRootUri("") }
+    fun clearFilesRootUri() = viewModelScope.launch {
+        val rawUri = filesRootUri.value
+        if (rawUri.isNotBlank()) {
+            runCatching {
+                getApplication<Application>().contentResolver.releasePersistableUriPermission(
+                    Uri.parse(rawUri),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+        }
+        settings.setFilesRootUri("")
+        settings.setFileSearchIndex("")
+    }
+    fun recordFileSearch(query: String) = viewModelScope.launch {
+        if (!settings.saveFileSearchHistory.first()) return@launch
+        settings.setFileSearchHistory(FileSearchHistoryStore.record(settings.fileSearchHistory.first(), query))
+    }
+    fun clearFileSearchHistory() = viewModelScope.launch { settings.setFileSearchHistory("[]") }
+    fun setSaveFileSearchHistory(enabled: Boolean) = viewModelScope.launch {
+        settings.setSaveFileSearchHistory(enabled)
+        if (!enabled) settings.setFileSearchHistory("[]")
+    }
+    fun updateFileSearchIndex(rootUri: String, entries: Collection<FileSearchIndexEntry>, reachedLimit: Boolean) = viewModelScope.launch {
+        settings.setFileSearchIndex(
+            FileSearchIndexStore.serialize(
+                FileSearchIndex(
+                    rootUri = rootUri,
+                    indexedAt = System.currentTimeMillis(),
+                    reachedLimit = reachedLimit,
+                    entries = entries.toList(),
+                ),
+            ),
+        )
+    }
+    fun clearFileSearchIndex() = viewModelScope.launch { settings.setFileSearchIndex("") }
     fun setDrawerStyle(v: String)          = viewModelScope.launch { settings.setDrawerStyle(v) }
     fun setWorkspaceTransition(v: String)  = viewModelScope.launch { settings.setWorkspaceTransition(v) }
+    fun addPhotoUris(uris: Collection<String>) = viewModelScope.launch {
+        val merged = PhotoLibraryStore.parseUris(photoMediaUris.value) + uris
+        settings.setPhotoMediaUris(PhotoLibraryStore.serializeUris(merged))
+    }
+    fun removePhotoUris(uris: Collection<String>) = viewModelScope.launch {
+        val remaining = PhotoLibraryStore.parseUris(photoMediaUris.value) - uris.toSet()
+        settings.setPhotoMediaUris(PhotoLibraryStore.serializeUris(remaining))
+        val collections = PhotoLibraryStore.parseCollections(photoCollections.value).map { collection ->
+            collection.copy(uris = collection.uris - uris.toSet())
+        }.filter { it.uris.isNotEmpty() }
+        settings.setPhotoCollections(PhotoLibraryStore.serializeCollections(collections))
+    }
+    fun clearPhotoLibrary() = viewModelScope.launch {
+        settings.setPhotoMediaUris("[]")
+        settings.setPhotoCollections("[]")
+    }
+    fun addPhotoCollection(name: String, uris: Collection<String>) = viewModelScope.launch {
+        val cleanName = name.trim().take(48)
+        if (cleanName.isBlank() || uris.isEmpty()) return@launch
+        val collections = PhotoLibraryStore.parseCollections(photoCollections.value).toMutableList()
+        collections.add(
+            PhotoCollection(
+                id = "collection_" + System.currentTimeMillis(),
+                name = cleanName,
+                uris = uris.distinct(),
+            ),
+        )
+        settings.setPhotoCollections(PhotoLibraryStore.serializeCollections(collections))
+    }
 
     fun resetLayout() = viewModelScope.launch { settings.resetLayout() }
     fun resetAllPreferences() = viewModelScope.launch {
@@ -221,11 +372,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     fun byCustomCategory(name: String): List<InstalledApp> = repo.byCustomCategoryName(name)
 
-    fun addCustomCategory(name: String) = viewModelScope.launch {
+    fun addCustomCategory(
+        name: String,
+        presentation: CustomCategoryPresentation = CustomCategoryPresentation.GROUP,
+    ) = viewModelScope.launch {
         val current = parsePackageCsv(customCategories.value).toMutableList()
         if (name !in current) {
             current.add(name)
             settings.setCustomCategories(current.joinToString(","))
+            settings.setCustomCategoryPresentations(
+                CustomCategoryPresentationStore.update(
+                    settings.customCategoryPresentations.first(),
+                    name,
+                    presentation,
+                ),
+            )
         }
     }
 
@@ -247,6 +408,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         val icons = try { JSONObject(customCategoryIcons.value) } catch (_: Exception) { JSONObject() }
         icons.remove(name)
         settings.setCustomCategoryIcons(icons.toString())
+        settings.setCustomCategoryPresentations(
+            CustomCategoryPresentationStore.remove(settings.customCategoryPresentations.first(), name),
+        )
         repo.loadApps()
     }
 
@@ -260,6 +424,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         try { JSONObject(customCategoryIcons.value).optString(name, "folder") }
         catch (_: Exception) { "folder" }
 
+    fun getCustomCategoryPresentation(name: String): CustomCategoryPresentation =
+        CustomCategoryPresentationStore.presentationFor(customCategoryPresentations.value, name)
+
     fun setAppCustomCategoryOverride(packageName: String, customName: String?) = viewModelScope.launch {
         val map = try { JSONObject(appCategoryOverrides.value) } catch (_: Exception) { JSONObject() }
         if (customName == null) {
@@ -268,6 +435,118 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             map.put(packageName, customName)
         }
         settings.setAppCategoryOverrides(map.toString())
+        repo.loadApps()
+    }
+
+    /** Renames a user-created collection and every persisted reference to it. */
+    fun renameCustomCategory(
+        currentName: String,
+        requestedName: String,
+        icon: String? = null,
+        presentation: CustomCategoryPresentation? = null,
+    ) = viewModelScope.launch {
+        val current = currentName.trim()
+        val replacement = requestedName.trim().take(24)
+        val categoryNames = parsePackageCsv(settings.customCategories.first())
+        if (current !in categoryNames || replacement.isBlank() ||
+            (replacement != current && replacement in categoryNames)
+        ) return@launch
+
+        settings.setCustomCategories(
+            categoryNames.map { if (it == current) replacement else it }.joinToString(","),
+        )
+
+        val overrides = jsonObject(settings.appCategoryOverrides.first())
+        overrides.keys().asSequence().toList().forEach { packageName ->
+            if (overrides.optString(packageName) == current) overrides.put(packageName, replacement)
+        }
+        settings.setAppCategoryOverrides(overrides.toString())
+
+        val icons = jsonObject(settings.customCategoryIcons.first())
+        val resolvedIcon = icon ?: icons.optString(current, "folder")
+        icons.remove(current)
+        icons.put(replacement, resolvedIcon)
+        settings.setCustomCategoryIcons(icons.toString())
+
+        val presentationMap = if (replacement == current) {
+            settings.customCategoryPresentations.first()
+        } else {
+            CustomCategoryPresentationStore.rename(
+                settings.customCategoryPresentations.first(),
+                current,
+                replacement,
+            )
+        }
+        settings.setCustomCategoryPresentations(
+            presentation?.let {
+                CustomCategoryPresentationStore.update(presentationMap, replacement, it)
+            } ?: presentationMap,
+        )
+
+        val tileSizes = jsonObject(settings.categoryTilesSizes.first())
+        val size = tileSizes.optString(current, "")
+        tileSizes.remove(current)
+        if (size.isNotBlank()) tileSizes.put(replacement, size)
+        settings.setCategoryTilesSizes(tileSizes.toString())
+
+        settings.setCategoryOrder(replaceCategoryInCsv(settings.categoryOrder.first(), current, replacement))
+        settings.setHiddenHomeCategories(
+            replaceCategoryInCsv(settings.hiddenHomeCategories.first(), current, replacement),
+        )
+
+        val layout = currentWorkspaceLayoutForWrite()
+        persistWorkspaceLayout(layout.copy(workspaces = layout.workspaces.map { workspace ->
+            workspace.copy(
+                categoryKeys = workspace.categoryKeys.map { key ->
+                    if (key == current) replacement else key
+                }.distinct(),
+            )
+        }))
+        repo.loadApps()
+    }
+
+    /** Moves all members into a destination collection and removes only the source collection. */
+    fun mergeCustomCategories(sourceName: String, destinationName: String) = viewModelScope.launch {
+        val source = sourceName.trim()
+        val destination = destinationName.trim()
+        val categoryNames = parsePackageCsv(settings.customCategories.first())
+        if (source == destination || source !in categoryNames || destination !in categoryNames) return@launch
+
+        settings.setCustomCategories(categoryNames.filterNot { it == source }.joinToString(","))
+
+        val overrides = jsonObject(settings.appCategoryOverrides.first())
+        overrides.keys().asSequence().toList().forEach { packageName ->
+            if (overrides.optString(packageName) == source) overrides.put(packageName, destination)
+        }
+        settings.setAppCategoryOverrides(overrides.toString())
+
+        val icons = jsonObject(settings.customCategoryIcons.first())
+        icons.remove(source)
+        settings.setCustomCategoryIcons(icons.toString())
+        settings.setCustomCategoryPresentations(
+            CustomCategoryPresentationStore.remove(settings.customCategoryPresentations.first(), source),
+        )
+
+        val tileSizes = jsonObject(settings.categoryTilesSizes.first())
+        if (!tileSizes.has(destination) && tileSizes.has(source)) {
+            tileSizes.put(destination, tileSizes.optString(source))
+        }
+        tileSizes.remove(source)
+        settings.setCategoryTilesSizes(tileSizes.toString())
+
+        settings.setCategoryOrder(replaceCategoryInCsv(settings.categoryOrder.first(), source, destination))
+        settings.setHiddenHomeCategories(
+            replaceCategoryInCsv(settings.hiddenHomeCategories.first(), source, destination),
+        )
+
+        val layout = currentWorkspaceLayoutForWrite()
+        persistWorkspaceLayout(layout.copy(workspaces = layout.workspaces.map { workspace ->
+            workspace.copy(
+                categoryKeys = workspace.categoryKeys.map { key ->
+                    if (key == source) destination else key
+                }.distinct(),
+            )
+        }))
         repo.loadApps()
     }
 
@@ -318,121 +597,262 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     // ── Multi-Page Custom Apps ───────────────────────────────────────────────
 
     fun addAppToPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
-        val current = parsePackageCsv(workspacePackages(pageIndex)).toMutableList()
-        if (pkg !in current) {
-            current.add(pkg)
-            setWorkspacePackages(pageIndex, current.joinToString(","))
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        if (pkg !in workspace.appPackages) {
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(layout, workspace.copy(appPackages = workspace.appPackages + pkg)) ?: layout,
+            )
         }
     }
 
     fun removeAppFromPage(pageIndex: Int, pkg: String) = viewModelScope.launch {
-        val current = parsePackageCsv(workspacePackages(pageIndex)).toMutableList()
-        if (current.remove(pkg)) {
-            setWorkspacePackages(pageIndex, current.joinToString(","))
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        if (pkg in workspace.appPackages) {
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(layout, workspace.copy(appPackages = workspace.appPackages - pkg)) ?: layout,
+            )
         }
     }
 
     fun getAppsForPage(pageIndex: Int): List<InstalledApp> {
-        val csv = workspacePackages(pageIndex)
-        val pkgs = parsePackageCsv(csv)
+        val workspaceIndex = workspaceIndexForPage(pageIndex) ?: return emptyList()
+        val packages = currentWorkspaceLayout().workspaceAt(workspaceIndex)?.appPackages.orEmpty()
         val byPkg = apps.value.associateBy { it.packageName }
-        return pkgs.mapNotNull { byPkg[it] }
+        return packages.mapNotNull { byPkg[it] }
     }
 
-    fun getCategoriesForWorkspace(pageIndex: Int): List<String> {
-        return try {
-            parsePackageCsv(JSONObject(workspaceCategories.value).optString(pageIndex.toString(), ""))
-                .toList()
-        } catch (_: Exception) {
-            emptyList()
-        }
+    fun getCategoriesForWorkspace(pageIndex: Int): List<String> = workspaceIndexForPage(pageIndex)
+        ?.let { currentWorkspaceLayout().workspaceAt(it)?.categoryKeys }
+        .orEmpty()
+
+    fun workspaceName(pageIndex: Int): String = workspaceIndexForPage(pageIndex)
+        ?.let { currentWorkspaceLayout().workspaceAt(it) }
+        ?.name
+        ?: "Workspace"
+
+    fun workspaceOverview(): List<WorkspaceRecord> {
+        val layout = currentWorkspaceLayout()
+        return layout.visualOrder.mapNotNull { id -> layout.workspaces.firstOrNull { it.id == id } }
     }
+
+    fun workspaceLayoutSnapshot(): String = WorkspaceStore.parse(workspaceLayoutV2.value)
+        ?.let(WorkspaceStore::serialize)
+        ?: WorkspaceStore.serialize(legacyWorkspaceLayout())
+
+    fun isDefaultWorkspace(pageIndex: Int): Boolean = workspaceIndexForPage(pageIndex)
+        ?.let { currentWorkspaceLayout().workspaceAt(it)?.id }
+        ?.let { it == currentWorkspaceLayout().defaultWorkspaceId }
+        ?: false
 
     fun addCategoryToWorkspace(pageIndex: Int, categoryKey: String) = viewModelScope.launch {
-        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
-        if (categoryKey !in categories) {
-            categories.add(categoryKey)
-            setWorkspaceCategories(pageIndex, categories)
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        if (categoryKey !in workspace.categoryKeys) {
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(layout, workspace.copy(categoryKeys = workspace.categoryKeys + categoryKey)) ?: layout,
+            )
         }
     }
 
     fun removeCategoryFromWorkspace(pageIndex: Int, categoryKey: String) = viewModelScope.launch {
-        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
-        if (categories.remove(categoryKey)) setWorkspaceCategories(pageIndex, categories)
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        if (categoryKey in workspace.categoryKeys) {
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(layout, workspace.copy(categoryKeys = workspace.categoryKeys - categoryKey)) ?: layout,
+            )
+        }
     }
 
     fun moveCategoryInWorkspace(pageIndex: Int, categoryKey: String, shift: Int) = viewModelScope.launch {
-        val categories = getCategoriesForWorkspace(pageIndex).toMutableList()
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        val categories = workspace.categoryKeys.toMutableList()
         val from = categories.indexOf(categoryKey)
-        val to = (from + shift).coerceIn(0, categories.lastIndex)
-        if (from >= 0 && from != to) {
-            categories.removeAt(from)
-            categories.add(to, categoryKey)
-            setWorkspaceCategories(pageIndex, categories)
-        }
-    }
-
-    fun moveCategoryBetweenWorkspaces(fromPage: Int, toPage: Int, categoryKey: String) = viewModelScope.launch {
-        if (fromPage == toPage) return@launch
-        val from = getCategoriesForWorkspace(fromPage).toMutableList()
-        val to = getCategoriesForWorkspace(toPage).toMutableList()
-        if (from.remove(categoryKey)) {
-            if (categoryKey !in to) to.add(categoryKey)
-            setWorkspaceCategories(fromPage, from)
-            setWorkspaceCategories(toPage, to)
-        }
-    }
-
-    fun moveAppBetweenWorkspaces(fromPage: Int, toPage: Int, packageName: String) = viewModelScope.launch {
-        if (fromPage == toPage) return@launch
-        val from = parsePackageCsv(workspacePackages(fromPage)).toMutableList()
-        val to = parsePackageCsv(workspacePackages(toPage)).toMutableList()
-        if (from.remove(packageName)) {
-            if (packageName !in to) to.add(packageName)
-            setWorkspacePackages(fromPage, from.joinToString(","))
-            setWorkspacePackages(toPage, to.joinToString(","))
-        }
-    }
-
-    fun addWorkspace() = viewModelScope.launch {
-        if (workspaceCount.value < 10) settings.setWorkspaceCount(workspaceCount.value + 1)
-    }
-
-    fun removeLastWorkspace() = viewModelScope.launch {
-        val lastIndex = workspaceCount.value - 1
-        if (lastIndex < 3) return@launch
-        val pages = try { JSONObject(workspaceApps.value) } catch (_: Exception) { JSONObject() }
-        pages.remove(lastIndex.toString())
-        settings.setWorkspaceApps(pages.toString())
-        val categories = try { JSONObject(workspaceCategories.value) } catch (_: Exception) { JSONObject() }
-        categories.remove(lastIndex.toString())
-        settings.setWorkspaceCategories(categories.toString())
-        settings.setWorkspaceCount(lastIndex)
-    }
-
-    private fun workspacePackages(pageIndex: Int): String = when (pageIndex) {
-        0 -> page0Apps.value
-        2 -> page2Apps.value
-        else -> try { JSONObject(workspaceApps.value).optString(pageIndex.toString(), "") } catch (_: Exception) { "" }
-    }
-
-    private suspend fun setWorkspacePackages(pageIndex: Int, csv: String) {
-        when (pageIndex) {
-            0 -> settings.setPage0Apps(csv)
-            2 -> settings.setPage2Apps(csv)
-            else -> {
-                val pages = try { JSONObject(workspaceApps.value) } catch (_: Exception) { JSONObject() }
-                pages.put(pageIndex.toString(), csv)
-                settings.setWorkspaceApps(pages.toString())
+        if (from >= 0) {
+            val to = (from + shift).coerceIn(0, categories.lastIndex)
+            if (from != to) {
+                categories.removeAt(from)
+                categories.add(to, categoryKey)
+                persistWorkspaceLayout(WorkspaceStore.withWorkspace(layout, workspace.copy(categoryKeys = categories)) ?: layout)
             }
         }
     }
 
-    private suspend fun setWorkspaceCategories(pageIndex: Int, categories: List<String>) {
-        val pages = try { JSONObject(workspaceCategories.value) } catch (_: Exception) { JSONObject() }
-        pages.put(pageIndex.toString(), categories.joinToString(","))
-        settings.setWorkspaceCategories(pages.toString())
+    fun moveCategoryBetweenWorkspaces(fromPage: Int, toPage: Int, categoryKey: String) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        if (fromPage == toPage) return@launch
+        val from = layout.workspaceAt(workspaceIndexForPage(fromPage) ?: return@launch) ?: return@launch
+        val to = layout.workspaceAt(workspaceIndexForPage(toPage) ?: return@launch) ?: return@launch
+        if (categoryKey in from.categoryKeys) {
+            val without = WorkspaceStore.withWorkspace(layout, from.copy(categoryKeys = from.categoryKeys - categoryKey)) ?: return@launch
+            val destination = without.workspaces.first { it.id == to.id }
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(without, destination.copy(categoryKeys = destination.categoryKeys + categoryKey)) ?: without,
+            )
+        }
     }
+
+    /** Accessible alternative to drag-and-drop for placing a collection in one workspace. */
+    fun moveCategoryToWorkspace(categoryKey: String, destinationPage: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val destination = layout.workspaceAt(workspaceIndexForPage(destinationPage) ?: return@launch) ?: return@launch
+        persistWorkspaceLayout(layout.copy(workspaces = layout.workspaces.map { workspace ->
+            val withoutCategory = workspace.categoryKeys.filterNot { it == categoryKey }
+            if (workspace.id == destination.id) {
+                workspace.copy(categoryKeys = (withoutCategory + categoryKey).distinct())
+            } else {
+                workspace.copy(categoryKeys = withoutCategory)
+            }
+        }))
+    }
+
+    fun moveAppBetweenWorkspaces(fromPage: Int, toPage: Int, packageName: String) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        if (fromPage == toPage) return@launch
+        val from = layout.workspaceAt(workspaceIndexForPage(fromPage) ?: return@launch) ?: return@launch
+        val to = layout.workspaceAt(workspaceIndexForPage(toPage) ?: return@launch) ?: return@launch
+        if (packageName in from.appPackages) {
+            val without = WorkspaceStore.withWorkspace(layout, from.copy(appPackages = from.appPackages - packageName)) ?: return@launch
+            val destination = without.workspaces.first { it.id == to.id }
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(without, destination.copy(appPackages = destination.appPackages + packageName)) ?: without,
+            )
+        }
+    }
+
+    fun moveAppWithinWorkspace(pageIndex: Int, packageName: String, destinationIndex: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        WorkspaceStore.moveAppWithinWorkspace(layout, workspace.id, packageName, destinationIndex)
+            ?.let { updated -> persistWorkspaceLayout(updated) }
+    }
+
+    fun addWorkspace() = insertWorkspaceAt(currentWorkspaceLayout().visualOrder.size)
+
+    fun insertWorkspaceAt(visualIndex: Int) = viewModelScope.launch {
+        WorkspaceStore.insert(currentWorkspaceLayoutForWrite(), visualIndex)?.let { layout ->
+            persistWorkspaceLayout(layout)
+        }
+    }
+
+    fun insertWorkspaceBeforePage(pageIndex: Int) =
+        insertWorkspaceAt(workspaceIndexForPage(pageIndex) ?: 0)
+
+    fun insertWorkspaceAfterPage(pageIndex: Int) =
+        insertWorkspaceAt((workspaceIndexForPage(pageIndex) ?: currentWorkspaceLayout().visualOrder.lastIndex) + 1)
+
+    fun renameWorkspace(pageIndex: Int, name: String) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val id = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch)?.id ?: return@launch
+        WorkspaceStore.rename(layout, id, name)?.let { updated ->
+            persistWorkspaceLayout(updated)
+        }
+    }
+
+    fun duplicateWorkspace(pageIndex: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val id = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch)?.id ?: return@launch
+        WorkspaceStore.duplicate(layout, id)?.let { updated -> persistWorkspaceLayout(updated) }
+    }
+
+    fun setDefaultWorkspace(pageIndex: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val id = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch)?.id ?: return@launch
+        WorkspaceStore.setDefault(layout, id)?.let { updated -> persistWorkspaceLayout(updated) }
+    }
+
+    fun dismissWorkspaceStarter(pageIndex: Int) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        if (!workspace.starterDismissed) {
+            persistWorkspaceLayout(
+                WorkspaceStore.withWorkspace(layout, workspace.copy(starterDismissed = true)) ?: layout,
+            )
+        }
+    }
+
+    fun applyWorkspaceTemplate(pageIndex: Int, categoryKeys: List<String>) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        val merged = (workspace.categoryKeys + categoryKeys).distinct()
+        persistWorkspaceLayout(
+            WorkspaceStore.withWorkspace(
+                layout,
+                workspace.copy(categoryKeys = merged, starterDismissed = true),
+            ) ?: layout,
+        )
+    }
+
+    fun reorderWorkspace(fromIndex: Int, toIndex: Int) = viewModelScope.launch {
+        WorkspaceStore.reorder(currentWorkspaceLayoutForWrite(), fromIndex, toIndex)?.let { layout ->
+            persistWorkspaceLayout(layout)
+        }
+    }
+
+    fun removeWorkspace(pageIndex: Int, moveContentsToPage: Int? = null) = viewModelScope.launch {
+        val layout = currentWorkspaceLayoutForWrite()
+        val workspace = layout.workspaceAt(workspaceIndexForPage(pageIndex) ?: return@launch) ?: return@launch
+        val destination = moveContentsToPage
+            ?.let(::workspaceIndexForPage)
+            ?.let(layout::workspaceAt)
+            ?.id
+        WorkspaceStore.remove(layout, workspace.id, destination)?.let { updated ->
+            persistWorkspaceLayout(updated)
+        }
+    }
+
+    fun removeLastWorkspace() = removeWorkspace(workspaceCount.value - 1)
+
+    private fun workspaceIndexForPage(pageIndex: Int): Int? = when {
+        pageIndex == 0 -> 0
+        pageIndex >= 2 -> pageIndex - 1
+        else -> null
+    }
+
+    private fun currentWorkspaceLayout(): WorkspaceLayout =
+        WorkspaceStore.parse(workspaceLayoutV2.value) ?: legacyWorkspaceLayout()
+
+    private suspend fun currentWorkspaceLayoutForWrite(): WorkspaceLayout =
+        WorkspaceStore.parse(settings.workspaceLayoutV2.first()) ?: legacyWorkspaceLayoutFromSettings()
+
+    private fun legacyWorkspaceLayout(): WorkspaceLayout = WorkspaceStore.migrateLegacy(
+        count = workspaceCount.value,
+        page0Apps = page0Apps.value,
+        page2Apps = page2Apps.value,
+        workspaceApps = workspaceApps.value,
+        workspaceCategories = workspaceCategories.value,
+        ciyatoPackage = getApplication<Application>().packageName,
+    )
+
+    private suspend fun legacyWorkspaceLayoutFromSettings(): WorkspaceLayout = WorkspaceStore.migrateLegacy(
+        count = settings.workspaceCount.first(),
+        page0Apps = settings.page0Apps.first(),
+        page2Apps = settings.page2Apps.first(),
+        workspaceApps = settings.workspaceApps.first(),
+        workspaceCategories = settings.workspaceCategories.first(),
+        ciyatoPackage = getApplication<Application>().packageName,
+    )
+
+    private suspend fun ensureWorkspaceLayoutMigration() {
+        if (WorkspaceStore.parse(settings.workspaceLayoutV2.first()) != null) return
+        persistWorkspaceLayout(legacyWorkspaceLayoutFromSettings())
+    }
+
+    private suspend fun persistWorkspaceLayout(layout: WorkspaceLayout) {
+        settings.setWorkspaceLayoutV2(WorkspaceStore.serialize(layout))
+        settings.setWorkspaceCount(layout.visualOrder.size + 1)
+    }
+
+    private fun jsonObject(raw: String): JSONObject = runCatching { JSONObject(raw) }.getOrDefault(JSONObject())
+
+    private fun replaceCategoryInCsv(raw: String, source: String, destination: String): String =
+        parsePackageCsv(raw)
+            .map { item -> if (item == source) destination else item }
+            .distinct()
+            .joinToString(",")
 
     // ── Screenshot blocking (Suggestion 145) ──────────────────────────────────
 
@@ -490,6 +910,36 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     fun isPinnedToDock(pkg: String): Boolean = pkg in parsePackageCsv(dockPackages.value)
 
+    fun defaultDockApps(): List<InstalledApp> {
+        val available = apps.value
+        if (available.isEmpty()) return emptyList()
+        val byPackage = available.associateBy(InstalledApp::packageName)
+        val packageManager = getApplication<Application>().packageManager
+        fun handlerPackage(intent: Intent): String? =
+            packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                ?.activityInfo
+                ?.packageName
+        val candidates = buildList {
+            handlerPackage(Intent(Intent.ACTION_DIAL, Uri.parse("tel:")))?.let(::add)
+            handlerPackage(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")))?.let(::add)
+            handlerPackage(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.example.com")))?.let(::add)
+            available.firstOrNull { it.packageName == "com.google.android.youtube" }
+                ?.packageName
+                ?.let(::add)
+                ?: available.firstOrNull { it.label.contains("youtube", ignoreCase = true) }
+                    ?.packageName
+                    ?.let(::add)
+            handlerPackage(Intent(MediaStore.ACTION_IMAGE_CAPTURE))?.let(::add)
+        }
+        return candidates.distinct().mapNotNull(byPackage::get).take(5)
+    }
+
+    fun ensureDefaultDock() = viewModelScope.launch {
+        if (settings.dockPackages.first().isNotBlank()) return@launch
+        val defaults = defaultDockApps()
+        if (defaults.isNotEmpty()) settings.setDockPackages(defaults.joinToString(",") { it.packageName })
+    }
+
     fun pinToDock(pkg: String) = viewModelScope.launch {
         val current = settings.dockPackages.first()
             .split(",")
@@ -508,6 +958,23 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             .filter(String::isNotEmpty)
             .filterNot { it == pkg }
         settings.setDockPackages(updated.joinToString(","))
+    }
+
+    fun moveDockShortcut(pkg: String, shift: Int) = viewModelScope.launch {
+        val current = settings.dockPackages.first()
+            .split(",")
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .toMutableList()
+        val from = current.indexOf(pkg)
+        if (from >= 0) {
+            val destination = (from + shift).coerceIn(0, current.lastIndex)
+            if (destination != from) {
+                current.removeAt(from)
+                current.add(destination, pkg)
+                settings.setDockPackages(current.joinToString(","))
+            }
+        }
     }
 
     // ── Category renames (Suggestion 24) ──────────────────────────────────────
@@ -668,7 +1135,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     private val _toastEvent = MutableStateFlow<Event<String>?>(null)
     val toastEvent: StateFlow<Event<String>?> = _toastEvent.asStateFlow()
 
-    fun refreshApps() = viewModelScope.launch { repo.loadApps() }
+    /** Avoid a broad installed-app scan on each ordinary launcher resume. */
+    fun refreshApps() = viewModelScope.launch { repo.refreshIfStale() }
 
     // ── Live weather (Open-Meteo) ─────────────────────────────────────────────
 
