@@ -6,6 +6,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,12 +25,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.data.LocationHelper
 import com.ciyato.launcher.ui.components.CiyatoBottomNavBar
 import com.ciyato.launcher.ui.components.CiyatoNavItem
 import com.ciyato.launcher.ui.screens.*
 import com.ciyato.launcher.ui.theme.CiyatoTheme
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import kotlinx.coroutines.launch
 
 /**
  * MainActivity — dashboard/settings entry point.
@@ -58,22 +61,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        CrashReporter.install(this)
+        lifecycleScope.launch {
+            viewModel.crashReporting.collect { enabled ->
+                CrashReporter.setLoggingEnabled(enabled)
+            }
+        }
+
         enableEdgeToEdge(
             statusBarStyle     = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
 
         setContent {
-            val darkMode by viewModel.darkMode.collectAsState()
             val font by viewModel.font.collectAsState()
-            val materialYou by viewModel.materialYou.collectAsState()
-            CiyatoTheme(darkMode = darkMode, font = font, dynamicColor = materialYou) {
+            CiyatoTheme(darkMode = "dark", font = font, dynamicColor = false) {
                 val context           = LocalContext.current
                 val onboardingDone by viewModel.onboardingDone.collectAsState()
                 val navController     = rememberNavController()
                 val requestedDestination = intent.getStringExtra(EXTRA_START_DESTINATION)
                 val startDest = when (requestedDestination) {
-                    "home", "files", "photos", "search", "settings" -> requestedDestination
+                    "home", "files", "photos", "search", "settings", "agenda" -> requestedDestination
                     "dashboard" -> "home"
                     "shared" -> "photos"
                     else -> if (onboardingDone) "home" else "onboarding"
@@ -132,7 +140,7 @@ class MainActivity : ComponentActivity() {
                     composable("home") { DashboardScreen(viewModel = viewModel) }
 
                     composable("files")   { FilesScreen(viewModel = viewModel, onBack = { navController.popBackStack() }) }
-                    composable("photos")  { PhotosScreen(onBack = { navController.popBackStack() }) }
+                    composable("photos")  { PhotosScreen(viewModel = viewModel, onBack = { navController.popBackStack() }) }
 
                     composable("search") {
                         NlFileSearchScreen(

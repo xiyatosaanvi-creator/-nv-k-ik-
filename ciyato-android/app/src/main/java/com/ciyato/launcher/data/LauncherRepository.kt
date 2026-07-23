@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * LauncherRepository — loads real installed apps from the system.
@@ -39,6 +42,9 @@ class LauncherRepository(private val context: Context) {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val inventoryMutex = Mutex()
+    private var lastInventoryScanElapsedMs = 0L
+
     // ── Icon LRU cache (Suggestion 17) ────────────────────────────────────────
     private val iconCache = LruCache<String, Drawable>(128)
 
@@ -64,6 +70,7 @@ class LauncherRepository(private val context: Context) {
     // ── App loading ───────────────────────────────────────────────────────────
 
     suspend fun loadApps() = withContext(Dispatchers.IO) {
+        inventoryMutex.withLock {
         _isLoading.value = true
         try {
             AppCategorizer.initialize(context)
@@ -113,7 +120,7 @@ class LauncherRepository(private val context: Context) {
                     // LRU-cached icon load (Suggestion 17)
                     val icon = iconCache.get(pkg) ?: ri.loadIcon(pm).also { iconCache.put(pkg, it) }
 
-                    val appInfo  = pm.getApplicationInfo(pkg, 0)
+                    val appInfo  = pm.getApplicationInfo(pkg, PackageManager.GET_META_DATA)
                     val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                     val pkgInfo  = runCatching { pm.getPackageInfo(pkg, 0) }.getOrNull()
                     val installMs= pkgInfo?.firstInstallTime ?: 0L
@@ -122,20 +129,25 @@ class LauncherRepository(private val context: Context) {
                     val overrideName = overridesMap[pkg]
                     val overrideCat = overrideName?.let { runCatching { AppCategory.valueOf(it) }.getOrNull() }
 
-                    val primary: AppCategory
-                    val customName: String?
-                    if (overrideName != null) {
-                        if (overrideCat != null) {
-                            primary = overrideCat
-                            customName = null
-                        } else {
-                            primary = AppCategory.CUSTOM
-                            customName = overrideName
-                        }
-                    } else {
-                        primary = AppCategorizer.categorize(pkg, originalLabel)
-                        customName = null
+                    val classification = when {
+                        overrideName != null && overrideCat != null -> AppClassification(
+                            category = overrideCat,
+                            confidence = 1f,
+                            source = ClassificationSource.USER_CORRECTION,
+                        )
+                        overrideName != null -> AppClassification(
+                            category = AppCategory.CUSTOM,
+                            confidence = 1f,
+                            source = ClassificationSource.USER_CORRECTION,
+                        )
+                        else -> AppCategorizer.classify(
+                            packageName = pkg,
+                            label = originalLabel,
+                            manifestCategoryHint = manifestCategoryHint(actInfo.metaData, appInfo.metaData),
+                        )
                     }
+                    val primary = classification.category
+                    val customName = overrideName?.takeIf { overrideCat == null }
 
                     val secondary = if (primary == AppCategory.CUSTOM || overrideCat != null) emptyList() else AppCategorizer.secondaryCategories(pkg, originalLabel, primary)
 
@@ -147,6 +159,7 @@ class LauncherRepository(private val context: Context) {
                         activityName        = activity,
                         icon                = icon,
                         category            = primary,
+                        classification      = classification,
                         secondaryCategories = secondary,
                         isSystemApp         = isSystem,
                         installTime         = installMs,
@@ -161,9 +174,21 @@ class LauncherRepository(private val context: Context) {
 
             _allApps.value = installed
             publishVisibleApps()
+            lastInventoryScanElapsedMs = SystemClock.elapsedRealtime()
         } finally {
             _isLoading.value = false
         }
+        }
+    }
+
+    /**
+     * Home resumes frequently (Recents, a short app launch, and a system
+     * dialog). Re-querying every launchable activity each time is unnecessary;
+     * corrections and explicit reloads continue to use [loadApps] directly.
+     */
+    suspend fun refreshIfStale(maxAgeMs: Long = 30_000L) {
+        val elapsed = SystemClock.elapsedRealtime() - lastInventoryScanElapsedMs
+        if (_allApps.value.isEmpty() || elapsed >= maxAgeMs) loadApps()
     }
 
     // ── Launch (with frequency tracking, Suggestion 37) ──────────────────────
@@ -271,6 +296,20 @@ class LauncherRepository(private val context: Context) {
 
     private fun parsePackageCsv(csv: String): Set<String> =
         csv.split(",").map(String::trim).filter(String::isNotEmpty).toSet()
+
+    /** Metadata is optional and never trusted unless it names a valid category. */
+    private fun manifestCategoryHint(
+        activityMetadata: android.os.Bundle?,
+        applicationMetadata: android.os.Bundle?,
+    ): String? {
+        val keys = listOf("com.ciyato.category", "android.app.category", "category")
+        return keys.asSequence()
+            .mapNotNull { key ->
+                activityMetadata?.getString(key)?.takeIf(String::isNotBlank)
+                    ?: applicationMetadata?.getString(key)?.takeIf(String::isNotBlank)
+            }
+            .firstOrNull()
+    }
 
     // ── Levenshtein distance helper ───────────────────────────────────────────
 

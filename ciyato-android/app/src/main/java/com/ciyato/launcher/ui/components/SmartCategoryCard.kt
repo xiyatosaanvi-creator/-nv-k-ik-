@@ -3,7 +3,16 @@ package com.ciyato.launcher.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
@@ -23,17 +32,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.data.AppCategory
+import com.ciyato.launcher.data.CustomCategoryPresentation
 import com.ciyato.launcher.data.InstalledApp
-import com.ciyato.launcher.ui.theme.*
+import com.ciyato.launcher.ui.theme.CiyatoBg
+import com.ciyato.launcher.ui.theme.CiyatoBgEl
+import com.ciyato.launcher.ui.theme.CiyatoBgEl3
+import com.ciyato.launcher.ui.theme.CiyatoGold
+import com.ciyato.launcher.ui.theme.CiyatoMuted
+import com.ciyato.launcher.ui.theme.CiyatoSec
+import com.ciyato.launcher.ui.theme.CiyatoSubtleBorder
+import com.ciyato.launcher.ui.theme.CiyatoWhite
 
-/**
- * Premium Smart Category Card (Folder visual design).
- *
- * Visual layout:
- * - A rounded card representing the folder / box containing miniature app icons (no click intercept).
- * - The category name and app count are displayed below this card.
- * - Supports three sizes: "small", "medium", "large".
- */
+/** Compact closed-category preview. Apps launch only after the category is opened. */
 @Composable
 fun SmartCategoryCard(
     category: AppCategory,
@@ -41,40 +51,44 @@ fun SmartCategoryCard(
     apps: List<InstalledApp>,
     onTap: () -> Unit,
     customIcon: String = "folder",
+    customPresentation: CustomCategoryPresentation = CustomCategoryPresentation.CARD,
     modifier: Modifier = Modifier,
-    tileSize: String = "medium", // "small" | "medium" | "large"
+    tileSize: String = "medium",
     isEditMode: Boolean = false,
-    onMoveLeft: (() -> Unit)? = null,
-    onMoveRight: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null,
     onToggleSize: (() -> Unit)? = null,
 ) {
     val boxHeight: Dp = when (tileSize) {
         "small" -> 76.dp
         "large" -> 136.dp
-        else -> 100.dp // medium
+        else -> 100.dp
     }
-
     val iconMiniSize: Dp = when (tileSize) {
         "small" -> 20.dp
         "large" -> 28.dp
-        else -> 24.dp // medium
+        else -> 24.dp
     }
+    val isCompactGroup = category == AppCategory.CUSTOM &&
+        customPresentation == CustomCategoryPresentation.GROUP
+    val visibleApps = when {
+        isCompactGroup -> apps.take(4)
+        apps.size > 6 -> apps.take(5)
+        else -> apps.take(6)
+    }
+    val hasOverflow = apps.size > visibleApps.size
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(vertical = 4.dp)
+        modifier = modifier.padding(vertical = 4.dp),
     ) {
-        // Folder / Box container
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(boxHeight)
                 .clip(RoundedCornerShape(20.dp))
-                .background(CiyatoBgEl)
+                .background(if (isCompactGroup) CiyatoBgEl3 else CiyatoBgEl)
                 .border(1.dp, CiyatoSubtleBorder, RoundedCornerShape(20.dp))
                 .clickable(onClick = onTap)
-                .padding(if (tileSize == "small") 8.dp else 12.dp)
+                .padding(if (tileSize == "small") 8.dp else 12.dp),
         ) {
             if (category == AppCategory.CUSTOM) {
                 val icon = when (customIcon) {
@@ -95,65 +109,79 @@ fun SmartCategoryCard(
                 }
             }
 
-            // Draw a grid of miniature app icons
-            val maxVisible = 6
-            val hasOverflow = apps.size > maxVisible
-            val visibleApps = if (hasOverflow) apps.take(maxVisible - 1) else apps.take(maxVisible)
-
-            if (visibleApps.isEmpty()) {
-                // Empty state indicator
+            if (isCompactGroup && visibleApps.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.align(Alignment.Center),
+                ) {
+                    visibleApps.forEach { app ->
+                        RealAppIcon(
+                            drawable = app.icon,
+                            size = iconMiniSize,
+                            cornerRadius = 6.dp,
+                            scale = app.iconScale,
+                            rotation = app.iconRotation,
+                            accentHex = app.iconAccent,
+                        )
+                    }
+                    if (hasOverflow) {
+                        Text(
+                            "+${apps.size - visibleApps.size}",
+                            color = CiyatoGold,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            } else if (visibleApps.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .size(16.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .background(CiyatoMuted.copy(alpha = 0.2f))
-                        .align(Alignment.Center)
+                        .align(Alignment.Center),
                 )
             } else {
-                val cols = 3
-                val slotCount = visibleApps.size + if (hasOverflow) 1 else 0
-                val rows = (slotCount + cols - 1) / cols
+                val slots = visibleApps.size + if (hasOverflow) 1 else 0
+                val rows = (slots + 2) / 3
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp, Alignment.CenterVertically),
+                    verticalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
                 ) {
-                    for (r in 0 until rows) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            for (c in 0 until cols) {
-                                val idx = r * cols + c
-                                if (idx < visibleApps.size) {
-                                    val app = visibleApps[idx]
-                                    RealAppIcon(
-                                        drawable = app.icon,
-                                        size = iconMiniSize,
-                                        cornerRadius = 6.dp,
-                                        scale = app.iconScale,
-                                        rotation = app.iconRotation,
-                                        accentHex = app.iconAccent,
-                                        // Closed-category previews are decorative. The card itself opens
-                                        // the category; launchable shortcuts belong to the expanded view.
-                                        modifier = Modifier
-                                    )
-                                } else if (hasOverflow && idx == visibleApps.size) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(iconMiniSize)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(CiyatoGold.copy(alpha = 0.18f))
-                                            .border(1.dp, CiyatoGold.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-                                            .clickable(onClick = onTap)
-                                    ) {
-                                        Text(
-                                            "+${apps.size - visibleApps.size}",
-                                            color = CiyatoGold,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
+                    repeat(rows) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(if (tileSize == "small") 4.dp else 6.dp)) {
+                            repeat(3) { column ->
+                                val index = row * 3 + column
+                                when {
+                                    index < visibleApps.size -> {
+                                        val app = visibleApps[index]
+                                        RealAppIcon(
+                                            drawable = app.icon,
+                                            size = iconMiniSize,
+                                            cornerRadius = 6.dp,
+                                            scale = app.iconScale,
+                                            rotation = app.iconRotation,
+                                            accentHex = app.iconAccent,
                                         )
+                                    }
+                                    hasOverflow && index == visibleApps.size -> {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(iconMiniSize)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(CiyatoGold.copy(alpha = 0.18f))
+                                                .border(1.dp, CiyatoGold.copy(alpha = 0.35f), RoundedCornerShape(6.dp)),
+                                        ) {
+                                            Text(
+                                                "+${apps.size - visibleApps.size}",
+                                                color = CiyatoGold,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -162,38 +190,32 @@ fun SmartCategoryCard(
                 }
             }
 
-            // Edit overlays when in Edit Mode
             if (isEditMode) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(CiyatoBg.copy(alpha = 0.65f))
+                        .background(CiyatoBg.copy(alpha = 0.65f)),
                 ) {
-                    // The category itself is moved with a long press and drag. Keep the
-                    // edit affordances visual and compact rather than exposing arrow controls.
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Default.DragIndicator, contentDescription = "Drag to move", tint = CiyatoWhite, modifier = Modifier.size(20.dp))
-                        if (onToggleSize != null) {
-                            IconButton(onClick = onToggleSize, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.ZoomOutMap, contentDescription = "Change category size", tint = CiyatoGold, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.DragIndicator,
+                            contentDescription = "Long press and drag to move $displayName",
+                            tint = CiyatoWhite,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        onToggleSize?.let { changeSize ->
+                            IconButton(onClick = changeSize, modifier = Modifier.size(32.dp)) {
+                                Icon(
+                                    Icons.Default.ZoomOutMap,
+                                    contentDescription = "Change $displayName size",
+                                    tint = CiyatoGold,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
-                        }
-                    }
-
-                    // Delete X icon on top-right
-                    if (onDelete != null) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(24.dp)
-                                .clickable(onClick = onDelete)
-                        ) {
-                            Text("✕", color = CiyatoRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -201,19 +223,17 @@ fun SmartCategoryCard(
         }
 
         Spacer(Modifier.height(6.dp))
-
-        // Name and count below the folder container
         Text(
             text = displayName,
             color = CiyatoWhite,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
-            maxLines = 1
+            maxLines = 1,
         )
         Text(
-            text = "${apps.size} apps",
+            text = if (isCompactGroup) "${apps.size} apps - Group" else "${apps.size} apps - Card",
             color = CiyatoMuted,
-            fontSize = 10.sp
+            fontSize = 10.sp,
         )
     }
 }

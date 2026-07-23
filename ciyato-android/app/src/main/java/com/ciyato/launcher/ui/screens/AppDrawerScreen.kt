@@ -77,6 +77,7 @@ private val APP_LIBRARY_ORDER = listOf(
     AppCategory.AI,
     AppCategory.VIDEO_EDITING,
     AppCategory.CONTACTS,
+    AppCategory.REVIEW,
 )
 
 /**

@@ -8,9 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Wallpaper
@@ -41,10 +39,8 @@ fun ThemeStudioScreen(
 ) {
     val homeLayoutMode by viewModel.homeLayoutMode.collectAsState()
     val denseLayout = homeLayoutMode == "dense"
-    val drawerStyle by viewModel.drawerStyle.collectAsState()
-    val darkMode by viewModel.darkMode.collectAsState()
     val font by viewModel.font.collectAsState()
-    val materialYou by viewModel.materialYou.collectAsState()
+    val fontOption = if (font in setOf("sans", "serif", "mono")) font else "sans"
     val useSystemWallpaper by viewModel.useSystemWallpaper.collectAsState()
     val accent = CiyatoGold
 
@@ -70,7 +66,6 @@ fun ThemeStudioScreen(
                 ThemePreviewCard(
                     denseLayout = denseLayout,
                     accent = accent,
-                    drawerStyle = drawerStyle,
                 )
             }
 
@@ -78,19 +73,9 @@ fun ThemeStudioScreen(
             item {
                 ThemeChoiceRow(
                     icon = Icons.Default.GridView,
-                    title = "Drawer style",
-                    selected = drawerStyle,
-                    options = listOf("smart" to "Smart", "dense" to "Dense", "spacious" to "Spacious"),
-                    onSelect = viewModel::setDrawerStyle,
-                    accent = accent
-                )
-            }
-            item {
-                ThemeChoiceRow(
-                    icon = Icons.Default.GridView,
                     title = "Home layout",
                     selected = homeLayoutMode,
-                    options = listOf("spacious" to "Spacious", "smart" to "Smart", "dense" to "Dense"),
+                    options = listOf("spacious" to "Spacious", "smart" to "Standard", "dense" to "Compact"),
                     onSelect = viewModel::setHomeLayoutMode,
                     accent = accent,
                 )
@@ -99,32 +84,12 @@ fun ThemeStudioScreen(
             item { SectionTitle("Appearance") }
             item {
                 ThemeChoiceRow(
-                    icon = Icons.Default.DarkMode,
-                    title = "Color mode",
-                    selected = darkMode,
-                    options = listOf("auto" to "System", "dark" to "Dark", "light" to "Light"),
-                    onSelect = viewModel::setDarkMode,
-                    accent = accent,
-                )
-            }
-            item {
-                ThemeChoiceRow(
                     icon = Icons.Default.TextFields,
                     title = "Typeface",
-                    selected = font,
+                    selected = fontOption,
                     options = listOf("sans" to "Sans", "serif" to "Serif", "mono" to "Mono"),
                     onSelect = viewModel::setFont,
                     accent = accent,
-                )
-            }
-            item {
-                CiyatoSettingSwitch(
-                    title = "Use system colors",
-                    subtitle = "Use your Android wallpaper colors where the device supports them",
-                    icon = Icons.Default.Palette,
-                    checked = materialYou,
-                    onCheckedChange = viewModel::setMaterialYou,
-                    accentColor = accent,
                 )
             }
             item {
@@ -161,7 +126,6 @@ fun ThemeStudioScreen(
 private fun ThemePreviewCard(
     denseLayout: Boolean,
     accent: Color,
-    drawerStyle: String,
 ) {
     Column(
         modifier = Modifier
@@ -176,7 +140,7 @@ private fun ThemePreviewCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Live launcher preview", color = CiyatoWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(
-                    "${if (denseLayout) "Dense" else "Spacious"} home - ${drawerStyle.labelize()} App Library",
+                    "${if (denseLayout) "Compact" else "Spacious"} home preview",
                     color = CiyatoMuted,
                     fontSize = 12.sp,
                     maxLines = 1,

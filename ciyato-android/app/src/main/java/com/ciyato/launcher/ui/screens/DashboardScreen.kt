@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -111,14 +110,6 @@ fun DashboardScreen(viewModel: LauncherViewModel) {
                     } else {
                         "Only the folder you selected is available to Ciyato."
                     },
-                )
-            }
-            item {
-                SummaryCard(
-                    icon = Icons.Default.Shield,
-                    title = "Privacy",
-                    value = "You remain in control",
-                    detail = "Permissions, selected media and search data can be reviewed in Settings.",
                 )
             }
         }

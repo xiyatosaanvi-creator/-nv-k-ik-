@@ -66,6 +66,7 @@ object AppCategorizer {
         "md.obsidian"                          to AppCategory.PRODUCTIVITY,
         "com.slack"                            to AppCategory.WORK,
         "us.zoom.videomeetings"                to AppCategory.WORK,
+        "com.zoom.videomeetings"               to AppCategory.WORK,
         "com.google.android.apps.meetings"     to AppCategory.WORK,
         "com.microsoft.teams"                  to AppCategory.WORK,
         "com.webex.meetings"                   to AppCategory.WORK,
@@ -112,6 +113,7 @@ object AppCategorizer {
         "com.amazon.mp3"                       to AppCategory.ENTERTAINMENT,
         "com.vimeo.android.videoapp"           to AppCategory.ENTERTAINMENT,
         "com.google.android.apps.podcasts"     to AppCategory.ENTERTAINMENT,
+        "com.supercell.clashofclans"           to AppCategory.GAMES,
         "com.pocketcasts.podcast.player"       to AppCategory.ENTERTAINMENT,
         "au.com.shiftyjelly.pocketcasts"       to AppCategory.ENTERTAINMENT,
         "com.overcast.podcasts"                to AppCategory.ENTERTAINMENT,
@@ -271,23 +273,125 @@ object AppCategorizer {
         }
     }
 
-    fun categorize(packageName: String, label: String): AppCategory {
-        // High-priority check for AI assistants
+    fun classify(
+        packageName: String,
+        label: String,
+        manifestCategoryHint: String? = null,
+    ): AppClassification {
         val lowerLabel = label.lowercase()
         val lowerPkg = packageName.lowercase()
+        knownApps[packageName]?.let {
+            return AppClassification(
+                category = it,
+                confidence = 0.96f,
+                source = ClassificationSource.CURATED_SEED,
+                candidates = listOf(ClassificationCandidate(it, 0.96f, ClassificationSource.CURATED_SEED)),
+            )
+        }
+        dynamicallyLoadedApps[packageName]?.let {
+            return AppClassification(
+                category = it,
+                confidence = 0.90f,
+                source = ClassificationSource.PACKAGED_SEED,
+                candidates = listOf(ClassificationCandidate(it, 0.90f, ClassificationSource.PACKAGED_SEED)),
+            )
+        }
+        val evidence = mutableListOf<ClassificationCandidate>()
+        manifestCategoryHint
+            ?.let(::parseManifestCategory)
+            ?.let { category ->
+                evidence += ClassificationCandidate(
+                    category,
+                    0.88f,
+                    ClassificationSource.MANIFEST_METADATA,
+                )
+            }
         if (lowerLabel.contains(Regex("gpt|deepseek|gemini|claude|copilot|ai assistant|ai chat"))) {
-            return AppCategory.AI
+            evidence += ClassificationCandidate(AppCategory.AI, 0.86f, ClassificationSource.LABEL_RULE)
         }
         if (lowerPkg.contains(Regex("chatgpt|openai|deepseek|gemini|claude|copilot"))) {
-            return AppCategory.AI
+            evidence += ClassificationCandidate(AppCategory.AI, 0.76f, ClassificationSource.PACKAGE_RULE)
         }
 
-        dynamicallyLoadedApps[packageName]?.let { return it }
-        knownApps[packageName]?.let { return it }
-        for ((regex, cat) in labelKeywords)   if (regex.containsMatchIn(label))       return cat
-        for ((regex, cat) in packageKeywords) if (regex.containsMatchIn(packageName)) return cat
-        return AppCategory.OTHER
+        labelKeywords.filter { (regex, _) -> regex.containsMatchIn(label) }.forEach { (_, category) ->
+            val confidence = if (category == AppCategory.VIDEO_EDITING) 0.86f else 0.72f
+            evidence += ClassificationCandidate(category, confidence, ClassificationSource.LABEL_RULE)
+        }
+        packageKeywords.filter { (regex, _) -> regex.containsMatchIn(packageName) }.forEach { (_, category) ->
+            evidence += ClassificationCandidate(category, 0.62f, ClassificationSource.PACKAGE_RULE)
+        }
+        return classifyEvidence(evidence)
     }
+
+    /**
+     * Android does not standardize an application-category metadata key. Only
+     * accept a category token that maps exactly to an ordinary Ciyato category;
+     * malformed metadata never becomes a hidden, custom, or review assignment.
+     */
+    private fun parseManifestCategory(raw: String): AppCategory? {
+        val normalized = raw.trim()
+            .replace('-', '_')
+            .replace(' ', '_')
+        return AppCategory.entries.firstOrNull { category ->
+            category !in setOf(
+                AppCategory.SUGGESTED,
+                AppCategory.RECENTLY_ADDED,
+                AppCategory.HIDDEN,
+                AppCategory.CUSTOM,
+                AppCategory.REVIEW,
+                AppCategory.OTHER,
+            ) && (
+                category.name.equals(normalized, ignoreCase = true) ||
+                    category.displayName.replace(' ', '_').equals(normalized, ignoreCase = true)
+                )
+        }
+    }
+
+    /**
+     * A category is automatic only at >= .85 with a .08 lead. Provisional and
+     * ambiguous results remain in Review, where a person may correct them.
+     */
+    private fun classifyEvidence(rawEvidence: List<ClassificationCandidate>): AppClassification {
+        if (rawEvidence.isEmpty()) {
+            return AppClassification(
+                category = AppCategory.REVIEW,
+                confidence = 0f,
+                source = ClassificationSource.REVIEW_FALLBACK,
+                reviewReason = ReviewReason.NO_MATCH,
+            )
+        }
+        val candidates = rawEvidence
+            .groupBy(ClassificationCandidate::category)
+            .map { (_, matches) -> matches.maxBy { it.confidence } }
+            .sortedByDescending(ClassificationCandidate::confidence)
+        val top = candidates.first()
+        val second = candidates.getOrNull(1)
+        val margin = second?.let { top.confidence - it.confidence } ?: Float.MAX_VALUE
+        if (top.confidence >= 0.85f && margin >= 0.08f) {
+            return AppClassification(
+                category = top.category,
+                confidence = top.confidence,
+                source = top.source,
+                candidates = candidates,
+            )
+        }
+        return AppClassification(
+            category = AppCategory.REVIEW,
+            confidence = top.confidence,
+            source = top.source,
+            suggestedCategory = top.category,
+            candidates = candidates,
+            reviewReason = if (second != null && margin < 0.08f) {
+                ReviewReason.AMBIGUOUS_EVIDENCE
+            } else {
+                ReviewReason.LOW_CONFIDENCE
+            },
+        )
+    }
+
+    /** Compatibility helper for category-only consumers. */
+    fun categorize(packageName: String, label: String): AppCategory =
+        classify(packageName, label).category
 
     fun secondaryCategories(pkg: String, label: String, primary: AppCategory): List<AppCategory> {
         val extras = mutableListOf<AppCategory>()

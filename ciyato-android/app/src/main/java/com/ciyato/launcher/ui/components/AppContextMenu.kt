@@ -101,6 +101,14 @@ fun AppContextMenu(
                         fontSize = 16.sp)
                     Text(app.packageName.substringAfterLast('.'), color = CiyatoMuted,
                         fontSize = 12.sp)
+                    app.classification.suggestedCategory?.let { suggestion ->
+                        Text(
+                            "Review suggestion: ${viewModel.getCategoryDisplayName(suggestion)}. Choose Change Category to confirm or correct it.",
+                            color = CiyatoGold,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
 
                 HorizontalDivider(color = CiyatoBorder)

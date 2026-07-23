@@ -4,6 +4,7 @@
 
     <!-- App listing and launching. Required for a launcher to show installed apps. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <!-- Network is used by Weather only when that screen/widget is opened. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -36,6 +37,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
         android:theme="@style/Theme.Ciyato">
 
         <!-- LauncherHomeActivity is the actual Android HOME screen. -->

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.BuildConfig
 import com.ciyato.launcher.data.CrashReporter
 import com.ciyato.launcher.data.LocationHelper
+import com.ciyato.launcher.data.PhotoLibraryStore
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.ui.components.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
@@ -68,11 +69,13 @@ fun SettingsScreen(
     val bedtimeMode        by viewModel.bedtimeMode.collectAsState()
     val bedtimeHour        by viewModel.bedtimeHour.collectAsState()
     val hapticFeedback     by viewModel.hapticFeedback.collectAsState()
+    val reduceMotion       by viewModel.reduceMotion.collectAsState()
     val privacyMode        by viewModel.privacyMode.collectAsState()
     val screenshotBlocked  by viewModel.screenshotBlocked.collectAsState()
     val crashReporting     by viewModel.crashReporting.collectAsState()
     val showRecentLaunched by viewModel.showRecentlyLaunched.collectAsState()
     val filesRootUri       by viewModel.filesRootUri.collectAsState()
+    val photoMediaUris     by viewModel.photoMediaUris.collectAsState()
     val hiddenAppsCsv      by viewModel.hiddenApps.collectAsState()
     val removedAppsCsv     by viewModel.removedApps.collectAsState()
     val locationGranted    = LocationHelper.hasPermission(context)
@@ -90,6 +93,7 @@ fun SettingsScreen(
     var showBlurDialog    by remember { mutableStateOf(false) }
     var showCrashLogs     by remember { mutableStateOf(false) }
     var showForgetFilesDialog by remember { mutableStateOf(false) }
+    var showClearPhotosDialog by remember { mutableStateOf(false) }
     var showResetLayoutDialog by remember { mutableStateOf(false) }
     var showResetGuidanceDialog by remember { mutableStateOf(false) }
     var showResetAllDialog by remember { mutableStateOf(false) }
@@ -238,13 +242,33 @@ fun SettingsScreen(
                 )
             }
             item {
+                CiyatoSettingSwitch(
+                    title = "Reduce Motion",
+                    subtitle = "Use calmer workspace transitions and pause Ciyato video backgrounds",
+                    icon = Icons.Default.MotionPhotosPause,
+                    checked = reduceMotion,
+                    onCheckedChange = viewModel::setReduceMotion
+                )
+            }
+            item {
                 CiyatoListCard(
                     title = "Photos Access",
-                    subtitle = "Uses Android Photo Picker; no full-gallery permission is requested.",
+                    subtitle = "${PhotoLibraryStore.parseUris(photoMediaUris).size} selected item(s). Android Photo Picker only.",
                     icon = Icons.Default.PhotoLibrary,
                     iconColor = CiyatoBlue,
                     onClick = { onNavigateToPhotos?.invoke() ?: openAppSettings(context) }
                 )
+            }
+            if (PhotoLibraryStore.parseUris(photoMediaUris).isNotEmpty()) {
+                item {
+                    CiyatoListCard(
+                        title = "Clear Selected Photos",
+                        subtitle = "Removes Ciyato's references. Original media stays on your device.",
+                        icon = Icons.Default.PhotoLibrary,
+                        iconColor = CiyatoSec,
+                        onClick = { showClearPhotosDialog = true }
+                    )
+                }
             }
             item {
                 CiyatoListCard(
@@ -300,7 +324,7 @@ fun SettingsScreen(
             item {
                 CiyatoSettingSwitch(
                     title = "Privacy Mode",
-                    subtitle = "Hide notification counts and app labels",
+                    subtitle = "Hide personal greeting, weather details, and recently used apps on Home",
                     icon = Icons.Default.VisibilityOff,
                     checked = privacyMode,
                     onCheckedChange = viewModel::setPrivacyMode
@@ -484,6 +508,31 @@ fun SettingsScreen(
                     Text("Cancel", color = CiyatoSec)
                 }
             }
+        )
+    }
+
+    if (showClearPhotosDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearPhotosDialog = false },
+            containerColor = CiyatoBgEl,
+            title = { Text("Clear selected photos", color = CiyatoWhite, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Ciyato will forget the media you selected and remove local collections. Nothing is deleted from your device.",
+                    color = CiyatoSec,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearPhotoLibrary()
+                    showClearPhotosDialog = false
+                }) { Text("Clear", color = CiyatoGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearPhotosDialog = false }) { Text("Cancel", color = CiyatoSec) }
+            },
         )
     }
 

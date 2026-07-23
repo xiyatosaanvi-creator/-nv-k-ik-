@@ -2,6 +2,11 @@ package com.ciyato.launcher.ui.screens
 
 import android.app.WallpaperManager
 import android.content.Intent
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ciyato.launcher.ui.theme.*
 import com.ciyato.launcher.viewmodel.LauncherViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * WallpaperPickerScreen - Suggestion #93
@@ -61,7 +70,48 @@ fun WallpaperPickerScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selected by remember { mutableStateOf<String?>(null) }
+    var imageStatus by remember { mutableStateOf<String?>(null) }
+    val personalImagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                imageStatus = "Applying image..."
+                imageStatus = if (applyImageWallpaper(context, uri)) {
+                    viewModel.setCiyatoVideoWallpaper("")
+                    viewModel.setUseSystemWallpaper(true)
+                    "Personal image applied."
+                } else {
+                    "Ciyato could not apply that image."
+                }
+            }
+        }
+    }
+    val personalVideoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                imageStatus = "Checking video..."
+                val result = withContext(Dispatchers.IO) { validateCiyatoVideo(context, uri) }
+                if (!result.isValid) {
+                    imageStatus = result.message
+                    return@launch
+                }
+                imageStatus = "Preparing Ciyato video background..."
+                val localUri = importCiyatoVideo(context, uri)
+                imageStatus = if (localUri != null) {
+                    viewModel.setCiyatoVideoWallpaper(localUri.toString())
+                    viewModel.setUseSystemWallpaper(false)
+                    "Ciyato-only video background applied. It pauses when Ciyato is hidden, the screen is off, or Battery Saver is on."
+                } else {
+                    "Ciyato could not prepare that video. Choose another clip."
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = CiyatoBg,
@@ -90,8 +140,9 @@ fun WallpaperPickerScreen(
                 colors = CardDefaults.cardColors(containerColor = CiyatoBgEl),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().clickable {
-                    val intent = Intent(Intent.ACTION_SET_WALLPAPER)
-                    context.startActivity(Intent.createChooser(intent, "Select Wallpaper"))
+                    personalImagePicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
                 },
             ) {
                 Row(
@@ -101,11 +152,54 @@ fun WallpaperPickerScreen(
                 ) {
                     Icon(Icons.Default.Wallpaper, null, tint = CiyatoGold, modifier = Modifier.size(24.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Choose from Gallery", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
-                        Text("Pick any photo from your library", color = CiyatoMuted, fontSize = 12.sp)
+                        Text("Choose personal image", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                        Text("Uses Android Photo Picker - no broad photo access", color = CiyatoMuted, fontSize = 12.sp)
                     }
                     Text("→", color = CiyatoSec, fontSize = 18.sp)
                 }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = CiyatoBgEl),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().clickable {
+                    personalVideoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                    )
+                },
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Wallpaper, null, tint = CiyatoGold, modifier = Modifier.size(24.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Choose short video", color = CiyatoWhite, fontWeight = FontWeight.SemiBold)
+                        Text("Ciyato-only background, silent, up to 15 seconds", color = CiyatoMuted, fontSize = 12.sp)
+                    }
+                    Text("->", color = CiyatoSec, fontSize = 18.sp)
+                }
+            }
+
+            TextButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_SET_WALLPAPER))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Open system wallpaper picker", color = CiyatoGold)
+            }
+
+            imageStatus?.let { status ->
+                Text(
+                    status,
+                    color = CiyatoSec,
+                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             Text("Gradient Presets", color = CiyatoWhite, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -122,6 +216,8 @@ fun WallpaperPickerScreen(
                         onClick = {
                             selected = wp.id
                             applyGradientWallpaper(context, wp)
+                            viewModel.setCiyatoVideoWallpaper("")
+                            viewModel.setUseSystemWallpaper(true)
                         }
                     )
                 }
@@ -196,3 +292,43 @@ private fun applyGradientWallpaper(context: android.content.Context, wp: Gradien
         wm.setBitmap(bitmap)
     } catch (_: Exception) {}
 }
+
+private suspend fun applyImageWallpaper(context: android.content.Context, uri: Uri): Boolean =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                WallpaperManager.getInstance(context).setStream(stream)
+            } ?: error("Selected image is no longer available")
+        }.isSuccess
+    }
+
+private data class VideoValidationResult(val isValid: Boolean, val message: String)
+
+private fun validateCiyatoVideo(context: android.content.Context, uri: Uri): VideoValidationResult = runCatching {
+    val retriever = MediaMetadataRetriever()
+    retriever.setDataSource(context, uri)
+    val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+    val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+    val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+    val mimeType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE).orEmpty()
+    retriever.release()
+    when {
+        durationMs <= 0L -> VideoValidationResult(false, "Ciyato could not read that video.")
+        durationMs > 15_000L -> VideoValidationResult(false, "This video is longer than 15 seconds. Trim it in your video editor, then choose the short clip again.")
+        width <= 0 || height <= 0 -> VideoValidationResult(false, "That video has an unsupported resolution.")
+        !mimeType.startsWith("video/") -> VideoValidationResult(false, "Choose a supported video file.")
+        else -> VideoValidationResult(true, "Ciyato-only video background applied. It pauses in Battery Saver.")
+    }
+}.getOrElse { VideoValidationResult(false, "Ciyato could not open that video.") }
+
+private suspend fun importCiyatoVideo(context: android.content.Context, source: Uri): Uri? =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val directory = File(context.filesDir, "wallpapers").apply { mkdirs() }
+            val target = File(directory, "ciyato_video_wallpaper.mp4")
+            context.contentResolver.openInputStream(source)?.use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            } ?: error("Selected video is no longer readable")
+            Uri.fromFile(target)
+        }.getOrNull()
+    }

@@ -2,6 +2,13 @@
 
 Specification reviewed: `Ciyato_Comprehensive_Implementation_Specification_Dark_Expanded.pdf`, pages 1-49.
 
+## Scope Rule
+
+The 49-page V2 specification is the only active product specification. Earlier recovery
+notes, promotional mockups, and previous change manuals are not implementation inputs.
+Where existing code conflicts with the V2 document, V2 wins. Page-by-page status and
+verification evidence live in `V2_TRACEABILITY.md`.
+
 ## Active Architecture
 
 - `LauncherHomeActivity` is the Android HOME activity. It hosts Home, the App Library, global launcher search, weather, agenda and launcher settings using local sealed-state navigation.
@@ -9,7 +16,7 @@ Specification reviewed: `Ciyato_Comprehensive_Implementation_Specification_Dark_
 - `LauncherViewModel` owns application inventory, category view state, launcher preferences, weather state and persistent layout helpers.
 - `LauncherRepository` scans launchable activities through `PackageManager`, applies user overrides and launches applications.
 - `LauncherSettingsRepository` is the current persistence layer. It uses DataStore preferences, not Room.
-- Files use user-selected SAF roots and `DocumentFile`. Photos use Android Photo Picker selections. Weather uses foreground location and Open-Meteo.
+- Files use user-selected SAF roots and `DocumentFile`. Photos use Android Photo Picker selections. Weather uses foreground location and Open-Meteo. Revoked SAF access clears the internal file index and produces an explicit reselect-folder state rather than serving cached results.
 
 ## V2 Migration Completed In This Slice
 
@@ -26,12 +33,12 @@ Specification reviewed: `Ciyato_Comprehensive_Implementation_Specification_Dark_
 - Existing `dashboard` deep links map to internal `home`; legacy `shared` deep links map to `photos`.
 - Existing DataStore preferences are preserved. No destructive preference migration was performed.
 - Existing manual category, app, dock, workspace and appearance preferences remain intact.
-- The current workspace persistence is JSON/CSV in DataStore. It cannot yet meet the V2 stable-ID/order/migration requirements; a versioned Room model is required before a full workspace engine migration.
+- Workspace persistence is a versioned `WorkspaceLayout` JSON record in DataStore with stable IDs, immutable creation order, independent visual order, a default workspace, and legacy migration. Custom categories now persist an explicit `GROUP` or `CARD` presentation choice; legacy collections safely become Groups. Device migration evidence and full valid-grid behavior remain required before the workspace engine can be accepted.
 
 ## Dependency Audit
 
 - Active and justified: Compose, Navigation, DataStore, DocumentFile, OkHttp, Coil, lifecycle and coroutines.
-- Declared but not yet used for the required production role: Room, WorkManager and Paging. The V2 file index, cleanup engine, search history and workspace model should use these rather than adding more preference blobs.
+- WorkManager is active for bounded file-cleanup hashing. Room and Paging remain declared but are not active in the released data path; the current bounded file index, search history and workspace model remain DataStore-backed and need a scale/performance decision before release.
 - Legacy/experimental presentation candidates remain in source and must be removed only after their dependencies and navigation references are mapped: `DuplicateShortcutStrip`, `SwipeableHomeDrawer`, `MultiPageHomeScreen`, old widget experiments and many disconnected feature screens.
 
 ## Permission And Policy Audit
@@ -40,21 +47,23 @@ Specification reviewed: `Ciyato_Comprehensive_Implementation_Specification_Dark_
 - Location is foreground-only and requests fine plus coarse together. Android can still grant approximate access.
 - Calendar permission is declared but must have a contextual connection flow and a real event source before Today is production-ready.
 - Photo Picker avoids broad photo access. SAF access is user-selected and persisted.
-- There is no background location, all-files declaration or unsafe file URI exposure in the manifest.
+- There is no background location or all-files declaration. Cleartext network traffic is disabled, and active file viewers receive only read grants for the selected URI.
+- The build currently targets API 34. Google Play requires API 35 for a new mobile submission today; a complete API 35/36 base platform must be installed and the behavior change physically tested before a Play submission.
 
 ## Remaining V2 Work
 
-1. Replace preference-based workspace state with a versioned persistent placement model, stable workspace IDs and real drag/reflow/undo semantics.
-2. Build the V2 Files data layer: authorised-root scanning, background checkpoints, real categories, cryptographic duplicate confirmation and explicit deletion results.
-3. Replace internal media search's direct broad `MediaStore` assumptions with an index scoped to granted SAF/media access, including denial and revocation states.
-4. Finish Wallpaper Studio with Photo Picker image input, Ciyato-only short-video background handling and honest system-wallpaper language.
-5. Audit every Settings control for an observable persisted effect; remove any decorative setting.
-6. Add a classifier confidence model, Review fallback and user-correction persistence that cannot be overwritten by automation.
+1. Finish valid-grid reflow, deliberate group-creation hover behavior, and physical-device proof of per-action undo semantics.
+2. Add denial, revocation, cancellation and deletion-result coverage to the SAF Files, cleanup and internal-search flows.
+3. Finish Wallpaper Studio crop/contrast options and validate its image/video lifecycle behavior on a physical device.
+4. Finish formal behavioral coverage for every Settings control, including the persisted appearance, privacy and crash-reporting effects already wired into the current UI.
+5. Extend classifier discovery for managed work profiles and incremental package changes, then validate correction persistence on a physical device.
+6. Install a complete Android API 35/36 base SDK, update the target API, and run the behavior compatibility pass.
 7. Add accessibility and migration tests, then validate gestures, permission paths, wallpaper behavior and layout on physical Android devices.
 
 ## Verification In This Slice
 
 - `assembleDebug`: passed without an emulator.
-- `testDebugUnitTest`: passed without an emulator.
+- `testDebugUnitTest`: passed without an emulator (33 JVM tests, zero failures).
 - `git diff --check`: passed.
+- Current debug artifact: `Ciyato.apk`, 24,487,275 bytes, SHA-256 `7C62D551C6D7C38FEDFD6F102BA97EF729F5B447256A7FA2B2BFB28B2F4B774C`.
 - Physical-device validation remains required before any completion claim.

@@ -52,6 +52,7 @@ class LauncherSettingsRepository(private val context: Context) {
         val KEY_SHOW_HOME_SEARCH       = booleanPreferencesKey("show_home_search")
         val KEY_SHOW_HOME_WEATHER      = booleanPreferencesKey("show_home_weather")
         val KEY_SHOW_HOME_AGENDA       = booleanPreferencesKey("show_home_agenda")
+        val KEY_SHOW_HOME_DOCK         = booleanPreferencesKey("show_home_dock")
         val KEY_SHOW_APP_DRAWER        = booleanPreferencesKey("show_app_drawer")
         val KEY_HIDDEN_HOME_CATEGORIES = stringPreferencesKey("hidden_home_categories")
         val KEY_DENSE_LAYOUT           = booleanPreferencesKey("dense_layout")
@@ -103,6 +104,7 @@ class LauncherSettingsRepository(private val context: Context) {
 
         // ── Haptic (#1) ───────────────────────────────────────────────────────
         val KEY_HAPTIC_FEEDBACK        = booleanPreferencesKey("haptic_feedback")
+        val KEY_REDUCE_MOTION          = booleanPreferencesKey("reduce_motion")
 
         // ── Notification badges (#2, #81) ─────────────────────────────────────
         val KEY_NOTIFICATION_BADGES    = booleanPreferencesKey("notification_badges")
@@ -148,18 +150,26 @@ class LauncherSettingsRepository(private val context: Context) {
 
         // ── Custom Layout Settings ──
         val KEY_USE_SYSTEM_WALLPAPER   = booleanPreferencesKey("use_system_wallpaper")
+        val KEY_CIYATO_VIDEO_WALLPAPER = stringPreferencesKey("ciyato_video_wallpaper")
         val KEY_CATEGORY_ORDER         = stringPreferencesKey("category_order")
         val KEY_CATEGORY_TILES_SIZES   = stringPreferencesKey("category_tiles_sizes")
         val KEY_CUSTOM_CATEGORIES     = stringPreferencesKey("custom_categories")
         val KEY_CUSTOM_CATEGORY_ICONS = stringPreferencesKey("custom_category_icons")
+        val KEY_CUSTOM_CATEGORY_PRESENTATIONS = stringPreferencesKey("custom_category_presentations")
         val KEY_PAGE_0_APPS            = stringPreferencesKey("page_0_apps")
         val KEY_PAGE_2_APPS            = stringPreferencesKey("page_2_apps")
         val KEY_WORKSPACE_COUNT        = intPreferencesKey("workspace_count")
         val KEY_WORKSPACE_APPS         = stringPreferencesKey("workspace_apps")
         val KEY_WORKSPACE_CATEGORIES   = stringPreferencesKey("workspace_categories")
         val KEY_WORKSPACE_TRANSITION   = stringPreferencesKey("workspace_transition")
+        val KEY_WORKSPACE_LAYOUT_V2    = stringPreferencesKey("workspace_layout_v2")
         val KEY_FILES_ROOT_URI         = stringPreferencesKey("files_root_uri")
         val KEY_DRAWER_STYLE           = stringPreferencesKey("drawer_style")       // smart | dense | spacious
+        val KEY_PHOTO_MEDIA_URIS       = stringPreferencesKey("photo_media_uris")
+        val KEY_PHOTO_COLLECTIONS      = stringPreferencesKey("photo_collections")
+        val KEY_FILE_SEARCH_HISTORY    = stringPreferencesKey("file_search_history")
+        val KEY_SAVE_FILE_SEARCH_HISTORY = booleanPreferencesKey("save_file_search_history")
+        val KEY_FILE_SEARCH_INDEX      = stringPreferencesKey("file_search_index")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -170,11 +180,12 @@ class LauncherSettingsRepository(private val context: Context) {
     val showHomeSearch:         Flow<Boolean> = pref(KEY_SHOW_HOME_SEARCH,        true)
     val showHomeWeather:        Flow<Boolean> = pref(KEY_SHOW_HOME_WEATHER,       true)
     val showHomeAgenda:         Flow<Boolean> = pref(KEY_SHOW_HOME_AGENDA,        true)
+    val showHomeDock:           Flow<Boolean> = pref(KEY_SHOW_HOME_DOCK,          true)
     val showAppDrawer:          Flow<Boolean> = pref(KEY_SHOW_APP_DRAWER,         true)
     val hiddenHomeCategories:   Flow<String>  = pref(KEY_HIDDEN_HOME_CATEGORIES,  "")
     val denseLayout:            Flow<Boolean> = pref(KEY_DENSE_LAYOUT,            false)
     val homeLayoutMode:         Flow<String>  = pref(KEY_HOME_LAYOUT_MODE,        "spacious")
-    val darkMode:               Flow<String>  = pref(KEY_DARK_MODE,               "auto")
+    val darkMode:               Flow<String>  = pref(KEY_DARK_MODE,               "dark")
     val goldAccent:             Flow<Boolean> = pref(KEY_GOLD_ACCENT,             true)
     val smartCategories:        Flow<Boolean> = pref(KEY_SMART_CATEGORIES,        true)
     val duplicateShortcuts:     Flow<Boolean> = pref(KEY_DUPLICATE_SHORTCUTS,     true)
@@ -214,6 +225,7 @@ class LauncherSettingsRepository(private val context: Context) {
     val focusDurationMin:       Flow<Int>     = pref(KEY_FOCUS_DURATION_MIN,      25)
 
     val hapticFeedback:         Flow<Boolean> = pref(KEY_HAPTIC_FEEDBACK,         true)
+    val reduceMotion:           Flow<Boolean> = pref(KEY_REDUCE_MOTION,           false)
     val notificationBadges:     Flow<Boolean> = pref(KEY_NOTIFICATION_BADGES,     true)
 
     val contextualWidgets:      Flow<Boolean> = pref(KEY_CONTEXTUAL_WIDGETS,      true)
@@ -245,18 +257,26 @@ class LauncherSettingsRepository(private val context: Context) {
     val debugLocationStub:      Flow<Boolean> = pref(KEY_DEBUG_LOCATION_STUB,     false)
 
     val useSystemWallpaper:     Flow<Boolean> = pref(KEY_USE_SYSTEM_WALLPAPER,    true)
+    val ciyatoVideoWallpaper:   Flow<String>  = pref(KEY_CIYATO_VIDEO_WALLPAPER,  "")
     val categoryOrder:          Flow<String>  = pref(KEY_CATEGORY_ORDER,         "")
     val categoryTilesSizes:     Flow<String>  = pref(KEY_CATEGORY_TILES_SIZES,     "{}")
     val customCategories:       Flow<String>  = pref(KEY_CUSTOM_CATEGORIES,       "")
     val customCategoryIcons:    Flow<String>  = pref(KEY_CUSTOM_CATEGORY_ICONS,   "{}")
+    val customCategoryPresentations: Flow<String> = pref(KEY_CUSTOM_CATEGORY_PRESENTATIONS, "{}")
     val page0Apps:              Flow<String>  = pref(KEY_PAGE_0_APPS,             "")
     val page2Apps:              Flow<String>  = pref(KEY_PAGE_2_APPS,             "")
     val workspaceCount:         Flow<Int>     = pref(KEY_WORKSPACE_COUNT,          3)
     val workspaceApps:          Flow<String>  = pref(KEY_WORKSPACE_APPS,           "{}")
     val workspaceCategories:    Flow<String>  = pref(KEY_WORKSPACE_CATEGORIES,     "{}")
     val workspaceTransition:    Flow<String>  = pref(KEY_WORKSPACE_TRANSITION,     "slide")
+    val workspaceLayoutV2:      Flow<String>  = pref(KEY_WORKSPACE_LAYOUT_V2,      "")
     val filesRootUri:           Flow<String>  = pref(KEY_FILES_ROOT_URI,          "")
     val drawerStyle:            Flow<String>  = pref(KEY_DRAWER_STYLE,            "smart")
+    val photoMediaUris:         Flow<String>  = pref(KEY_PHOTO_MEDIA_URIS,        "[]")
+    val photoCollections:       Flow<String>  = pref(KEY_PHOTO_COLLECTIONS,       "[]")
+    val fileSearchHistory:      Flow<String>  = pref(KEY_FILE_SEARCH_HISTORY,     "[]")
+    val saveFileSearchHistory:  Flow<Boolean> = pref(KEY_SAVE_FILE_SEARCH_HISTORY, true)
+    val fileSearchIndex:        Flow<String>  = pref(KEY_FILE_SEARCH_INDEX,       "")
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -266,6 +286,7 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setShowHomeSearch(v: Boolean)          = set(KEY_SHOW_HOME_SEARCH,         v)
     suspend fun setShowHomeWeather(v: Boolean)         = set(KEY_SHOW_HOME_WEATHER,        v)
     suspend fun setShowHomeAgenda(v: Boolean)          = set(KEY_SHOW_HOME_AGENDA,         v)
+    suspend fun setShowHomeDock(v: Boolean)            = set(KEY_SHOW_HOME_DOCK,           v)
     suspend fun setShowAppDrawer(v: Boolean)           = set(KEY_SHOW_APP_DRAWER,          v)
     suspend fun setHiddenHomeCategories(v: String)     = set(KEY_HIDDEN_HOME_CATEGORIES,  v)
     suspend fun setDenseLayout(v: Boolean)             = set(KEY_DENSE_LAYOUT,             v)
@@ -313,6 +334,7 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setFocusDurationMin(v: Int)            = set(KEY_FOCUS_DURATION_MIN,      v.coerceIn(5, 120))
 
     suspend fun setHapticFeedback(v: Boolean)          = set(KEY_HAPTIC_FEEDBACK,         v)
+    suspend fun setReduceMotion(v: Boolean)            = set(KEY_REDUCE_MOTION,           v)
     suspend fun setNotificationBadges(v: Boolean)      = set(KEY_NOTIFICATION_BADGES,     v)
 
     suspend fun setContextualWidgets(v: Boolean)       = set(KEY_CONTEXTUAL_WIDGETS,      v)
@@ -344,18 +366,26 @@ class LauncherSettingsRepository(private val context: Context) {
     suspend fun setDebugLocationStub(v: Boolean)       = set(KEY_DEBUG_LOCATION_STUB,     v)
 
     suspend fun setUseSystemWallpaper(v: Boolean)      = set(KEY_USE_SYSTEM_WALLPAPER,     v)
+    suspend fun setCiyatoVideoWallpaper(v: String)     = set(KEY_CIYATO_VIDEO_WALLPAPER,   v)
     suspend fun setCategoryOrder(v: String)            = set(KEY_CATEGORY_ORDER,           v)
     suspend fun setCategoryTilesSizes(v: String)        = set(KEY_CATEGORY_TILES_SIZES,       v)
     suspend fun setCustomCategories(v: String)          = set(KEY_CUSTOM_CATEGORIES,         v)
     suspend fun setCustomCategoryIcons(v: String)       = set(KEY_CUSTOM_CATEGORY_ICONS,     v)
+    suspend fun setCustomCategoryPresentations(v: String) = set(KEY_CUSTOM_CATEGORY_PRESENTATIONS, v)
     suspend fun setPage0Apps(v: String)                = set(KEY_PAGE_0_APPS,              v)
     suspend fun setPage2Apps(v: String)                = set(KEY_PAGE_2_APPS,              v)
-    suspend fun setWorkspaceCount(v: Int)              = set(KEY_WORKSPACE_COUNT,          v.coerceIn(3, 10))
+    suspend fun setWorkspaceCount(v: Int)              = set(KEY_WORKSPACE_COUNT,          v.coerceIn(3, 11))
     suspend fun setWorkspaceApps(v: String)            = set(KEY_WORKSPACE_APPS,           v)
     suspend fun setWorkspaceCategories(v: String)      = set(KEY_WORKSPACE_CATEGORIES,     v)
     suspend fun setWorkspaceTransition(v: String)      = set(KEY_WORKSPACE_TRANSITION,     v)
+    suspend fun setWorkspaceLayoutV2(v: String)        = set(KEY_WORKSPACE_LAYOUT_V2,      v)
     suspend fun setFilesRootUri(v: String)             = set(KEY_FILES_ROOT_URI,           v)
     suspend fun setDrawerStyle(v: String)              = set(KEY_DRAWER_STYLE,             v)
+    suspend fun setPhotoMediaUris(v: String)           = set(KEY_PHOTO_MEDIA_URIS,         v)
+    suspend fun setPhotoCollections(v: String)         = set(KEY_PHOTO_COLLECTIONS,        v)
+    suspend fun setFileSearchHistory(v: String)        = set(KEY_FILE_SEARCH_HISTORY,      v)
+    suspend fun setSaveFileSearchHistory(v: Boolean)   = set(KEY_SAVE_FILE_SEARCH_HISTORY, v)
+    suspend fun setFileSearchIndex(v: String)          = set(KEY_FILE_SEARCH_INDEX,       v)
 
     suspend fun resetLayout() {
         context.dataStore.edit { p ->
@@ -365,10 +395,11 @@ class LauncherSettingsRepository(private val context: Context) {
             p[KEY_SHOW_HOME_SEARCH]    = true
             p[KEY_SHOW_HOME_WEATHER]   = true
             p[KEY_SHOW_HOME_AGENDA]    = true
+            p[KEY_SHOW_HOME_DOCK]      = true
             p[KEY_SHOW_APP_DRAWER]     = true
             p[KEY_HIDDEN_HOME_CATEGORIES] = ""
             p[KEY_WORKSPACE_TRANSITION] = "slide"
-            p[KEY_DARK_MODE]           = "auto"
+            p[KEY_DARK_MODE]           = "dark"
             p[KEY_GOLD_ACCENT]         = true
             p[KEY_SMART_CATEGORIES]    = true
             p[KEY_DUPLICATE_SHORTCUTS] = true

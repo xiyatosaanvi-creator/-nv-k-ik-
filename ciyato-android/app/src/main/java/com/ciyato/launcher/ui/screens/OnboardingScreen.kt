@@ -207,7 +207,7 @@ private val detailedPages = listOf(
         bullets = listOf(
             "Files: choose one folder before Ciyato can browse local files.",
             "Photos: select the media you want Ciyato to display.",
-            "Weather: grant approximate location only while setting up weather.",
+            "Weather: Android asks for location only while you set up weather, and you can choose approximate access.",
             "Calendar: connect only when you want to see real upcoming events.",
         ),
         visual = OnboardingVisual.PERMISSIONS,
@@ -239,41 +239,9 @@ private val detailedPages = listOf(
     ),
 )
 
-// The full copy above remains as design reference. First-run onboarding is intentionally
-// compressed into three visual screens so people can reach their home screen quickly.
-private val pages = listOf(
-    OnboardingPage(
-        icon = Icons.Default.AutoAwesome,
-        eyebrow = "CIYATO HOME",
-        title = "A calm start.",
-        subtitle = "Your apps, easier to reach.",
-        body = "Ciyato gives your real Android apps a clearer home, a five-app dock, and an organized App Library.",
-        bullets = listOf("Swipe up or tap Apps to open everything.", "Long-press Home to arrange it."),
-        panels = emptyList(),
-        showHomePreview = true,
-        visual = OnboardingVisual.HOME,
-    ),
-    OnboardingPage(
-        icon = Icons.Default.ViewModule,
-        eyebrow = "MAKE IT YOURS",
-        title = "Organize in seconds.",
-        subtitle = "Suggestions first. Your choices always win.",
-        body = "Create categories, move shortcuts, and keep only the sections that matter. Every display change is reversible.",
-        bullets = listOf("Edit, hide, or remove from display.", "Your layout stays on this device."),
-        panels = emptyList(),
-        visual = OnboardingVisual.ORGANIZE,
-    ),
-    OnboardingPage(
-        icon = Icons.Default.Lock,
-        eyebrow = "READY WHEN YOU ARE",
-        title = "Set up with care.",
-        subtitle = "Permissions are asked only when a feature needs them.",
-        body = "Files use Android's folder picker. Photos use the Photo Picker. Weather asks for foreground location and lets you choose precise or approximate access.",
-        bullets = listOf("No background location.", "You can set Ciyato as Home now or skip."),
-        panels = emptyList(),
-        visual = OnboardingVisual.HANDOFF,
-    ),
-)
+// First-run uses the full V2 onboarding sequence. Each page gives enough context
+// for an informed choice without requesting unrelated permissions up front.
+private val pages = detailedPages
 
 @Composable
 fun OnboardingScreen(onDone: () -> Unit) {
